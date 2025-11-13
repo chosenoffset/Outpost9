@@ -162,10 +162,34 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 
 	tileSize := g.gameMap.Data.TileSize
 
+	// Pass 1: Draw floor layer (fills entire map with floor tile)
+	if g.gameMap.Data.FloorTile != "" {
+		floorTile, ok := g.gameMap.Atlas.GetTile(g.gameMap.Data.FloorTile)
+		if ok {
+			floorImg := g.gameMap.Atlas.GetTileSubImage(floorTile)
+			for y := 0; y < g.gameMap.Data.Height; y++ {
+				for x := 0; x < g.gameMap.Data.Width; x++ {
+					screenX := float64(x * tileSize)
+					screenY := float64(y * tileSize)
+
+					opts := &ebiten.DrawImageOptions{}
+					opts.GeoM.Translate(screenX, screenY)
+					screen.DrawImage(floorImg, opts)
+				}
+			}
+		}
+	}
+
+	// Pass 2: Draw walls/objects layer (only non-empty tiles)
 	for y := 0; y < g.gameMap.Data.Height; y++ {
 		for x := 0; x < g.gameMap.Data.Width; x++ {
 			tileName, err := g.gameMap.GetTileAt(x, y)
 			if err != nil {
+				continue
+			}
+
+			// Skip empty tiles (let floor show through)
+			if tileName == "" {
 				continue
 			}
 

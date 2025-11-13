@@ -4,6 +4,7 @@
   "height": 10,
   "tile_size": 16,
   "atlas": "data/Example/atlas.json",
+  "floor_tile": "f1x",
   "player_spawn": {
     "x": 100,
     "y": 100
@@ -11,12 +12,12 @@
   "tiles": [
     ["nwt", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "net"],
     ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
-    ["wwx", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "wex"],
-    ["wwx", "f1x", "f1x", "f1x", "f1x", "nwt", "nwt", "nwt", "net", "f1x", "f1x", "f1x", "wex"],
-    ["wwx", "f1x", "f1x", "f1x", "f1x", "nwb", "nwb", "nwb", "neb", "f1x", "f1x", "f1x", "wex"],
-    ["wwx", "f1x", "f1x", "f1x", "f1x", "wwx", "f1x", "f1x", "wex", "f1x", "f1x", "f1x", "wex"],
-    ["wwx", "f1x", "f1x", "f1x", "f1x", "wwx", "f1x", "f1x", "wex", "f1x", "f1x", "f1x", "wex"],
-    ["wwx", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "wex"],
+    ["wwx", "", "", "", "", "", "", "", "", "", "", "", "wex"],
+    ["wwx", "", "", "", "", "nwt", "nwt", "nwt", "net", "", "", "", "wex"],
+    ["wwx", "", "", "", "", "nwb", "nwb", "nwb", "neb", "", "", "", "wex"],
+    ["wwx", "", "", "", "", "wwx", "", "", "wex", "", "", "", "wex"],
+    ["wwx", "", "", "", "", "wwx", "", "", "wex", "", "", "", "wex"],
+    ["wwx", "", "", "", "", "", "", "", "", "", "", "", "wex"],
     ["swt", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "set"],
     ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
   ]

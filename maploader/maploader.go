@@ -21,8 +21,9 @@ type MapData struct {
 	Height      int        `json:"height"`
 	TileSize    int        `json:"tile_size"` // Tile size in pixels (used for both atlas and rendering)
 	AtlasPath   string     `json:"atlas"`
+	FloorTile   string     `json:"floor_tile"`   // Default floor tile to fill the entire map
 	PlayerSpawn SpawnPoint `json:"player_spawn"`
-	Tiles       [][]string `json:"tiles"` // 2D array of tile names [y][x]
+	Tiles       [][]string `json:"tiles"` // 2D array of tile names [y][x] - walls/objects layer
 }
 
 // Map represents a loaded map with its atlas
