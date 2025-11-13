@@ -1,0 +1,23 @@
+{
+  "name": "Example Level 1",
+  "width": 13,
+  "height": 10,
+  "tile_size": 16,
+  "atlas": "data/Example/atlas.json",
+  "player_spawn": {
+    "x": 400,
+    "y": 300
+  },
+  "tiles": [
+    ["wall_top_left", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_right"],
+    ["wall_left", "floor_1", "floor_2", "floor_3", "floor_4", "floor_5", "floor_6", "floor_7", "floor_8", "floor_1", "floor_2", "floor_3", "wall_right"],
+    ["wall_left", "floor_4", "floor_5", "floor_6", "floor_7", "floor_8", "floor_1", "floor_2", "floor_3", "floor_4", "floor_5", "floor_6", "wall_right"],
+    ["wall_left", "floor_7", "floor_8", "floor_1", "floor_2", "wall_top_left", "wall_top_mid", "wall_top_mid", "wall_top_right", "floor_7", "floor_8", "floor_1", "wall_right"],
+    ["wall_left", "floor_2", "floor_3", "floor_4", "floor_5", "wall_left", "floor_1", "floor_2", "wall_right", "floor_2", "floor_3", "floor_4", "wall_right"],
+    ["wall_left", "floor_6", "floor_7", "floor_8", "floor_1", "wall_left", "floor_3", "floor_4", "wall_right", "floor_6", "floor_7", "floor_8", "wall_right"],
+    ["wall_left", "floor_2", "floor_3", "floor_4", "floor_5", "wall_left", "floor_5", "floor_6", "wall_right", "floor_2", "floor_3", "floor_4", "wall_right"],
+    ["wall_left", "floor_6", "floor_7", "floor_8", "floor_1", "floor_2", "floor_7", "floor_8", "floor_1", "floor_6", "floor_7", "floor_8", "wall_right"],
+    ["wall_left", "floor_2", "floor_3", "floor_4", "floor_5", "floor_6", "floor_1", "floor_2", "floor_3", "floor_2", "floor_3", "floor_4", "wall_right"],
+    ["wall_left", "wall_mid", "wall_mid", "wall_mid", "wall_mid", "wall_mid", "wall_mid", "wall_mid", "wall_mid", "wall_mid", "wall_mid", "wall_mid", "wall_right"]
+  ]
+}

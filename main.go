@@ -2,8 +2,10 @@ package main
 
 import (
 	"image/color"
+	"log"
 	"math"
 
+	"chosenoffset.com/outpost9/maploader"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -63,12 +65,11 @@ type Player struct {
 type Game struct {
 	screenWidth  int
 	screenHeight int
-	mapWidth     int
-	mapHeight    int
-	tiles        [][]Tile
+	gameMap      *maploader.Map
 	walls        []Segment
 	player       Player
 	whiteImg     *ebiten.Image
+	tileScale    float64 // Scale factor for rendering tiles (TileSize / atlas tile size)
 }
 
 func (g *Game) Update() error {
@@ -149,34 +150,33 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) drawTiles(screen *ebiten.Image) {
-	for y := 0; y < g.mapHeight; y++ {
-		for x := 0; x < g.mapWidth; x++ {
-			tile := g.tiles[y][x]
+	if g.gameMap == nil || g.gameMap.Atlas == nil {
+		return
+	}
 
-			screenX := float32(x * TileSize)
-			screenY := float32(y * TileSize)
-
-			var tileColor color.RGBA
-
-			switch tile.Type {
-			case TileFloor:
-				tileColor = color.RGBA{80, 80, 80, 255} // Gray floor
-			case TileWall:
-				tileColor = color.RGBA{60, 80, 120, 255} // Blue wall
+	for y := 0; y < g.gameMap.Data.Height; y++ {
+		for x := 0; x < g.gameMap.Data.Width; x++ {
+			tileName, err := g.gameMap.GetTileAt(x, y)
+			if err != nil {
+				continue
 			}
 
-			// Draw filled tile
-			vector.FillRect(screen,
-				screenX, screenY,
-				TileSize, TileSize,
-				tileColor, false)
+			tile, ok := g.gameMap.Atlas.GetTile(tileName)
+			if !ok {
+				continue
+			}
 
-			// Draw tile border for visual clarity
-			vector.StrokeRect(screen,
-				screenX, screenY,
-				TileSize, TileSize,
-				1,
-				color.RGBA{40, 40, 40, 255}, false)
+			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+
+			screenX := float64(x * TileSize)
+			screenY := float64(y * TileSize)
+
+			opts := &ebiten.DrawImageOptions{}
+			// Scale the tile to match the game's TileSize
+			opts.GeoM.Scale(g.tileScale, g.tileScale)
+			opts.GeoM.Translate(screenX, screenY)
+
+			screen.DrawImage(subImg, opts)
 		}
 	}
 }
@@ -230,41 +230,44 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return g.screenWidth, g.screenHeight
 }
 
-// Helper function to create wall segments from tile positions
-func createWallSegmentsFromTiles(tiles [][]Tile, mapWidth, mapHeight int) []Segment {
+// Helper function to create wall segments from map data
+func createWallSegmentsFromMap(gameMap *maploader.Map) []Segment {
 	var segments []Segment
 
-	// For each wall tile, create segments for its edges
+	mapWidth := gameMap.Data.Width
+	mapHeight := gameMap.Data.Height
+
+	// For each tile that blocks sight, create segments for its edges
 	for y := 0; y < mapHeight; y++ {
 		for x := 0; x < mapWidth; x++ {
-			if tiles[y][x].Type == TileWall {
+			if gameMap.BlocksSight(x, y) {
 				tileX := float64(x * TileSize)
 				tileY := float64(y * TileSize)
 
-				// Check each edge and create segment if it borders non-wall
+				// Check each edge and create segment if it borders non-blocking tile
 				// Top edge
-				if y == 0 || tiles[y-1][x].Type != TileWall {
+				if y == 0 || !gameMap.BlocksSight(x, y-1) {
 					segments = append(segments, Segment{
 						A: Point{tileX, tileY},
 						B: Point{tileX + TileSize, tileY},
 					})
 				}
 				// Right edge
-				if x == mapWidth-1 || tiles[y][x+1].Type != TileWall {
+				if x == mapWidth-1 || !gameMap.BlocksSight(x+1, y) {
 					segments = append(segments, Segment{
 						A: Point{tileX + TileSize, tileY},
 						B: Point{tileX + TileSize, tileY + TileSize},
 					})
 				}
 				// Bottom edge
-				if y == mapHeight-1 || tiles[y+1][x].Type != TileWall {
+				if y == mapHeight-1 || !gameMap.BlocksSight(x, y+1) {
 					segments = append(segments, Segment{
 						A: Point{tileX + TileSize, tileY + TileSize},
 						B: Point{tileX, tileY + TileSize},
 					})
 				}
 				// Left edge
-				if x == 0 || tiles[y][x-1].Type != TileWall {
+				if x == 0 || !gameMap.BlocksSight(x-1, y) {
 					segments = append(segments, Segment{
 						A: Point{tileX, tileY + TileSize},
 						B: Point{tileX, tileY},
@@ -280,61 +283,38 @@ func createWallSegmentsFromTiles(tiles [][]Tile, mapWidth, mapHeight int) []Segm
 func main() {
 	screenWidth := 800
 	screenHeight := 600
-	mapWidth := screenWidth / TileSize
-	mapHeight := screenHeight / TileSize
 
-	// Create a simple tile map
-	tiles := make([][]Tile, mapHeight)
-	for y := 0; y < mapHeight; y++ {
-		tiles[y] = make([]Tile, mapWidth)
-		for x := 0; x < mapWidth; x++ {
-			tiles[y][x] = Tile{Type: TileFloor}
-		}
+	// Load the map from JSON
+	gameMap, err := maploader.LoadMap("data/Example/level1.json")
+	if err != nil {
+		log.Fatalf("Failed to load map: %v", err)
 	}
 
-	// Add some wall tiles to create a room with obstacles
-	// Outer walls
-	for x := 0; x < mapWidth; x++ {
-		tiles[0][x].Type = TileWall
-		tiles[mapHeight-1][x].Type = TileWall
-	}
-	for y := 0; y < mapHeight; y++ {
-		tiles[y][0].Type = TileWall
-		tiles[y][mapWidth-1].Type = TileWall
-	}
+	log.Printf("Loaded map: %s (%dx%d)", gameMap.Data.Name, gameMap.Data.Width, gameMap.Data.Height)
 
-	// Central obstacle
-	for y := 3; y <= 5; y++ {
-		for x := 5; x <= 8; x++ {
-			tiles[y][x].Type = TileWall
-		}
-	}
+	// Calculate tile scale factor (game tile size / atlas tile size)
+	tileScale := float64(TileSize) / float64(gameMap.Data.TileSize)
 
-	// Additional obstacles
-	tiles[2][2].Type = TileWall
-	tiles[2][3].Type = TileWall
-	tiles[7][9].Type = TileWall
-	tiles[8][9].Type = TileWall
+	// Generate wall segments from map data
+	walls := createWallSegmentsFromMap(gameMap)
 
-	// Generate wall segments from tiles
-	walls := createWallSegmentsFromTiles(tiles, mapWidth, mapHeight)
+	log.Printf("Generated %d wall segments", len(walls))
 
 	game := &Game{
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
-		mapWidth:     mapWidth,
-		mapHeight:    mapHeight,
-		tiles:        tiles,
+		gameMap:      gameMap,
 		walls:        walls,
+		tileScale:    tileScale,
 		player: Player{
-			Pos:   Point{200, 300},
+			Pos:   Point{gameMap.Data.PlayerSpawn.X, gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
 		},
 	}
 
-	ebiten.SetWindowSize(800, 600)
-	ebiten.SetWindowTitle("Nox-style Tile-Based Shadows - WASD to move")
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Outpost9 Example - WASD to move")
 	if err := ebiten.RunGame(game); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
