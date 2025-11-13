@@ -1,0 +1,145 @@
+{
+  "name": "object_tiles",
+  "layer": "objects",
+  "image_path": "Art/object_tiles.png",
+  "tile_width": 64,
+  "tile_height": 64,
+  "tiles": [
+    {
+      "name": "desk_west",
+      "atlas_x": 0,
+      "atlas_y": 0,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": false,
+        "type": "furniture",
+        "direction": "west"
+      }
+    },
+    {
+      "name": "desk_east",
+      "atlas_x": 1,
+      "atlas_y": 0,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": false,
+        "type": "furniture",
+        "direction": "east"
+      }
+    },
+    {
+      "name": "computer_terminal",
+      "atlas_x": 2,
+      "atlas_y": 0,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": false,
+        "type": "electronics",
+        "interactive": true
+      }
+    },
+    {
+      "name": "chair_north",
+      "atlas_x": 0,
+      "atlas_y": 1,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": false,
+        "type": "furniture",
+        "direction": "north"
+      }
+    },
+    {
+      "name": "chair_south",
+      "atlas_x": 1,
+      "atlas_y": 1,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": false,
+        "type": "furniture",
+        "direction": "south"
+      }
+    },
+    {
+      "name": "generator",
+      "atlas_x": 2,
+      "atlas_y": 1,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "machinery",
+        "power_source": true
+      }
+    },
+    {
+      "name": "locker_closed",
+      "atlas_x": 0,
+      "atlas_y": 2,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "storage",
+        "interactive": true,
+        "state": "closed"
+      }
+    },
+    {
+      "name": "locker_open",
+      "atlas_x": 1,
+      "atlas_y": 2,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": false,
+        "type": "storage",
+        "interactive": true,
+        "state": "open"
+      }
+    },
+    {
+      "name": "crate",
+      "atlas_x": 2,
+      "atlas_y": 2,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "storage"
+      }
+    },
+    {
+      "name": "console_left",
+      "atlas_x": 0,
+      "atlas_y": 3,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "electronics",
+        "interactive": true,
+        "part": "left"
+      }
+    },
+    {
+      "name": "console_center",
+      "atlas_x": 1,
+      "atlas_y": 3,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "electronics",
+        "interactive": true,
+        "part": "center"
+      }
+    },
+    {
+      "name": "console_right",
+      "atlas_x": 2,
+      "atlas_y": 3,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "electronics",
+        "interactive": true,
+        "part": "right"
+      }
+    }
+  ]
+}
