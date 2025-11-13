@@ -38,7 +38,8 @@ func castShadow(viewerPos Point, seg Segment, maxDistance float64, tileSize int)
 	}
 
 	// Offset the shadow start to be behind the wall (so the wall is visible)
-	shadowOffset := float64(tileSize)
+	// Use half tile size to keep shadows closer to walls
+	shadowOffset := float64(tileSize) / 2.0
 
 	// Push the start points away from viewer by the offset
 	offsetA := Point{
