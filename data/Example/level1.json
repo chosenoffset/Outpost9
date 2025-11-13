@@ -3,6 +3,7 @@
   "width": 13,
   "height": 10,
   "tile_size": 16,
+  "render_tile_size": 64,
   "atlas": "data/Example/atlas.json",
   "player_spawn": {
     "x": 400,

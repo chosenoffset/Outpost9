@@ -20,17 +20,7 @@ type Segment struct {
 	A, B Point
 }
 
-const (
-	TileSize  = 64
-	TileFloor = 0
-	TileWall  = 1
-)
-
-type Tile struct {
-	Type int
-}
-
-func castShadow(viewerPos Point, seg Segment, maxDistance float64) []Point {
+func castShadow(viewerPos Point, seg Segment, maxDistance float64, tileSize int) []Point {
 	dirA := Point{
 		X: seg.A.X - viewerPos.X,
 		Y: seg.A.Y - viewerPos.Y,
@@ -48,7 +38,7 @@ func castShadow(viewerPos Point, seg Segment, maxDistance float64) []Point {
 	}
 
 	// Offset the shadow start to be behind the wall (so the wall is visible)
-	shadowOffset := float64(TileSize)
+	shadowOffset := float64(tileSize)
 
 	// Push the start points away from viewer by the offset
 	offsetA := Point{
@@ -137,7 +127,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, wall := range g.walls {
 		// Only cast shadows for walls facing away from player
 		if g.isFacingPlayer(wall, g.player.Pos) {
-			shadowPoly := castShadow(g.player.Pos, wall, maxDist)
+			shadowPoly := castShadow(g.player.Pos, wall, maxDist, g.gameMap.Data.RenderTileSize)
 			if shadowPoly != nil {
 				// Draw solid black shadow
 				g.drawPolygon(shadowMask, shadowPoly, color.RGBA{0, 0, 0, 255})
@@ -170,6 +160,8 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 		return
 	}
 
+	renderTileSize := g.gameMap.Data.RenderTileSize
+
 	for y := 0; y < g.gameMap.Data.Height; y++ {
 		for x := 0; x < g.gameMap.Data.Width; x++ {
 			tileName, err := g.gameMap.GetTileAt(x, y)
@@ -184,11 +176,11 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 
 			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
 
-			screenX := float64(x * TileSize)
-			screenY := float64(y * TileSize)
+			screenX := float64(x * renderTileSize)
+			screenY := float64(y * renderTileSize)
 
 			opts := &ebiten.DrawImageOptions{}
-			// Scale the tile to match the game's TileSize
+			// Scale the tile to match the game's render tile size
 			opts.GeoM.Scale(g.tileScale, g.tileScale)
 			opts.GeoM.Translate(screenX, screenY)
 
@@ -252,40 +244,41 @@ func createWallSegmentsFromMap(gameMap *maploader.Map) []Segment {
 
 	mapWidth := gameMap.Data.Width
 	mapHeight := gameMap.Data.Height
+	renderTileSize := float64(gameMap.Data.RenderTileSize)
 
 	// For each tile that blocks sight, create segments for its edges
 	for y := 0; y < mapHeight; y++ {
 		for x := 0; x < mapWidth; x++ {
 			if gameMap.BlocksSight(x, y) {
-				tileX := float64(x * TileSize)
-				tileY := float64(y * TileSize)
+				tileX := float64(x) * renderTileSize
+				tileY := float64(y) * renderTileSize
 
 				// Check each edge and create segment if it borders non-blocking tile
 				// Top edge
 				if y == 0 || !gameMap.BlocksSight(x, y-1) {
 					segments = append(segments, Segment{
 						A: Point{tileX, tileY},
-						B: Point{tileX + TileSize, tileY},
+						B: Point{tileX + renderTileSize, tileY},
 					})
 				}
 				// Right edge
 				if x == mapWidth-1 || !gameMap.BlocksSight(x+1, y) {
 					segments = append(segments, Segment{
-						A: Point{tileX + TileSize, tileY},
-						B: Point{tileX + TileSize, tileY + TileSize},
+						A: Point{tileX + renderTileSize, tileY},
+						B: Point{tileX + renderTileSize, tileY + renderTileSize},
 					})
 				}
 				// Bottom edge
 				if y == mapHeight-1 || !gameMap.BlocksSight(x, y+1) {
 					segments = append(segments, Segment{
-						A: Point{tileX + TileSize, tileY + TileSize},
-						B: Point{tileX, tileY + TileSize},
+						A: Point{tileX + renderTileSize, tileY + renderTileSize},
+						B: Point{tileX, tileY + renderTileSize},
 					})
 				}
 				// Left edge
 				if x == 0 || !gameMap.BlocksSight(x-1, y) {
 					segments = append(segments, Segment{
-						A: Point{tileX, tileY + TileSize},
+						A: Point{tileX, tileY + renderTileSize},
 						B: Point{tileX, tileY},
 					})
 				}
@@ -315,10 +308,15 @@ func main() {
 		log.Fatalf("Failed to load map: %v", err)
 	}
 
-	log.Printf("Loaded map: %s (%dx%d)", gameMap.Data.Name, gameMap.Data.Width, gameMap.Data.Height)
+	log.Printf("Loaded map: %s (%dx%d, tiles: %dpx→%dpx)",
+		gameMap.Data.Name,
+		gameMap.Data.Width,
+		gameMap.Data.Height,
+		gameMap.Data.TileSize,
+		gameMap.Data.RenderTileSize)
 
-	// Calculate tile scale factor (game tile size / atlas tile size)
-	tileScale := float64(TileSize) / float64(gameMap.Data.TileSize)
+	// Calculate tile scale factor (render tile size / atlas tile size)
+	tileScale := float64(gameMap.Data.RenderTileSize) / float64(gameMap.Data.TileSize)
 
 	// Generate wall segments from map data
 	walls := createWallSegmentsFromMap(gameMap)

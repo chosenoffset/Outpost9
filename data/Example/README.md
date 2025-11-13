@@ -69,6 +69,7 @@ The map loading system (`maploader/` package) loads level layouts from JSON:
   "width": 13,
   "height": 10,
   "tile_size": 16,
+  "render_tile_size": 64,
   "atlas": "data/Example/atlas.json",
   "player_spawn": {
     "x": 400,
@@ -135,10 +136,11 @@ Create a JSON file defining your level layout:
   "width": 10,
   "height": 10,
   "tile_size": 16,
+  "render_tile_size": 32,
   "atlas": "path/to/your/atlas.json",
   "player_spawn": {
-    "x": 320,
-    "y": 320
+    "x": 160,
+    "y": 160
   },
   "tiles": [
     ["tile1", "tile2", "tile3", ...],
@@ -147,6 +149,12 @@ Create a JSON file defining your level layout:
   ]
 }
 ```
+
+**Field Descriptions:**
+- `tile_size`: Size of tiles in the atlas PNG (e.g., 16 for 16x16 sprites)
+- `render_tile_size`: Size to render each tile in the game (e.g., 64 for 64x64 game tiles)
+- The system automatically scales: 16px atlas tiles → 64px game tiles (4x scale)
+- Player spawn coordinates should be in pixels based on render_tile_size
 
 The `tiles` array should have `height` rows, each with `width` tile names.
 
@@ -216,16 +224,25 @@ damageType := tile.GetTilePropertyString("damage_type", "")
 isAnimated := tile.GetTilePropertyBool("animated", false)
 ```
 
-## Scaling
+## Tile Scaling
 
-The game engine uses 64x64 pixel tiles for rendering, but the atlas tiles are 16x16. The system automatically scales tiles to match:
+The system automatically scales atlas sprites to your desired render size:
+
+- **Atlas tile size** (`tile_size`): Size of sprites in the PNG (e.g., 16x16)
+- **Render tile size** (`render_tile_size`): Size to display in game (e.g., 64x64)
+
+Example: 16px atlas tiles rendered at 64px = 4x scaling
 
 ```go
-tileScale := float64(GameTileSize) / float64(AtlasTileSize)
+tileScale := float64(RenderTileSize) / float64(AtlasTileSize)
 // 64 / 16 = 4x scale
 ```
 
-This allows you to use smaller source images while rendering at the appropriate game resolution.
+**Benefits:**
+- Use smaller source images (saves memory and file size)
+- Render at any size you want
+- Mix different tile sizes in different games
+- No hardcoded sizes - fully configurable per level
 
 ## Architecture
 
