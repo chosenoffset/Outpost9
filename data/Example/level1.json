@@ -9,15 +9,15 @@
     "y": 100
   },
   "tiles": [
-    ["wall_top_left", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_right"],
-    ["wall_left", "floor_1", "floor_2", "floor_3", "floor_4", "floor_5", "floor_6", "floor_7", "floor_8", "floor_1", "floor_2", "floor_3", "wall_right"],
-    ["wall_left", "floor_4", "floor_5", "floor_6", "floor_7", "floor_8", "floor_1", "floor_2", "floor_3", "floor_4", "floor_5", "floor_6", "wall_right"],
-    ["wall_left", "floor_7", "floor_8", "floor_1", "floor_2", "wall_top_left", "wall_top_mid", "wall_top_mid", "wall_top_right", "floor_7", "floor_8", "floor_1", "wall_right"],
-    ["wall_left", "floor_2", "floor_3", "floor_4", "floor_5", "wall_left", "floor_1", "floor_2", "wall_right", "floor_2", "floor_3", "floor_4", "wall_right"],
-    ["wall_left", "floor_6", "floor_7", "floor_8", "floor_1", "wall_left", "floor_3", "floor_4", "wall_right", "floor_6", "floor_7", "floor_8", "wall_right"],
-    ["wall_left", "floor_2", "floor_3", "floor_4", "floor_5", "wall_left", "floor_5", "floor_6", "wall_right", "floor_2", "floor_3", "floor_4", "wall_right"],
-    ["wall_left", "floor_6", "floor_7", "floor_8", "floor_1", "floor_2", "floor_7", "floor_8", "floor_1", "floor_6", "floor_7", "floor_8", "wall_right"],
-    ["wall_left", "floor_2", "floor_3", "floor_4", "floor_5", "floor_6", "floor_1", "floor_2", "floor_3", "floor_2", "floor_3", "floor_4", "wall_right"],
-    ["wall_top_left", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_right"]
+    ["nwt", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "net"],
+    ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
+    ["wwx", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "wex"],
+    ["wwx", "f1x", "f1x", "f1x", "f1x", "nwt", "nwt", "nwt", "net", "f1x", "f1x", "f1x", "wex"],
+    ["wwx", "f1x", "f1x", "f1x", "f1x", "nwb", "nwb", "nwb", "neb", "f1x", "f1x", "f1x", "wex"],
+    ["wwx", "f1x", "f1x", "f1x", "f1x", "wwx", "f1x", "f1x", "wex", "f1x", "f1x", "f1x", "wex"],
+    ["wwx", "f1x", "f1x", "f1x", "f1x", "wwx", "f1x", "f1x", "wex", "f1x", "f1x", "f1x", "wex"],
+    ["wwx", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "f1x", "wex"],
+    ["swt", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "set"],
+    ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
   ]
 }
