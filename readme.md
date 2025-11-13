@@ -17,6 +17,23 @@ go run .
 
 Use WASD to move around the example dungeon. The game features dynamic line-of-sight shadows that cast from walls in real-time.
 
+### Command-Line Options
+
+```bash
+# Run the example game (default)
+go run .
+
+# Specify a different game data directory
+go run . -game Example
+go run . -game Outpost9
+
+# Specify a different level file
+go run . -game Example -level level2.json
+
+# Get help
+go run . -help
+```
+
 ## Features
 - **Raycasted shadows** - Real-time dynamic line-of-sight system inspired by Nox
 - **Data-driven sprite atlases** - Define sprites in JSON with semantic naming

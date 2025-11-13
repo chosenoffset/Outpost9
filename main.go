@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"image/color"
 	"log"
 	"math"
@@ -281,11 +283,20 @@ func createWallSegmentsFromMap(gameMap *maploader.Map) []Segment {
 }
 
 func main() {
+	// Command-line flags
+	gameDir := flag.String("game", "Example", "Game data directory (e.g., Example, Outpost9)")
+	levelFile := flag.String("level", "level1.json", "Level file to load")
+	flag.Parse()
+
 	screenWidth := 800
 	screenHeight := 600
 
+	// Construct the level path
+	levelPath := fmt.Sprintf("data/%s/%s", *gameDir, *levelFile)
+
 	// Load the map from JSON
-	gameMap, err := maploader.LoadMap("data/Example/level1.json")
+	log.Printf("Loading level: %s", levelPath)
+	gameMap, err := maploader.LoadMap(levelPath)
 	if err != nil {
 		log.Fatalf("Failed to load map: %v", err)
 	}
@@ -313,7 +324,10 @@ func main() {
 	}
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Outpost9 Example - WASD to move")
+	windowTitle := fmt.Sprintf("Outpost9 [%s] - WASD to move", *gameDir)
+	ebiten.SetWindowTitle(windowTitle)
+
+	log.Printf("Starting game...")
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
