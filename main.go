@@ -47,16 +47,30 @@ func castShadow(viewerPos Point, seg Segment, maxDistance float64) []Point {
 		return nil
 	}
 
-	extendedA := Point{
-		X: seg.A.X + (dirA.X/lenA)*maxDistance,
-		Y: seg.A.Y + (dirA.Y/lenA)*maxDistance,
+	// Offset the shadow start to be behind the wall (so the wall is visible)
+	shadowOffset := float64(TileSize)
+
+	// Push the start points away from viewer by the offset
+	offsetA := Point{
+		X: seg.A.X + (dirA.X/lenA)*shadowOffset,
+		Y: seg.A.Y + (dirA.Y/lenA)*shadowOffset,
 	}
-	extendedB := Point{
-		X: seg.B.X + (dirB.X/lenB)*maxDistance,
-		Y: seg.B.Y + (dirB.Y/lenB)*maxDistance,
+	offsetB := Point{
+		X: seg.B.X + (dirB.X/lenB)*shadowOffset,
+		Y: seg.B.Y + (dirB.Y/lenB)*shadowOffset,
 	}
 
-	return []Point{seg.A, seg.B, extendedB, extendedA}
+	// Extend to max distance from the offset points
+	extendedA := Point{
+		X: offsetA.X + (dirA.X/lenA)*maxDistance,
+		Y: offsetA.Y + (dirA.Y/lenA)*maxDistance,
+	}
+	extendedB := Point{
+		X: offsetB.X + (dirB.X/lenB)*maxDistance,
+		Y: offsetB.Y + (dirB.Y/lenB)*maxDistance,
+	}
+
+	return []Point{offsetA, offsetB, extendedB, extendedA}
 }
 
 type Player struct {
