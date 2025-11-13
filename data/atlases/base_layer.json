@@ -1,0 +1,137 @@
+{
+  "name": "base_tiles",
+  "layer": "base",
+  "image_path": "Art/base_tiles.png",
+  "tile_width": 64,
+  "tile_height": 64,
+  "tiles": [
+    {
+      "name": "floor_metal_01",
+      "atlas_x": 0,
+      "atlas_y": 0,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": true,
+        "type": "floor"
+      }
+    },
+    {
+      "name": "floor_metal_02",
+      "atlas_x": 1,
+      "atlas_y": 0,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": true,
+        "type": "floor"
+      }
+    },
+    {
+      "name": "floor_grating",
+      "atlas_x": 2,
+      "atlas_y": 0,
+      "properties": {
+        "blocks_sight": false,
+        "walkable": true,
+        "type": "floor"
+      }
+    },
+    {
+      "name": "wall_nw_corner",
+      "atlas_x": 0,
+      "atlas_y": 1,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall",
+        "corner": "nw"
+      }
+    },
+    {
+      "name": "wall_north",
+      "atlas_x": 1,
+      "atlas_y": 1,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall",
+        "direction": "north"
+      }
+    },
+    {
+      "name": "wall_ne_corner",
+      "atlas_x": 2,
+      "atlas_y": 1,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall",
+        "corner": "ne"
+      }
+    },
+    {
+      "name": "wall_west",
+      "atlas_x": 0,
+      "atlas_y": 2,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall",
+        "direction": "west"
+      }
+    },
+    {
+      "name": "wall_center",
+      "atlas_x": 1,
+      "atlas_y": 2,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall"
+      }
+    },
+    {
+      "name": "wall_east",
+      "atlas_x": 2,
+      "atlas_y": 2,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall",
+        "direction": "east"
+      }
+    },
+    {
+      "name": "wall_sw_corner",
+      "atlas_x": 0,
+      "atlas_y": 3,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall",
+        "corner": "sw"
+      }
+    },
+    {
+      "name": "wall_south",
+      "atlas_x": 1,
+      "atlas_y": 3,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall",
+        "direction": "south"
+      }
+    },
+    {
+      "name": "wall_se_corner",
+      "atlas_x": 2,
+      "atlas_y": 3,
+      "properties": {
+        "blocks_sight": true,
+        "walkable": false,
+        "type": "wall",
+        "corner": "se"
+      }
+    }
+  ]
+}
