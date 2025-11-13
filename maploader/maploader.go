@@ -16,14 +16,13 @@ type SpawnPoint struct {
 
 // MapData represents the loaded map configuration
 type MapData struct {
-	Name           string     `json:"name"`
-	Width          int        `json:"width"`
-	Height         int        `json:"height"`
-	TileSize       int        `json:"tile_size"`        // Atlas sprite tile size (e.g., 16)
-	RenderTileSize int        `json:"render_tile_size"` // Rendered tile size in game (e.g., 64)
-	AtlasPath      string     `json:"atlas"`
-	PlayerSpawn    SpawnPoint `json:"player_spawn"`
-	Tiles          [][]string `json:"tiles"` // 2D array of tile names [y][x]
+	Name        string     `json:"name"`
+	Width       int        `json:"width"`
+	Height      int        `json:"height"`
+	TileSize    int        `json:"tile_size"` // Tile size in pixels (used for both atlas and rendering)
+	AtlasPath   string     `json:"atlas"`
+	PlayerSpawn SpawnPoint `json:"player_spawn"`
+	Tiles       [][]string `json:"tiles"` // 2D array of tile names [y][x]
 }
 
 // Map represents a loaded map with its atlas
@@ -73,10 +72,6 @@ func validateMapData(data *MapData) error {
 
 	if data.TileSize <= 0 {
 		return fmt.Errorf("invalid tile size: %d", data.TileSize)
-	}
-
-	if data.RenderTileSize <= 0 {
-		return fmt.Errorf("invalid render tile size: %d", data.RenderTileSize)
 	}
 
 	if data.AtlasPath == "" {

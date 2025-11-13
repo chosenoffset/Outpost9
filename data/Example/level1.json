@@ -3,11 +3,10 @@
   "width": 13,
   "height": 10,
   "tile_size": 16,
-  "render_tile_size": 64,
   "atlas": "data/Example/atlas.json",
   "player_spawn": {
-    "x": 400,
-    "y": 300
+    "x": 100,
+    "y": 100
   },
   "tiles": [
     ["wall_top_left", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_mid", "wall_top_right"],

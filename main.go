@@ -75,7 +75,6 @@ type Game struct {
 	walls        []Segment
 	player       Player
 	whiteImg     *ebiten.Image
-	tileScale    float64 // Scale factor for rendering tiles (TileSize / atlas tile size)
 }
 
 func (g *Game) Update() error {
@@ -127,7 +126,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, wall := range g.walls {
 		// Only cast shadows for walls facing away from player
 		if g.isFacingPlayer(wall, g.player.Pos) {
-			shadowPoly := castShadow(g.player.Pos, wall, maxDist, g.gameMap.Data.RenderTileSize)
+			shadowPoly := castShadow(g.player.Pos, wall, maxDist, g.gameMap.Data.TileSize)
 			if shadowPoly != nil {
 				// Draw solid black shadow
 				g.drawPolygon(shadowMask, shadowPoly, color.RGBA{0, 0, 0, 255})
@@ -160,7 +159,7 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 		return
 	}
 
-	renderTileSize := g.gameMap.Data.RenderTileSize
+	tileSize := g.gameMap.Data.TileSize
 
 	for y := 0; y < g.gameMap.Data.Height; y++ {
 		for x := 0; x < g.gameMap.Data.Width; x++ {
@@ -176,12 +175,10 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 
 			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
 
-			screenX := float64(x * renderTileSize)
-			screenY := float64(y * renderTileSize)
+			screenX := float64(x * tileSize)
+			screenY := float64(y * tileSize)
 
 			opts := &ebiten.DrawImageOptions{}
-			// Scale the tile to match the game's render tile size
-			opts.GeoM.Scale(g.tileScale, g.tileScale)
 			opts.GeoM.Translate(screenX, screenY)
 
 			screen.DrawImage(subImg, opts)
@@ -244,41 +241,41 @@ func createWallSegmentsFromMap(gameMap *maploader.Map) []Segment {
 
 	mapWidth := gameMap.Data.Width
 	mapHeight := gameMap.Data.Height
-	renderTileSize := float64(gameMap.Data.RenderTileSize)
+	tileSize := float64(gameMap.Data.TileSize)
 
 	// For each tile that blocks sight, create segments for its edges
 	for y := 0; y < mapHeight; y++ {
 		for x := 0; x < mapWidth; x++ {
 			if gameMap.BlocksSight(x, y) {
-				tileX := float64(x) * renderTileSize
-				tileY := float64(y) * renderTileSize
+				tileX := float64(x) * tileSize
+				tileY := float64(y) * tileSize
 
 				// Check each edge and create segment if it borders non-blocking tile
 				// Top edge
 				if y == 0 || !gameMap.BlocksSight(x, y-1) {
 					segments = append(segments, Segment{
 						A: Point{tileX, tileY},
-						B: Point{tileX + renderTileSize, tileY},
+						B: Point{tileX + tileSize, tileY},
 					})
 				}
 				// Right edge
 				if x == mapWidth-1 || !gameMap.BlocksSight(x+1, y) {
 					segments = append(segments, Segment{
-						A: Point{tileX + renderTileSize, tileY},
-						B: Point{tileX + renderTileSize, tileY + renderTileSize},
+						A: Point{tileX + tileSize, tileY},
+						B: Point{tileX + tileSize, tileY + tileSize},
 					})
 				}
 				// Bottom edge
 				if y == mapHeight-1 || !gameMap.BlocksSight(x, y+1) {
 					segments = append(segments, Segment{
-						A: Point{tileX + renderTileSize, tileY + renderTileSize},
-						B: Point{tileX, tileY + renderTileSize},
+						A: Point{tileX + tileSize, tileY + tileSize},
+						B: Point{tileX, tileY + tileSize},
 					})
 				}
 				// Left edge
 				if x == 0 || !gameMap.BlocksSight(x-1, y) {
 					segments = append(segments, Segment{
-						A: Point{tileX, tileY + renderTileSize},
+						A: Point{tileX, tileY + tileSize},
 						B: Point{tileX, tileY},
 					})
 				}
@@ -308,15 +305,11 @@ func main() {
 		log.Fatalf("Failed to load map: %v", err)
 	}
 
-	log.Printf("Loaded map: %s (%dx%d, tiles: %dpx→%dpx)",
+	log.Printf("Loaded map: %s (%dx%d, tile size: %dpx)",
 		gameMap.Data.Name,
 		gameMap.Data.Width,
 		gameMap.Data.Height,
-		gameMap.Data.TileSize,
-		gameMap.Data.RenderTileSize)
-
-	// Calculate tile scale factor (render tile size / atlas tile size)
-	tileScale := float64(gameMap.Data.RenderTileSize) / float64(gameMap.Data.TileSize)
+		gameMap.Data.TileSize)
 
 	// Generate wall segments from map data
 	walls := createWallSegmentsFromMap(gameMap)
@@ -328,7 +321,6 @@ func main() {
 		screenHeight: screenHeight,
 		gameMap:      gameMap,
 		walls:        walls,
-		tileScale:    tileScale,
 		player: Player{
 			Pos:   Point{gameMap.Data.PlayerSpawn.X, gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
