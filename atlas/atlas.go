@@ -90,8 +90,9 @@ func (a *Atlas) GetTile(name string) (*TileDefinition, bool) {
 
 // GetTileSubImage returns the sub-image for a specific tile
 func (a *Atlas) GetTileSubImage(tile *TileDefinition) *ebiten.Image {
-	x := tile.AtlasX * a.Config.TileWidth
-	y := tile.AtlasY * a.Config.TileHeight
+	// atlas_x and atlas_y are already in pixel coordinates
+	x := tile.AtlasX
+	y := tile.AtlasY
 	w := a.Config.TileWidth
 	h := a.Config.TileHeight
 

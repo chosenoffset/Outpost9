@@ -7,8 +7,8 @@
   "tiles": [
     {
       "name": "floor_1",
-      "atlas_x": 1,
-      "atlas_y": 4,
+      "atlas_x": 16,
+      "atlas_y": 64,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -17,8 +17,8 @@
     },
     {
       "name": "floor_2",
-      "atlas_x": 2,
-      "atlas_y": 4,
+      "atlas_x": 32,
+      "atlas_y": 64,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -27,8 +27,8 @@
     },
     {
       "name": "floor_3",
-      "atlas_x": 3,
-      "atlas_y": 4,
+      "atlas_x": 48,
+      "atlas_y": 64,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -37,8 +37,8 @@
     },
     {
       "name": "floor_4",
-      "atlas_x": 1,
-      "atlas_y": 5,
+      "atlas_x": 16,
+      "atlas_y": 80,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -47,8 +47,8 @@
     },
     {
       "name": "floor_5",
-      "atlas_x": 2,
-      "atlas_y": 5,
+      "atlas_x": 32,
+      "atlas_y": 80,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -57,8 +57,8 @@
     },
     {
       "name": "floor_6",
-      "atlas_x": 3,
-      "atlas_y": 5,
+      "atlas_x": 48,
+      "atlas_y": 80,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -67,8 +67,8 @@
     },
     {
       "name": "floor_7",
-      "atlas_x": 1,
-      "atlas_y": 6,
+      "atlas_x": 16,
+      "atlas_y": 96,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -77,8 +77,8 @@
     },
     {
       "name": "floor_8",
-      "atlas_x": 2,
-      "atlas_y": 6,
+      "atlas_x": 32,
+      "atlas_y": 96,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -87,8 +87,8 @@
     },
     {
       "name": "wall_left",
-      "atlas_x": 1,
-      "atlas_y": 1,
+      "atlas_x": 16,
+      "atlas_y": 16,
       "properties": {
         "blocks_sight": true,
         "walkable": false,
@@ -98,8 +98,8 @@
     },
     {
       "name": "wall_mid",
-      "atlas_x": 2,
-      "atlas_y": 1,
+      "atlas_x": 32,
+      "atlas_y": 16,
       "properties": {
         "blocks_sight": true,
         "walkable": false,
@@ -109,8 +109,8 @@
     },
     {
       "name": "wall_right",
-      "atlas_x": 3,
-      "atlas_y": 1,
+      "atlas_x": 48,
+      "atlas_y": 16,
       "properties": {
         "blocks_sight": true,
         "walkable": false,
@@ -120,7 +120,7 @@
     },
     {
       "name": "wall_top_left",
-      "atlas_x": 1,
+      "atlas_x": 16,
       "atlas_y": 0,
       "properties": {
         "blocks_sight": true,
@@ -131,7 +131,7 @@
     },
     {
       "name": "wall_top_mid",
-      "atlas_x": 2,
+      "atlas_x": 32,
       "atlas_y": 0,
       "properties": {
         "blocks_sight": true,
@@ -142,7 +142,7 @@
     },
     {
       "name": "wall_top_right",
-      "atlas_x": 3,
+      "atlas_x": 48,
       "atlas_y": 0,
       "properties": {
         "blocks_sight": true,
