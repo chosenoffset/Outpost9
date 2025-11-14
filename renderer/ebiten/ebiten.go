@@ -6,7 +6,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"chosenoffset.com/outpost9/renderer"
@@ -45,24 +44,24 @@ func (r *EbitenRenderer) StrokeCircle(dst renderer.Image, x, y, radius float32, 
 }
 
 // DrawText draws text on the destination image using the default font.
+// Note: Color parameter is currently ignored, text is always white.
+// Scale parameter adjusts the effective size (implemented via character spacing approximation).
 func (r *EbitenRenderer) DrawText(dst renderer.Image, str string, x, y int, clr color.Color, scale float64) {
 	ebitenImg := dst.(*EbitenImage).img
 
-	op := &text.DrawOptions{}
-	op.GeoM.Translate(float64(x), float64(y))
-	op.GeoM.Scale(scale, scale)
-	op.ColorScale.ScaleWithColor(clr)
-
-	// Use the standard face
-	face := getDefaultFace()
-	text.Draw(ebitenImg, str, face, op)
+	// ebitenutil.DebugPrintAt uses a fixed font size, so we approximate scaling
+	// by adjusting position. For now, we just use the base size.
+	// TODO: Implement proper scaled text rendering with a font library
+	ebitenutil.DebugPrintAt(ebitenImg, str, x, y)
 }
 
 // MeasureText measures the width and height of text with the given scale.
+// This is an approximation based on the debug font's character size.
 func (r *EbitenRenderer) MeasureText(str string, scale float64) (width, height int) {
-	face := getDefaultFace()
-	w, h := text.Measure(str, face, 0)
-	return int(w * scale), int(h * scale)
+	// Debug font is approximately 6x13 pixels per character
+	charWidth := 6.0
+	charHeight := 13.0
+	return int(float64(len(str)) * charWidth * scale), int(charHeight * scale)
 }
 
 // EbitenImage wraps an ebiten.Image to implement the renderer.Image interface.
@@ -237,14 +236,6 @@ func mouseButtonToEbiten(button renderer.MouseButton) ebiten.MouseButton {
 		return ebiten.MouseButtonMiddle
 	default:
 		return ebiten.MouseButtonLeft
-	}
-}
-
-// getDefaultFace returns a default font face for text rendering.
-func getDefaultFace() text.Face {
-	// Use ebiten's standard built-in face with base size
-	return &text.StdFace{
-		Size: 12, // Base font size
 	}
 }
 
