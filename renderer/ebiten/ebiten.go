@@ -53,14 +53,14 @@ func (r *EbitenRenderer) DrawText(dst renderer.Image, str string, x, y int, clr 
 	op.GeoM.Scale(scale, scale)
 	op.ColorScale.ScaleWithColor(clr)
 
-	// Use the default UI face
-	face := text.NewGoXFace(getDefaultFont())
+	// Use the standard face
+	face := getDefaultFace()
 	text.Draw(ebitenImg, str, face, op)
 }
 
 // MeasureText measures the width and height of text with the given scale.
 func (r *EbitenRenderer) MeasureText(str string, scale float64) (width, height int) {
-	face := text.NewGoXFace(getDefaultFont())
+	face := getDefaultFace()
 	w, h := text.Measure(str, face, 0)
 	return int(w * scale), int(h * scale)
 }
@@ -240,11 +240,12 @@ func mouseButtonToEbiten(button renderer.MouseButton) ebiten.MouseButton {
 	}
 }
 
-// getDefaultFont returns a default Go font for text rendering.
-func getDefaultFont() *text.GoXFaceSource {
-	// Using the default font size
-	s, _ := text.NewGoXFaceSource(nil)
-	return s
+// getDefaultFace returns a default font face for text rendering.
+func getDefaultFace() text.Face {
+	// Use ebiten's standard built-in face with base size
+	return &text.StdFace{
+		Size: 12, // Base font size
+	}
 }
 
 // EbitenResourceLoader implements the ResourceLoader interface using Ebiten.
