@@ -1,12 +1,13 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"image/color"
 	"log"
 
+	"chosenoffset.com/outpost9/gamescanner"
 	"chosenoffset.com/outpost9/maploader"
+	"chosenoffset.com/outpost9/menu"
 	"chosenoffset.com/outpost9/renderer"
 	ebitenrenderer "chosenoffset.com/outpost9/renderer/ebiten"
 	"chosenoffset.com/outpost9/shadows"
@@ -17,6 +18,92 @@ import (
 type Player struct {
 	Pos   shadows.Point
 	Speed float64
+}
+
+// GameManager handles the overall game state, including menu and gameplay.
+type GameManager struct {
+	screenWidth  int
+	screenHeight int
+	state        menu.GameState
+	mainMenu     *menu.MainMenu
+	game         *Game
+	renderer     renderer.Renderer
+	inputMgr     renderer.InputManager
+	loader       renderer.ResourceLoader
+}
+
+func (gm *GameManager) Update() error {
+	switch gm.state {
+	case menu.StateMainMenu:
+		selected, selection := gm.mainMenu.Update()
+		if selected {
+			// Load the selected game
+			if err := gm.loadGame(selection.GameDir, selection.LevelFile); err != nil {
+				log.Printf("Failed to load game: %v", err)
+				return err
+			}
+			gm.state = menu.StatePlaying
+		}
+	case menu.StatePlaying:
+		if gm.game != nil {
+			// Check for ESC to return to menu
+			if gm.inputMgr.IsKeyPressed(renderer.KeyEscape) {
+				gm.state = menu.StateMainMenu
+			}
+			return gm.game.Update()
+		}
+	}
+	return nil
+}
+
+func (gm *GameManager) Draw(screen renderer.Image) {
+	switch gm.state {
+	case menu.StateMainMenu:
+		gm.mainMenu.Draw(screen)
+	case menu.StatePlaying:
+		if gm.game != nil {
+			gm.game.Draw(screen)
+		}
+	}
+}
+
+func (gm *GameManager) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return gm.screenWidth, gm.screenHeight
+}
+
+func (gm *GameManager) loadGame(gameDir, levelFile string) error {
+	levelPath := fmt.Sprintf("data/%s/%s", gameDir, levelFile)
+
+	log.Printf("Loading level: %s", levelPath)
+	gameMap, err := maploader.LoadMap(levelPath, gm.loader)
+	if err != nil {
+		return fmt.Errorf("failed to load map: %w", err)
+	}
+
+	log.Printf("Loaded map: %s (%dx%d, tile size: %dpx)",
+		gameMap.Data.Name,
+		gameMap.Data.Width,
+		gameMap.Data.Height,
+		gameMap.Data.TileSize)
+
+	// Generate wall segments from map data
+	walls := shadows.CreateWallSegmentsFromMap(gameMap)
+	log.Printf("Generated %d wall segments", len(walls))
+
+	gm.game = &Game{
+		screenWidth:  gm.screenWidth,
+		screenHeight: gm.screenHeight,
+		gameMap:      gameMap,
+		walls:        walls,
+		player: Player{
+			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
+			Speed: 3.0,
+		},
+		renderer: gm.renderer,
+		inputMgr: gm.inputMgr,
+	}
+
+	return nil
 }
 
 type Game struct {
@@ -329,11 +416,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// Command-line flags
-	gameDir := flag.String("game", "Example", "Game data directory (e.g., Example, Outpost9)")
-	levelFile := flag.String("level", "level1.json", "Level file to load")
-	flag.Parse()
-
 	screenWidth := 800
 	screenHeight := 600
 
@@ -343,46 +425,38 @@ func main() {
 	loader := ebitenrenderer.NewResourceLoader()
 	engine := ebitenrenderer.NewEngine()
 
-	// Construct the level path
-	levelPath := fmt.Sprintf("data/%s/%s", *gameDir, *levelFile)
-
-	// Load the map from JSON
-	log.Printf("Loading level: %s", levelPath)
-	gameMap, err := maploader.LoadMap(levelPath, loader)
+	// Scan data directory for available games
+	log.Println("Scanning data directory for available games...")
+	games, err := gamescanner.ScanDataDirectory("data")
 	if err != nil {
-		log.Fatalf("Failed to load map: %v", err)
+		log.Fatalf("Failed to scan data directory: %v", err)
 	}
 
-	log.Printf("Loaded map: %s (%dx%d, tile size: %dpx)",
-		gameMap.Data.Name,
-		gameMap.Data.Width,
-		gameMap.Data.Height,
-		gameMap.Data.TileSize)
+	log.Printf("Found %d game(s)", len(games))
+	for _, game := range games {
+		log.Printf("  - %s (%d levels)", game.Name, len(game.Levels))
+	}
 
-	// Generate wall segments from map data
-	walls := shadows.CreateWallSegmentsFromMap(gameMap)
+	// Create the main menu
+	mainMenu := menu.NewMainMenu(games, rend, inputMgr, screenWidth, screenHeight)
 
-	log.Printf("Generated %d wall segments", len(walls))
-
-	game := &Game{
+	// Create the game manager
+	gameManager := &GameManager{
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
-		gameMap:      gameMap,
-		walls:        walls,
-		player: Player{
-			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
-			Speed: 3.0,
-		},
-		renderer: rend,
-		inputMgr: inputMgr,
+		state:        menu.StateMainMenu,
+		mainMenu:     mainMenu,
+		renderer:     rend,
+		inputMgr:     inputMgr,
+		loader:       loader,
 	}
 
+	// Set up the window
 	engine.SetWindowSize(screenWidth, screenHeight)
-	windowTitle := fmt.Sprintf("Outpost9 [%s] - WASD to move", *gameDir)
-	engine.SetWindowTitle(windowTitle)
+	engine.SetWindowTitle("Outpost9 - Main Menu")
 
-	log.Printf("Starting game...")
-	if err := engine.RunGame(game); err != nil {
+	log.Println("Starting game...")
+	if err := engine.RunGame(gameManager); err != nil {
 		log.Fatal(err)
 	}
 }

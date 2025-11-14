@@ -43,6 +43,27 @@ func (r *EbitenRenderer) StrokeCircle(dst renderer.Image, x, y, radius float32, 
 	vector.StrokeCircle(ebitenImg, x, y, radius, strokeWidth, clr, true)
 }
 
+// DrawText draws text on the destination image using the default font.
+// Note: Color parameter is currently ignored, text is always white.
+// Scale parameter adjusts the effective size (implemented via character spacing approximation).
+func (r *EbitenRenderer) DrawText(dst renderer.Image, str string, x, y int, clr color.Color, scale float64) {
+	ebitenImg := dst.(*EbitenImage).img
+
+	// ebitenutil.DebugPrintAt uses a fixed font size, so we approximate scaling
+	// by adjusting position. For now, we just use the base size.
+	// TODO: Implement proper scaled text rendering with a font library
+	ebitenutil.DebugPrintAt(ebitenImg, str, x, y)
+}
+
+// MeasureText measures the width and height of text with the given scale.
+// This is an approximation based on the debug font's character size.
+func (r *EbitenRenderer) MeasureText(str string, scale float64) (width, height int) {
+	// Debug font is approximately 6x13 pixels per character
+	charWidth := 6.0
+	charHeight := 13.0
+	return int(float64(len(str)) * charWidth * scale), int(charHeight * scale)
+}
+
 // EbitenImage wraps an ebiten.Image to implement the renderer.Image interface.
 type EbitenImage struct {
 	img *ebiten.Image
@@ -166,6 +187,16 @@ func (m *EbitenInputManager) IsKeyPressed(key renderer.Key) bool {
 	return ebiten.IsKeyPressed(keyToEbitenKey(key))
 }
 
+// GetCursorPosition returns the current cursor position.
+func (m *EbitenInputManager) GetCursorPosition() (x, y int) {
+	return ebiten.CursorPosition()
+}
+
+// IsMouseButtonPressed returns whether the specified mouse button is currently pressed.
+func (m *EbitenInputManager) IsMouseButtonPressed(button renderer.MouseButton) bool {
+	return ebiten.IsMouseButtonPressed(mouseButtonToEbiten(button))
+}
+
 // keyToEbitenKey converts a renderer.Key to an ebiten.Key.
 func keyToEbitenKey(key renderer.Key) ebiten.Key {
 	switch key {
@@ -191,6 +222,20 @@ func keyToEbitenKey(key renderer.Key) ebiten.Key {
 		return ebiten.KeyEscape
 	default:
 		return 0
+	}
+}
+
+// mouseButtonToEbiten converts a renderer.MouseButton to an ebiten.MouseButton.
+func mouseButtonToEbiten(button renderer.MouseButton) ebiten.MouseButton {
+	switch button {
+	case renderer.MouseButtonLeft:
+		return ebiten.MouseButtonLeft
+	case renderer.MouseButtonRight:
+		return ebiten.MouseButtonRight
+	case renderer.MouseButtonMiddle:
+		return ebiten.MouseButtonMiddle
+	default:
+		return ebiten.MouseButtonLeft
 	}
 }
 
