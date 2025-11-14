@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"chosenoffset.com/outpost9/atlas"
+	"chosenoffset.com/outpost9/renderer"
 )
 
 // SpawnPoint defines a player or entity spawn location
@@ -21,7 +22,7 @@ type MapData struct {
 	Height      int        `json:"height"`
 	TileSize    int        `json:"tile_size"` // Tile size in pixels (used for both atlas and rendering)
 	AtlasPath   string     `json:"atlas"`
-	FloorTile   string     `json:"floor_tile"`   // Default floor tile to fill the entire map
+	FloorTile   string     `json:"floor_tile"` // Default floor tile to fill the entire map
 	PlayerSpawn SpawnPoint `json:"player_spawn"`
 	Tiles       [][]string `json:"tiles"` // 2D array of tile names [y][x] - walls/objects layer
 }
@@ -33,7 +34,7 @@ type Map struct {
 }
 
 // LoadMap loads a map from a JSON file and its associated atlas
-func LoadMap(mapPath string) (*Map, error) {
+func LoadMap(mapPath string, loader renderer.ResourceLoader) (*Map, error) {
 	// Read the map JSON file
 	data, err := os.ReadFile(mapPath)
 	if err != nil {
@@ -52,7 +53,7 @@ func LoadMap(mapPath string) (*Map, error) {
 	}
 
 	// Load the atlas
-	atlasObj, err := atlas.LoadAtlas(mapData.AtlasPath)
+	atlasObj, err := atlas.LoadAtlas(mapData.AtlasPath, loader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load atlas %s: %w", mapData.AtlasPath, err)
 	}

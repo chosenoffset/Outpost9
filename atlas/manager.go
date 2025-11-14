@@ -3,26 +3,28 @@ package atlas
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2"
+	"chosenoffset.com/outpost9/renderer"
 )
 
 // Manager manages multiple sprite atlases organized by layer
 type Manager struct {
-	atlasesByLayer map[string]*Atlas // Atlases organized by layer name
-	atlasesByName  map[string]*Atlas // Atlases organized by atlas name
+	atlasesByLayer map[string]*Atlas       // Atlases organized by layer name
+	atlasesByName  map[string]*Atlas       // Atlases organized by atlas name
+	loader         renderer.ResourceLoader // Resource loader for loading images
 }
 
 // NewManager creates a new atlas manager
-func NewManager() *Manager {
+func NewManager(loader renderer.ResourceLoader) *Manager {
 	return &Manager{
 		atlasesByLayer: make(map[string]*Atlas),
 		atlasesByName:  make(map[string]*Atlas),
+		loader:         loader,
 	}
 }
 
 // LoadAtlasConfig loads an atlas from a config file and registers it
 func (m *Manager) LoadAtlasConfig(configPath string) error {
-	atlas, err := LoadAtlas(configPath)
+	atlas, err := LoadAtlas(configPath, m.loader)
 	if err != nil {
 		return err
 	}
@@ -64,7 +66,7 @@ func (m *Manager) GetAtlasByName(name string) (*Atlas, bool) {
 }
 
 // DrawTile draws a tile from a specific layer at screen coordinates
-func (m *Manager) DrawTile(screen *ebiten.Image, layer, tileName string, x, y float64) error {
+func (m *Manager) DrawTile(screen renderer.Image, layer, tileName string, x, y float64) error {
 	atlas, ok := m.GetAtlasByLayer(layer)
 	if !ok {
 		return fmt.Errorf("no atlas found for layer: %s", layer)
@@ -74,7 +76,7 @@ func (m *Manager) DrawTile(screen *ebiten.Image, layer, tileName string, x, y fl
 }
 
 // DrawTileWithOptions draws a tile with custom options from a specific layer
-func (m *Manager) DrawTileWithOptions(screen *ebiten.Image, layer, tileName string, opts *ebiten.DrawImageOptions) error {
+func (m *Manager) DrawTileWithOptions(screen renderer.Image, layer, tileName string, opts *renderer.DrawImageOptions) error {
 	atlas, ok := m.GetAtlasByLayer(layer)
 	if !ok {
 		return fmt.Errorf("no atlas found for layer: %s", layer)
