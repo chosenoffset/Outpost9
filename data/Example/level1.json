@@ -13,7 +13,7 @@
     ["nwt", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "net"],
     ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
     ["wwx", "", "", "", "", "", "", "", "", "", "", "", "wex"],
-    ["wwx", "", "", "", "", "nwt", "nwt", "nwt", "net", "", "", "", "wex"],
+    ["wwx", "", "", "", "", "nwt", "ntx", "ntx", "net", "", "", "", "wex"],
     ["wwx", "", "", "", "", "nwb", "nwb", "nwb", "neb", "", "", "", "wex"],
     ["wwx", "", "", "", "", "wwx", "", "", "wex", "", "", "", "wex"],
     ["wwx", "", "", "", "", "wwx", "", "", "wex", "", "", "", "wex"],
