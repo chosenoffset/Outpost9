@@ -95,9 +95,9 @@ func TestAtlasConfigParsing(t *testing.T) {
 
 func TestTileDefinitionProperties(t *testing.T) {
 	tile := TileDefinition{
-		Name:    "test_tile",
-		AtlasX:  0,
-		AtlasY:  0,
+		Name:   "test_tile",
+		AtlasX: 0,
+		AtlasY: 0,
 		Properties: map[string]interface{}{
 			"bool_prop":   true,
 			"string_prop": "test_value",

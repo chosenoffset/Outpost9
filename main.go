@@ -8,7 +8,9 @@ import (
 	"math"
 
 	"chosenoffset.com/outpost9/maploader"
-	"github.com/hajimehoshi/ebiten/v2"
+	"chosenoffset.com/outpost9/renderer"
+	ebitenrenderer "chosenoffset.com/outpost9/renderer/ebiten"
+
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -149,23 +151,25 @@ type Game struct {
 	gameMap      *maploader.Map
 	walls        []Segment
 	player       Player
-	whiteImg     *ebiten.Image
+	whiteImg     renderer.Image
+	renderer     renderer.Renderer
+	inputMgr     renderer.InputManager
 }
 
 func (g *Game) Update() error {
 	// WASD movement
 	moveSpeed := g.player.Speed
 
-	if ebiten.IsKeyPressed(ebiten.KeyW) {
+	if g.inputMgr.IsKeyPressed(renderer.KeyW) {
 		g.player.Pos.Y -= moveSpeed
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyS) {
+	if g.inputMgr.IsKeyPressed(renderer.KeyS) {
 		g.player.Pos.Y += moveSpeed
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyA) {
+	if g.inputMgr.IsKeyPressed(renderer.KeyA) {
 		g.player.Pos.X -= moveSpeed
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyD) {
+	if g.inputMgr.IsKeyPressed(renderer.KeyD) {
 		g.player.Pos.X += moveSpeed
 	}
 
@@ -186,12 +190,12 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
+func (g *Game) Draw(screen renderer.Image) {
 	// Step 1: Draw all tiles (the world)
 	g.drawTiles(screen)
 
 	// Step 2: Create a shadow mask
-	shadowMask := ebiten.NewImage(g.screenWidth, g.screenHeight)
+	shadowMask := g.renderer.NewImage(g.screenWidth, g.screenHeight)
 	// Start transparent (no shadows)
 	shadowMask.Fill(color.RGBA{0, 0, 0, 0})
 
@@ -255,29 +259,27 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	// Step 4: Draw the shadow mask on top of the world
-	screen.DrawImage(shadowMask, &ebiten.DrawImageOptions{})
+	screen.DrawImage(shadowMask, nil)
 
 	// Step 5: Redraw wall tiles that face the player (so they're visible above shadows)
 	g.drawVisibleWalls(screen)
 
 	// Step 6: Draw player character on top of everything
-	vector.FillCircle(screen,
+	g.renderer.FillCircle(screen,
 		float32(g.player.Pos.X),
 		float32(g.player.Pos.Y),
 		8,
-		color.RGBA{255, 255, 100, 255},
-		false)
+		color.RGBA{255, 255, 100, 255})
 
-	vector.StrokeCircle(screen,
+	g.renderer.StrokeCircle(screen,
 		float32(g.player.Pos.X),
 		float32(g.player.Pos.Y),
 		8,
 		2,
-		color.RGBA{200, 200, 50, 255},
-		false)
+		color.RGBA{200, 200, 50, 255})
 }
 
-func (g *Game) drawTiles(screen *ebiten.Image) {
+func (g *Game) drawTiles(screen renderer.Image) {
 	if g.gameMap == nil || g.gameMap.Atlas == nil {
 		return
 	}
@@ -294,7 +296,8 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 					screenX := float64(x * tileSize)
 					screenY := float64(y * tileSize)
 
-					opts := &ebiten.DrawImageOptions{}
+					opts := &renderer.DrawImageOptions{}
+					opts.GeoM = renderer.NewGeoM()
 					opts.GeoM.Translate(screenX, screenY)
 					screen.DrawImage(floorImg, opts)
 				}
@@ -325,7 +328,8 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 			screenX := float64(x * tileSize)
 			screenY := float64(y * tileSize)
 
-			opts := &ebiten.DrawImageOptions{}
+			opts := &renderer.DrawImageOptions{}
+			opts.GeoM = renderer.NewGeoM()
 			opts.GeoM.Translate(screenX, screenY)
 
 			screen.DrawImage(subImg, opts)
@@ -333,7 +337,7 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 	}
 }
 
-func (g *Game) drawVisibleWalls(screen *ebiten.Image) {
+func (g *Game) drawVisibleWalls(screen renderer.Image) {
 	if g.gameMap == nil || g.gameMap.Atlas == nil {
 		return
 	}
@@ -375,7 +379,8 @@ func (g *Game) drawVisibleWalls(screen *ebiten.Image) {
 			screenX := float64(wall.TileX * tileSize)
 			screenY := float64(wall.TileY * tileSize)
 
-			opts := &ebiten.DrawImageOptions{}
+			opts := &renderer.DrawImageOptions{}
+			opts.GeoM = renderer.NewGeoM()
 			opts.GeoM.Translate(screenX, screenY)
 			screen.DrawImage(subImg, opts)
 
@@ -422,7 +427,7 @@ func (g *Game) pointInPolygon(point Point, polygon []Point) bool {
 	return inside
 }
 
-func (g *Game) drawPolygon(dst *ebiten.Image, points []Point, c color.RGBA) {
+func (g *Game) drawPolygon(dst renderer.Image, points []Point, c color.RGBA) {
 	if len(points) < 3 {
 		return
 	}
@@ -436,25 +441,31 @@ func (g *Game) drawPolygon(dst *ebiten.Image, points []Point, c color.RGBA) {
 	path.Close()
 
 	// Fill with anti-aliasing disabled to avoid edge artifacts
-	vertexes, indexes := path.AppendVerticesAndIndicesForFilling(nil, nil)
+	ebitenVertexes, indexes := path.AppendVerticesAndIndicesForFilling(nil, nil)
 
 	if g.whiteImg == nil {
-		g.whiteImg = ebiten.NewImage(1, 1)
+		g.whiteImg = g.renderer.NewImage(1, 1)
 		g.whiteImg.Fill(color.White)
 	}
 
-	// Apply color to vertices
-	for i := range vertexes {
-		vertexes[i].SrcX = 0
-		vertexes[i].SrcY = 0
-		vertexes[i].ColorR = float32(c.R) / 255
-		vertexes[i].ColorG = float32(c.G) / 255
-		vertexes[i].ColorB = float32(c.B) / 255
-		vertexes[i].ColorA = float32(c.A) / 255
+	// Convert ebiten vertices to renderer vertices and apply color
+	vertexes := make([]renderer.Vertex, len(ebitenVertexes))
+	for i := range ebitenVertexes {
+		vertexes[i] = renderer.Vertex{
+			DstX:   ebitenVertexes[i].DstX,
+			DstY:   ebitenVertexes[i].DstY,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: float32(c.R) / 255,
+			ColorG: float32(c.G) / 255,
+			ColorB: float32(c.B) / 255,
+			ColorA: float32(c.A) / 255,
+		}
 	}
 
-	opts := &ebiten.DrawTrianglesOptions{}
-	opts.AntiAlias = false
+	opts := &renderer.DrawTrianglesOptions{
+		AntiAlias: false,
+	}
 	dst.DrawTriangles(vertexes, indexes, g.whiteImg, opts)
 }
 
@@ -666,12 +677,18 @@ func main() {
 	screenWidth := 800
 	screenHeight := 600
 
+	// Initialize the renderer backend (ebiten)
+	rend := ebitenrenderer.NewRenderer()
+	inputMgr := ebitenrenderer.NewInputManager()
+	loader := ebitenrenderer.NewResourceLoader()
+	engine := ebitenrenderer.NewEngine()
+
 	// Construct the level path
 	levelPath := fmt.Sprintf("data/%s/%s", *gameDir, *levelFile)
 
 	// Load the map from JSON
 	log.Printf("Loading level: %s", levelPath)
-	gameMap, err := maploader.LoadMap(levelPath)
+	gameMap, err := maploader.LoadMap(levelPath, loader)
 	if err != nil {
 		log.Fatalf("Failed to load map: %v", err)
 	}
@@ -696,14 +713,16 @@ func main() {
 			Pos:   Point{gameMap.Data.PlayerSpawn.X, gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
 		},
+		renderer: rend,
+		inputMgr: inputMgr,
 	}
 
-	ebiten.SetWindowSize(screenWidth, screenHeight)
+	engine.SetWindowSize(screenWidth, screenHeight)
 	windowTitle := fmt.Sprintf("Outpost9 [%s] - WASD to move", *gameDir)
-	ebiten.SetWindowTitle(windowTitle)
+	engine.SetWindowTitle(windowTitle)
 
 	log.Printf("Starting game...")
-	if err := ebiten.RunGame(game); err != nil {
+	if err := engine.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
 }
