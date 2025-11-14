@@ -6,6 +6,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"chosenoffset.com/outpost9/renderer"
@@ -41,6 +42,27 @@ func (r *EbitenRenderer) FillCircle(dst renderer.Image, x, y, radius float32, cl
 func (r *EbitenRenderer) StrokeCircle(dst renderer.Image, x, y, radius float32, strokeWidth float32, clr color.Color) {
 	ebitenImg := dst.(*EbitenImage).img
 	vector.StrokeCircle(ebitenImg, x, y, radius, strokeWidth, clr, true)
+}
+
+// DrawText draws text on the destination image using the default font.
+func (r *EbitenRenderer) DrawText(dst renderer.Image, str string, x, y int, clr color.Color, scale float64) {
+	ebitenImg := dst.(*EbitenImage).img
+
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	op.GeoM.Scale(scale, scale)
+	op.ColorScale.ScaleWithColor(clr)
+
+	// Use the default UI face
+	face := text.NewGoXFace(getDefaultFont())
+	text.Draw(ebitenImg, str, face, op)
+}
+
+// MeasureText measures the width and height of text with the given scale.
+func (r *EbitenRenderer) MeasureText(str string, scale float64) (width, height int) {
+	face := text.NewGoXFace(getDefaultFont())
+	w, h := text.Measure(str, face, 0)
+	return int(w * scale), int(h * scale)
 }
 
 // EbitenImage wraps an ebiten.Image to implement the renderer.Image interface.
@@ -166,6 +188,16 @@ func (m *EbitenInputManager) IsKeyPressed(key renderer.Key) bool {
 	return ebiten.IsKeyPressed(keyToEbitenKey(key))
 }
 
+// GetCursorPosition returns the current cursor position.
+func (m *EbitenInputManager) GetCursorPosition() (x, y int) {
+	return ebiten.CursorPosition()
+}
+
+// IsMouseButtonPressed returns whether the specified mouse button is currently pressed.
+func (m *EbitenInputManager) IsMouseButtonPressed(button renderer.MouseButton) bool {
+	return ebiten.IsMouseButtonPressed(mouseButtonToEbiten(button))
+}
+
 // keyToEbitenKey converts a renderer.Key to an ebiten.Key.
 func keyToEbitenKey(key renderer.Key) ebiten.Key {
 	switch key {
@@ -192,6 +224,27 @@ func keyToEbitenKey(key renderer.Key) ebiten.Key {
 	default:
 		return 0
 	}
+}
+
+// mouseButtonToEbiten converts a renderer.MouseButton to an ebiten.MouseButton.
+func mouseButtonToEbiten(button renderer.MouseButton) ebiten.MouseButton {
+	switch button {
+	case renderer.MouseButtonLeft:
+		return ebiten.MouseButtonLeft
+	case renderer.MouseButtonRight:
+		return ebiten.MouseButtonRight
+	case renderer.MouseButtonMiddle:
+		return ebiten.MouseButtonMiddle
+	default:
+		return ebiten.MouseButtonLeft
+	}
+}
+
+// getDefaultFont returns a default Go font for text rendering.
+func getDefaultFont() *text.GoXFaceSource {
+	// Using the default font size
+	s, _ := text.NewGoXFaceSource(nil)
+	return s
 }
 
 // EbitenResourceLoader implements the ResourceLoader interface using Ebiten.

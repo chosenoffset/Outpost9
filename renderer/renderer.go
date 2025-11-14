@@ -15,6 +15,10 @@ type Renderer interface {
 	// Vector operations (for drawing shapes)
 	FillCircle(dst Image, x, y, radius float32, clr color.Color)
 	StrokeCircle(dst Image, x, y, radius float32, strokeWidth float32, clr color.Color)
+
+	// Text operations
+	DrawText(dst Image, text string, x, y int, clr color.Color, scale float64)
+	MeasureText(text string, scale float64) (width, height int)
 }
 
 // Image represents a renderable image surface that can be drawn to or drawn from.
@@ -78,6 +82,8 @@ type Vertex struct {
 // InputManager handles input from the user (keyboard, mouse, etc).
 type InputManager interface {
 	IsKeyPressed(key Key) bool
+	GetCursorPosition() (x, y int)
+	IsMouseButtonPressed(button MouseButton) bool
 }
 
 // Key represents a keyboard key.
@@ -95,6 +101,16 @@ const (
 	KeyRight
 	KeySpace
 	KeyEscape
+)
+
+// MouseButton represents a mouse button.
+type MouseButton int
+
+// Mouse button constants
+const (
+	MouseButtonLeft MouseButton = iota
+	MouseButtonRight
+	MouseButtonMiddle
 )
 
 // ResourceLoader handles loading resources like images from disk.
