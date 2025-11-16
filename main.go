@@ -10,6 +10,7 @@ import (
 	"chosenoffset.com/outpost9/menu"
 	"chosenoffset.com/outpost9/renderer"
 	ebitenrenderer "chosenoffset.com/outpost9/renderer/ebiten"
+	"chosenoffset.com/outpost9/room"
 	"chosenoffset.com/outpost9/shadows"
 
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -38,7 +39,7 @@ func (gm *GameManager) Update() error {
 		selected, selection := gm.mainMenu.Update()
 		if selected {
 			// Load the selected game
-			if err := gm.loadGame(selection.GameDir, selection.LevelFile); err != nil {
+			if err := gm.loadGame(selection); err != nil {
 				log.Printf("Failed to load game: %v", err)
 				return err
 			}
@@ -71,20 +72,48 @@ func (gm *GameManager) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return gm.screenWidth, gm.screenHeight
 }
 
-func (gm *GameManager) loadGame(gameDir, levelFile string) error {
-	levelPath := fmt.Sprintf("data/%s/%s", gameDir, levelFile)
+func (gm *GameManager) loadGame(selection menu.Selection) error {
+	filePath := fmt.Sprintf("data/%s/%s", selection.GameDir, selection.LevelFile)
 
-	log.Printf("Loading level: %s", levelPath)
-	gameMap, err := maploader.LoadMap(levelPath, gm.loader)
-	if err != nil {
-		return fmt.Errorf("failed to load map: %w", err)
+	var gameMap *maploader.Map
+	var err error
+
+	if selection.IsRoomLibrary {
+		// Load procedurally generated level from room library
+		log.Printf("Loading room library: %s", filePath)
+
+		config := room.GeneratorConfig{
+			MinRooms:    5,
+			MaxRooms:    10,
+			Seed:        0, // Use random seed each time
+			ConnectAll:  true,
+			AllowOverlap: false,
+		}
+
+		gameMap, err = maploader.LoadMapFromRoomLibrary(filePath, config, gm.loader)
+		if err != nil {
+			return fmt.Errorf("failed to generate map from room library: %w", err)
+		}
+
+		log.Printf("Generated procedural map: %s (%dx%d, tile size: %dpx)",
+			gameMap.Data.Name,
+			gameMap.Data.Width,
+			gameMap.Data.Height,
+			gameMap.Data.TileSize)
+	} else {
+		// Load traditional static level
+		log.Printf("Loading level: %s", filePath)
+		gameMap, err = maploader.LoadMap(filePath, gm.loader)
+		if err != nil {
+			return fmt.Errorf("failed to load map: %w", err)
+		}
+
+		log.Printf("Loaded map: %s (%dx%d, tile size: %dpx)",
+			gameMap.Data.Name,
+			gameMap.Data.Width,
+			gameMap.Data.Height,
+			gameMap.Data.TileSize)
 	}
-
-	log.Printf("Loaded map: %s (%dx%d, tile size: %dpx)",
-		gameMap.Data.Name,
-		gameMap.Data.Width,
-		gameMap.Data.Height,
-		gameMap.Data.TileSize)
 
 	// Generate wall segments from map data
 	walls := shadows.CreateWallSegmentsFromMap(gameMap)

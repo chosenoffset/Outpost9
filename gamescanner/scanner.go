@@ -9,9 +9,10 @@ import (
 
 // GameEntry represents a discoverable game in the data directory
 type GameEntry struct {
-	Name   string   // Display name (directory name)
-	Dir    string   // Directory path relative to data/
-	Levels []string // List of available level files
+	Name          string   // Display name (directory name)
+	Dir           string   // Directory path relative to data/
+	Levels        []string // List of available level files
+	RoomLibraries []string // List of room library files (for procedural generation)
 }
 
 // ScanDataDirectory scans the data directory for available games
@@ -36,20 +37,21 @@ func ScanDataDirectory(dataPath string) ([]GameEntry, error) {
 			continue
 		}
 
-		// Scan for level files in this directory
+		// Scan for level and room library files in this directory
 		gamePath := filepath.Join(dataPath, dirName)
-		levels, err := scanLevels(gamePath)
+		levels, roomLibraries, err := scanGameFiles(gamePath)
 		if err != nil {
 			// Skip directories that can't be read
 			continue
 		}
 
-		// Only include directories with at least one level file
-		if len(levels) > 0 {
+		// Only include directories with at least one level file or room library
+		if len(levels) > 0 || len(roomLibraries) > 0 {
 			games = append(games, GameEntry{
-				Name:   dirName,
-				Dir:    dirName,
-				Levels: levels,
+				Name:          dirName,
+				Dir:           dirName,
+				Levels:        levels,
+				RoomLibraries: roomLibraries,
 			})
 		}
 	}
@@ -57,14 +59,13 @@ func ScanDataDirectory(dataPath string) ([]GameEntry, error) {
 	return games, nil
 }
 
-// scanLevels finds all .json level files in a game directory
-func scanLevels(gamePath string) ([]string, error) {
+// scanGameFiles finds all level and room library files in a game directory
+func scanGameFiles(gamePath string) (levels []string, roomLibraries []string, err error) {
 	entries, err := os.ReadDir(gamePath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var levels []string
 	for _, entry := range entries {
 		// Skip directories
 		if entry.IsDir() {
@@ -78,9 +79,16 @@ func scanLevels(gamePath string) ([]string, error) {
 			if name == "atlas.json" {
 				continue
 			}
-			levels = append(levels, name)
+
+			// Check if this is a room library file
+			if strings.Contains(strings.ToLower(name), "room") {
+				roomLibraries = append(roomLibraries, name)
+			} else {
+				// Otherwise treat as a traditional level file
+				levels = append(levels, name)
+			}
 		}
 	}
 
-	return levels, nil
+	return levels, roomLibraries, nil
 }

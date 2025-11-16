@@ -1,0 +1,293 @@
+{
+  "name": "Example Room Library",
+  "description": "A collection of rooms for procedural level generation",
+  "atlas_path": "data/Example/atlas.json",
+  "tile_size": 16,
+  "floor_tile": "f1x",
+  "rooms": [
+    {
+      "name": "entrance_small",
+      "description": "Small entrance room with single doorway",
+      "type": "entrance",
+      "tags": ["start", "small"],
+      "width": 7,
+      "height": 5,
+      "spawn_weight": 10,
+      "min_count": 1,
+      "max_count": 1,
+      "connections": [
+        {
+          "x": 6,
+          "y": 2,
+          "direction": "east",
+          "type": "door"
+        }
+      ],
+      "tiles": [
+        ["nwt", "ntx", "ntx", "ntx", "ntx", "ntx", "net"],
+        ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
+        ["wwx", "", "", "", "", "", ""],
+        ["swt", "stx", "stx", "stx", "stx", "stx", "set"],
+        ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
+      ]
+    },
+    {
+      "name": "corridor_horizontal",
+      "description": "Horizontal corridor connecting rooms",
+      "type": "corridor",
+      "tags": ["connector", "horizontal"],
+      "width": 5,
+      "height": 3,
+      "spawn_weight": 15,
+      "min_count": 0,
+      "max_count": 0,
+      "connections": [
+        {
+          "x": 0,
+          "y": 1,
+          "direction": "west",
+          "type": "corridor"
+        },
+        {
+          "x": 4,
+          "y": 1,
+          "direction": "east",
+          "type": "corridor"
+        }
+      ],
+      "tiles": [
+        ["nwt", "ntx", "ntx", "ntx", "net"],
+        ["", "", "", "", ""],
+        ["swt", "stx", "stx", "stx", "set"]
+      ]
+    },
+    {
+      "name": "corridor_vertical",
+      "description": "Vertical corridor connecting rooms",
+      "type": "corridor",
+      "tags": ["connector", "vertical"],
+      "width": 3,
+      "height": 5,
+      "spawn_weight": 15,
+      "min_count": 0,
+      "max_count": 0,
+      "connections": [
+        {
+          "x": 1,
+          "y": 0,
+          "direction": "north",
+          "type": "corridor"
+        },
+        {
+          "x": 1,
+          "y": 4,
+          "direction": "south",
+          "type": "corridor"
+        }
+      ],
+      "tiles": [
+        ["nwt", "", "net"],
+        ["wwx", "", "wex"],
+        ["wwx", "", "wex"],
+        ["wwx", "", "wex"],
+        ["swt", "", "set"]
+      ]
+    },
+    {
+      "name": "chamber_medium",
+      "description": "Medium sized chamber with multiple connections",
+      "type": "chamber",
+      "tags": ["room", "medium"],
+      "width": 8,
+      "height": 6,
+      "spawn_weight": 20,
+      "min_count": 0,
+      "max_count": 0,
+      "connections": [
+        {
+          "x": 0,
+          "y": 3,
+          "direction": "west",
+          "type": "door"
+        },
+        {
+          "x": 7,
+          "y": 3,
+          "direction": "east",
+          "type": "door"
+        },
+        {
+          "x": 4,
+          "y": 0,
+          "direction": "north",
+          "type": "door"
+        }
+      ],
+      "tiles": [
+        ["nwt", "ntx", "ntx", "ntx", "", "ntx", "ntx", "net"],
+        ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
+        ["wwx", "", "", "", "", "", "", "wex"],
+        ["", "", "", "", "", "", "", ""],
+        ["swt", "stx", "stx", "stx", "stx", "stx", "stx", "set"],
+        ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
+      ]
+    },
+    {
+      "name": "chamber_small",
+      "description": "Small chamber room",
+      "type": "chamber",
+      "tags": ["room", "small"],
+      "width": 5,
+      "height": 4,
+      "spawn_weight": 25,
+      "min_count": 0,
+      "max_count": 0,
+      "connections": [
+        {
+          "x": 0,
+          "y": 2,
+          "direction": "west",
+          "type": "door"
+        },
+        {
+          "x": 4,
+          "y": 2,
+          "direction": "east",
+          "type": "door"
+        }
+      ],
+      "tiles": [
+        ["nwt", "ntx", "ntx", "ntx", "net"],
+        ["nwb", "nbx", "nbx", "nbx", "neb"],
+        ["", "", "", "", ""],
+        ["swt", "stx", "stx", "stx", "set"]
+      ]
+    },
+    {
+      "name": "chamber_large",
+      "description": "Large open chamber",
+      "type": "chamber",
+      "tags": ["room", "large"],
+      "width": 10,
+      "height": 8,
+      "spawn_weight": 10,
+      "min_count": 0,
+      "max_count": 2,
+      "connections": [
+        {
+          "x": 0,
+          "y": 4,
+          "direction": "west",
+          "type": "door"
+        },
+        {
+          "x": 9,
+          "y": 4,
+          "direction": "east",
+          "type": "door"
+        },
+        {
+          "x": 5,
+          "y": 0,
+          "direction": "north",
+          "type": "door"
+        },
+        {
+          "x": 5,
+          "y": 7,
+          "direction": "south",
+          "type": "door"
+        }
+      ],
+      "tiles": [
+        ["nwt", "ntx", "ntx", "ntx", "ntx", "", "ntx", "ntx", "ntx", "net"],
+        ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
+        ["wwx", "", "", "", "", "", "", "", "", "wex"],
+        ["wwx", "", "", "", "", "", "", "", "", "wex"],
+        ["", "", "", "", "", "", "", "", "", ""],
+        ["wwx", "", "", "", "", "", "", "", "", "wex"],
+        ["swt", "stx", "stx", "stx", "stx", "", "stx", "stx", "stx", "set"],
+        ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
+      ]
+    },
+    {
+      "name": "room_with_interior",
+      "description": "Chamber with interior room structure",
+      "type": "chamber",
+      "tags": ["room", "complex"],
+      "width": 11,
+      "height": 8,
+      "spawn_weight": 8,
+      "min_count": 0,
+      "max_count": 1,
+      "connections": [
+        {
+          "x": 0,
+          "y": 4,
+          "direction": "west",
+          "type": "door"
+        },
+        {
+          "x": 10,
+          "y": 4,
+          "direction": "east",
+          "type": "door"
+        }
+      ],
+      "tiles": [
+        ["nwt", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "net"],
+        ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
+        ["wwx", "", "", "", "", "nwt", "ntx", "ntx", "net", "", "wex"],
+        ["wwx", "", "", "", "", "nwb", "nwb", "nwb", "neb", "", "wex"],
+        ["", "", "", "", "", "wwx", "", "", "wex", "", ""],
+        ["wwx", "", "", "", "", "wwx", "", "", "wex", "", "wex"],
+        ["swt", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "set"],
+        ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
+      ]
+    },
+    {
+      "name": "junction_cross",
+      "description": "Four-way junction room",
+      "type": "junction",
+      "tags": ["connector", "cross"],
+      "width": 5,
+      "height": 5,
+      "spawn_weight": 12,
+      "min_count": 0,
+      "max_count": 0,
+      "connections": [
+        {
+          "x": 0,
+          "y": 2,
+          "direction": "west",
+          "type": "corridor"
+        },
+        {
+          "x": 4,
+          "y": 2,
+          "direction": "east",
+          "type": "corridor"
+        },
+        {
+          "x": 2,
+          "y": 0,
+          "direction": "north",
+          "type": "corridor"
+        },
+        {
+          "x": 2,
+          "y": 4,
+          "direction": "south",
+          "type": "corridor"
+        }
+      ],
+      "tiles": [
+        ["nwt", "ntx", "", "ntx", "net"],
+        ["nwb", "nbx", "", "nbx", "neb"],
+        ["", "", "", "", ""],
+        ["swt", "stx", "", "stx", "set"],
+        ["swb", "sbx", "", "sbx", "seb"]
+      ]
+    }
+  ]
+}

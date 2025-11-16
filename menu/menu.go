@@ -18,8 +18,9 @@ const (
 
 // Selection represents a game and level selection from the menu.
 type Selection struct {
-	GameDir   string
-	LevelFile string
+	GameDir       string
+	LevelFile     string
+	IsRoomLibrary bool // If true, LevelFile is a room library to generate from
 }
 
 // MainMenu represents the main menu screen.
@@ -81,10 +82,25 @@ func (m *MainMenu) Update() (selected bool, selection Selection) {
 			// Check level clicks if this game is selected
 			if i == m.selectedGame {
 				levelY := gameY + 30
+
+				// Check room library clicks first
+				for j := range game.RoomLibraries {
+					libRect := rect{x: 70, y: levelY + j*entryHeight, w: 280, h: 25}
+					if pointInRect(mouseX, mouseY, libRect) {
+						m.selectedLevel = j
+						// If clicking on a library, don't start yet
+						break
+					}
+				}
+
+				// Update levelY to account for room libraries
+				levelY += len(game.RoomLibraries) * entryHeight
+
+				// Check level clicks
 				for j := range game.Levels {
 					levelRect := rect{x: 70, y: levelY + j*entryHeight, w: 280, h: 25}
 					if pointInRect(mouseX, mouseY, levelRect) {
-						m.selectedLevel = j
+						m.selectedLevel = len(game.RoomLibraries) + j
 						// If clicking on a level, don't start yet
 						break
 					}
@@ -94,9 +110,20 @@ func (m *MainMenu) Update() (selected bool, selection Selection) {
 				startBtnY := levelY + len(game.Levels)*entryHeight + 10
 				startBtnRect := rect{x: 70, y: startBtnY, w: 200, h: 30}
 				if pointInRect(mouseX, mouseY, startBtnRect) {
-					return true, Selection{
-						GameDir:   game.Dir,
-						LevelFile: game.Levels[m.selectedLevel],
+					// Determine if selected item is a room library or level
+					if m.selectedLevel < len(game.RoomLibraries) {
+						return true, Selection{
+							GameDir:       game.Dir,
+							LevelFile:     game.RoomLibraries[m.selectedLevel],
+							IsRoomLibrary: true,
+						}
+					} else {
+						levelIndex := m.selectedLevel - len(game.RoomLibraries)
+						return true, Selection{
+							GameDir:       game.Dir,
+							LevelFile:     game.Levels[levelIndex],
+							IsRoomLibrary: false,
+						}
 					}
 				}
 			}
@@ -114,10 +141,21 @@ func (m *MainMenu) Update() (selected bool, selection Selection) {
 		// Start selected game
 		if len(m.games) > 0 && m.selectedGame < len(m.games) {
 			game := m.games[m.selectedGame]
-			if m.selectedLevel < len(game.Levels) {
+			// Determine if selected item is a room library or level
+			if m.selectedLevel < len(game.RoomLibraries) {
 				return true, Selection{
-					GameDir:   game.Dir,
-					LevelFile: game.Levels[m.selectedLevel],
+					GameDir:       game.Dir,
+					LevelFile:     game.RoomLibraries[m.selectedLevel],
+					IsRoomLibrary: true,
+				}
+			} else {
+				levelIndex := m.selectedLevel - len(game.RoomLibraries)
+				if levelIndex < len(game.Levels) {
+					return true, Selection{
+						GameDir:       game.Dir,
+						LevelFile:     game.Levels[levelIndex],
+						IsRoomLibrary: false,
+					}
 				}
 			}
 		}
@@ -157,24 +195,45 @@ func (m *MainMenu) Draw(screen renderer.Image) {
 			gameColor = color.RGBA{100, 255, 100, 255}
 		}
 
-		gameName := fmt.Sprintf("%s (%d levels)", game.Name, len(game.Levels))
+		totalItems := len(game.Levels) + len(game.RoomLibraries)
+		gameName := fmt.Sprintf("%s (%d items)", game.Name, totalItems)
 		m.renderer.DrawText(screen, gameName, 50, currentY, gameColor, 1.5)
 		currentY += 30
 
-		// Draw levels if selected
+		// Draw levels and room libraries if selected
 		if isSelected {
-			for j, level := range game.Levels {
-				levelSelected := j == m.selectedLevel
-				levelColor := color.RGBA{180, 180, 180, 255}
-				if levelSelected {
-					levelColor = color.RGBA{255, 255, 100, 255}
+			itemIndex := 0
+
+			// Draw room libraries first
+			for j, library := range game.RoomLibraries {
+				itemSelected := itemIndex == m.selectedLevel
+				itemColor := color.RGBA{200, 150, 255, 255} // Purple for procedural
+				if itemSelected {
+					itemColor = color.RGBA{255, 255, 100, 255}
 					// Draw selection indicator
-					m.renderer.DrawText(screen, ">", 50, currentY, levelColor, 1.2)
+					m.renderer.DrawText(screen, ">", 50, currentY, itemColor, 1.2)
+				}
+
+				itemText := fmt.Sprintf("  [PROCEDURAL] %s", library)
+				m.renderer.DrawText(screen, itemText, 70, currentY, itemColor, 1.2)
+				currentY += entryHeight
+				itemIndex++
+			}
+
+			// Draw levels
+			for j, level := range game.Levels {
+				itemSelected := itemIndex == m.selectedLevel
+				itemColor := color.RGBA{180, 180, 180, 255}
+				if itemSelected {
+					itemColor = color.RGBA{255, 255, 100, 255}
+					// Draw selection indicator
+					m.renderer.DrawText(screen, ">", 50, currentY, itemColor, 1.2)
 				}
 
 				levelText := fmt.Sprintf("  %s", level)
-				m.renderer.DrawText(screen, levelText, 70, currentY, levelColor, 1.2)
+				m.renderer.DrawText(screen, levelText, 70, currentY, itemColor, 1.2)
 				currentY += entryHeight
+				itemIndex++
 			}
 
 			// Draw start button
