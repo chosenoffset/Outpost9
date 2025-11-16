@@ -4,39 +4,42 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"chosenoffset.com/outpost9/furnishing"
 )
 
 // ConnectionPoint represents a door or exit point in a room
 type ConnectionPoint struct {
-	X         int    `json:"x"`          // Grid X position
-	Y         int    `json:"y"`          // Grid Y position
-	Direction string `json:"direction"`  // "north", "south", "east", "west"
-	Type      string `json:"type"`       // "door", "corridor", "entrance", "exit"
+	X         int    `json:"x"`         // Grid X position
+	Y         int    `json:"y"`         // Grid Y position
+	Direction string `json:"direction"` // "north", "south", "east", "west"
+	Type      string `json:"type"`      // "door", "corridor", "entrance", "exit"
 }
 
 // RoomDefinition represents a single room template that can be used in level generation
 type RoomDefinition struct {
-	Name        string            `json:"name"`         // Room identifier
-	Description string            `json:"description"`  // Optional description
-	Type        string            `json:"type"`         // "entrance", "corridor", "chamber", "exit", etc.
-	Tags        []string          `json:"tags"`         // Additional categorization
-	Width       int               `json:"width"`        // Room width in tiles
-	Height      int               `json:"height"`       // Room height in tiles
-	Tiles       [][]string        `json:"tiles"`        // 2D array of tile names [y][x]
-	Connections []ConnectionPoint `json:"connections"`  // Available connection points
-	SpawnWeight int               `json:"spawn_weight"` // Weight for random selection (higher = more likely)
-	MinCount    int               `json:"min_count"`    // Minimum number of times this room should appear
-	MaxCount    int               `json:"max_count"`    // Maximum number of times this room can appear (0 = unlimited)
+	Name        string                               `json:"name"`         // Room identifier
+	Description string                               `json:"description"`  // Optional description
+	Type        string                               `json:"type"`         // "entrance", "corridor", "chamber", "exit", etc.
+	Tags        []string                             `json:"tags"`         // Additional categorization
+	Width       int                                  `json:"width"`        // Room width in tiles
+	Height      int                                  `json:"height"`       // Room height in tiles
+	Tiles       [][]string                           `json:"tiles"`        // 2D array of tile names [y][x]
+	Connections []ConnectionPoint                    `json:"connections"`  // Available connection points
+	Furnishings []furnishing.RoomFurnishingPlacement `json:"furnishings"`  // Furnishings to place in this room
+	SpawnWeight int                                  `json:"spawn_weight"` // Weight for random selection (higher = more likely)
+	MinCount    int                                  `json:"min_count"`    // Minimum number of times this room should appear
+	MaxCount    int                                  `json:"max_count"`    // Maximum number of times this room can appear (0 = unlimited)
 }
 
 // RoomLibrary holds a collection of room definitions
 type RoomLibrary struct {
-	Name        string            `json:"name"`         // Library name
-	Description string            `json:"description"`  // Optional description
-	AtlasPath   string            `json:"atlas_path"`   // Path to atlas.json used by these rooms
-	TileSize    int               `json:"tile_size"`    // Size of tiles in pixels
-	FloorTile   string            `json:"floor_tile"`   // Default floor tile
-	Rooms       []*RoomDefinition `json:"rooms"`        // All room definitions
+	Name        string            `json:"name"`        // Library name
+	Description string            `json:"description"` // Optional description
+	AtlasPath   string            `json:"atlas_path"`  // Path to atlas.json used by these rooms
+	TileSize    int               `json:"tile_size"`   // Size of tiles in pixels
+	FloorTile   string            `json:"floor_tile"`  // Default floor tile
+	Rooms       []*RoomDefinition `json:"rooms"`       // All room definitions
 }
 
 // Validate checks if a room definition is valid

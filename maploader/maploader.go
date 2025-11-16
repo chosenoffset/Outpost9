@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"chosenoffset.com/outpost9/atlas"
+	"chosenoffset.com/outpost9/furnishing"
 	"chosenoffset.com/outpost9/renderer"
 	"chosenoffset.com/outpost9/room"
 )
@@ -18,14 +20,15 @@ type SpawnPoint struct {
 
 // MapData represents the loaded map configuration
 type MapData struct {
-	Name        string     `json:"name"`
-	Width       int        `json:"width"`
-	Height      int        `json:"height"`
-	TileSize    int        `json:"tile_size"` // Tile size in pixels (used for both atlas and rendering)
-	AtlasPath   string     `json:"atlas"`
-	FloorTile   string     `json:"floor_tile"` // Default floor tile to fill the entire map
-	PlayerSpawn SpawnPoint `json:"player_spawn"`
-	Tiles       [][]string `json:"tiles"` // 2D array of tile names [y][x] - walls/objects layer
+	Name              string                         `json:"name"`
+	Width             int                            `json:"width"`
+	Height            int                            `json:"height"`
+	TileSize          int                            `json:"tile_size"` // Tile size in pixels (used for both atlas and rendering)
+	AtlasPath         string                         `json:"atlas"`
+	FloorTile         string                         `json:"floor_tile"` // Default floor tile to fill the entire map
+	PlayerSpawn       SpawnPoint                     `json:"player_spawn"`
+	Tiles             [][]string                     `json:"tiles"`       // 2D array of tile names [y][x] - walls/objects layer
+	PlacedFurnishings []*furnishing.PlacedFurnishing `json:"furnishings"` // Placed furnishings in the map
 }
 
 // Map represents a loaded map with its atlas
@@ -153,8 +156,22 @@ func LoadMapFromRoomLibrary(libraryPath string, config room.GeneratorConfig, loa
 		return nil, fmt.Errorf("failed to load room library %s: %w", libraryPath, err)
 	}
 
+	// Try to auto-detect furnishing library (same directory, furnishings.json)
+	furnishingLibraryPath := filepath.Join(filepath.Dir(libraryPath), "furnishings.json")
+	var furnishingLib *furnishing.FurnishingLibrary
+	if _, err := os.Stat(furnishingLibraryPath); err == nil {
+		furnishingLib, err = furnishing.LoadFurnishingLibrary(furnishingLibraryPath)
+		if err != nil {
+			// Log but don't fail if furnishing library can't be loaded
+			fmt.Printf("Warning: could not load furnishing library: %v\n", err)
+		}
+	}
+
 	// Create generator
 	generator := room.NewGenerator(library, config)
+	if furnishingLib != nil {
+		generator.SetFurnishingLibrary(furnishingLib)
+	}
 
 	// Generate level
 	generated, err := generator.Generate()
@@ -174,7 +191,8 @@ func LoadMapFromRoomLibrary(libraryPath string, config room.GeneratorConfig, loa
 			X: float64(generated.PlayerSpawn.X),
 			Y: float64(generated.PlayerSpawn.Y),
 		},
-		Tiles: generated.Tiles,
+		Tiles:             generated.Tiles,
+		PlacedFurnishings: generated.PlacedFurnishings,
 	}
 
 	// Load the atlas
@@ -193,8 +211,16 @@ func LoadMapFromRoomLibrary(libraryPath string, config room.GeneratorConfig, loa
 
 // GenerateMapFromLibrary generates a map from an already-loaded room library
 func GenerateMapFromLibrary(library *room.RoomLibrary, config room.GeneratorConfig, loader renderer.ResourceLoader) (*Map, error) {
+	return GenerateMapFromLibraryWithFurnishings(library, nil, config, loader)
+}
+
+// GenerateMapFromLibraryWithFurnishings generates a map from room and furnishing libraries
+func GenerateMapFromLibraryWithFurnishings(library *room.RoomLibrary, furnishingLib *furnishing.FurnishingLibrary, config room.GeneratorConfig, loader renderer.ResourceLoader) (*Map, error) {
 	// Create generator
 	generator := room.NewGenerator(library, config)
+	if furnishingLib != nil {
+		generator.SetFurnishingLibrary(furnishingLib)
+	}
 
 	// Generate level
 	generated, err := generator.Generate()
@@ -214,7 +240,8 @@ func GenerateMapFromLibrary(library *room.RoomLibrary, config room.GeneratorConf
 			X: float64(generated.PlayerSpawn.X),
 			Y: float64(generated.PlayerSpawn.Y),
 		},
-		Tiles: generated.Tiles,
+		Tiles:             generated.Tiles,
+		PlacedFurnishings: generated.PlacedFurnishings,
 	}
 
 	// Load the atlas

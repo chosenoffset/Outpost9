@@ -23,6 +23,20 @@
           "type": "door"
         }
       ],
+      "furnishings": [
+        {
+          "furnishing_name": "wall_torch",
+          "x": 1,
+          "y": 1,
+          "state": "lit"
+        },
+        {
+          "furnishing_name": "wall_torch",
+          "x": 5,
+          "y": 1,
+          "state": "lit"
+        }
+      ],
       "tiles": [
         ["nwt", "ntx", "ntx", "ntx", "ntx", "ntx", "net"],
         ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
@@ -123,6 +137,32 @@
           "type": "door"
         }
       ],
+      "furnishings": [
+        {
+          "furnishing_name": "wooden_crate",
+          "x": 2,
+          "y": 2,
+          "state": "closed"
+        },
+        {
+          "furnishing_name": "barrel",
+          "x": 5,
+          "y": 2,
+          "state": "default"
+        },
+        {
+          "furnishing_name": "wall_torch",
+          "x": 1,
+          "y": 1,
+          "state": "lit"
+        },
+        {
+          "furnishing_name": "wall_torch",
+          "x": 6,
+          "y": 1,
+          "state": "lit"
+        }
+      ],
       "tiles": [
         ["nwt", "ntx", "ntx", "ntx", "", "ntx", "ntx", "net"],
         ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
@@ -199,6 +239,44 @@
           "type": "door"
         }
       ],
+      "furnishings": [
+        {
+          "furnishing_name": "treasure_chest",
+          "x": 5,
+          "y": 4,
+          "state": "locked"
+        },
+        {
+          "furnishing_name": "stone_pillar",
+          "x": 2,
+          "y": 3,
+          "state": "default"
+        },
+        {
+          "furnishing_name": "stone_pillar",
+          "x": 7,
+          "y": 3,
+          "state": "default"
+        },
+        {
+          "furnishing_name": "wall_torch",
+          "x": 1,
+          "y": 1,
+          "state": "lit"
+        },
+        {
+          "furnishing_name": "wall_torch",
+          "x": 8,
+          "y": 1,
+          "state": "lit"
+        },
+        {
+          "furnishing_name": "skeleton_remains",
+          "x": 3,
+          "y": 5,
+          "state": "default"
+        }
+      ],
       "tiles": [
         ["nwt", "ntx", "ntx", "ntx", "ntx", "", "ntx", "ntx", "ntx", "net"],
         ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
@@ -232,6 +310,32 @@
           "y": 4,
           "direction": "east",
           "type": "door"
+        }
+      ],
+      "furnishings": [
+        {
+          "furnishing_name": "bookshelf",
+          "x": 6,
+          "y": 4,
+          "state": "default"
+        },
+        {
+          "furnishing_name": "wooden_table",
+          "x": 2,
+          "y": 3,
+          "state": "default"
+        },
+        {
+          "furnishing_name": "altar",
+          "x": 7,
+          "y": 2,
+          "state": "active"
+        },
+        {
+          "furnishing_name": "campfire",
+          "x": 2,
+          "y": 5,
+          "state": "burning"
         }
       ],
       "tiles": [

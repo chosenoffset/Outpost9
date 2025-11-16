@@ -24,14 +24,14 @@ type Selection struct {
 
 // MainMenu represents the main menu screen.
 type MainMenu struct {
-	games          []gamescanner.GameEntry
-	selectedGame   int
+	games           []gamescanner.GameEntry
+	selectedGame    int
 	selectedLibrary int
-	renderer       renderer.Renderer
-	input          renderer.InputManager
-	screenWidth    int
-	screenHeight   int
-	lastMouseClick bool
+	renderer        renderer.Renderer
+	input           renderer.InputManager
+	screenWidth     int
+	screenHeight    int
+	lastMouseClick  bool
 }
 
 // NewMainMenu creates a new main menu.

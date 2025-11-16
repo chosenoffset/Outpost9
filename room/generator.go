@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+
+	"chosenoffset.com/outpost9/furnishing"
 )
 
 // PlacedRoom represents a room instance placed in the level
@@ -17,15 +19,16 @@ type PlacedRoom struct {
 
 // GeneratedLevel represents a procedurally generated level
 type GeneratedLevel struct {
-	Name        string         // Level name
-	Width       int            // Total level width in tiles
-	Height      int            // Total level height in tiles
-	TileSize    int            // Tile size in pixels
-	AtlasPath   string         // Path to atlas
-	FloorTile   string         // Default floor tile
-	Tiles       [][]string     // Generated tile grid [y][x]
-	PlacedRooms []*PlacedRoom  // All placed rooms
-	PlayerSpawn PlayerSpawn    // Player starting position
+	Name              string                         // Level name
+	Width             int                            // Total level width in tiles
+	Height            int                            // Total level height in tiles
+	TileSize          int                            // Tile size in pixels
+	AtlasPath         string                         // Path to atlas
+	FloorTile         string                         // Default floor tile
+	Tiles             [][]string                     // Generated tile grid [y][x]
+	PlacedRooms       []*PlacedRoom                  // All placed rooms
+	PlacedFurnishings []*furnishing.PlacedFurnishing // All placed furnishings
+	PlayerSpawn       PlayerSpawn                    // Player starting position
 }
 
 // PlayerSpawn represents the player's starting position
@@ -36,20 +39,21 @@ type PlayerSpawn struct {
 
 // GeneratorConfig holds configuration for level generation
 type GeneratorConfig struct {
-	MinRooms     int     // Minimum number of rooms to generate
-	MaxRooms     int     // Maximum number of rooms to generate
-	LevelWidth   int     // Target level width in tiles (0 = auto)
-	LevelHeight  int     // Target level height in tiles (0 = auto)
-	Seed         int64   // Random seed (0 = use current time)
-	ConnectAll   bool    // Ensure all rooms are connected
-	AllowOverlap bool    // Allow rooms to overlap (not recommended)
+	MinRooms     int   // Minimum number of rooms to generate
+	MaxRooms     int   // Maximum number of rooms to generate
+	LevelWidth   int   // Target level width in tiles (0 = auto)
+	LevelHeight  int   // Target level height in tiles (0 = auto)
+	Seed         int64 // Random seed (0 = use current time)
+	ConnectAll   bool  // Ensure all rooms are connected
+	AllowOverlap bool  // Allow rooms to overlap (not recommended)
 }
 
 // Generator handles procedural level generation
 type Generator struct {
-	library *RoomLibrary
-	config  GeneratorConfig
-	rng     *rand.Rand
+	library           *RoomLibrary
+	furnishingLibrary *furnishing.FurnishingLibrary
+	config            GeneratorConfig
+	rng               *rand.Rand
 }
 
 // NewGenerator creates a new level generator
@@ -60,10 +64,16 @@ func NewGenerator(library *RoomLibrary, config GeneratorConfig) *Generator {
 	}
 
 	return &Generator{
-		library: library,
-		config:  config,
-		rng:     rand.New(rand.NewSource(seed)),
+		library:           library,
+		furnishingLibrary: nil, // Can be set later with SetFurnishingLibrary
+		config:            config,
+		rng:               rand.New(rand.NewSource(seed)),
 	}
+}
+
+// SetFurnishingLibrary sets the furnishing library for the generator
+func (g *Generator) SetFurnishingLibrary(furnishingLibrary *furnishing.FurnishingLibrary) {
+	g.furnishingLibrary = furnishingLibrary
 }
 
 // Generate creates a new procedurally generated level
@@ -95,16 +105,20 @@ func (g *Generator) Generate() (*GeneratedLevel, error) {
 	// Find player spawn
 	playerSpawn := g.findPlayerSpawn(placedRooms)
 
+	// Place furnishings
+	placedFurnishings := g.placeFurnishings(placedRooms)
+
 	level := &GeneratedLevel{
-		Name:        "Procedurally Generated Outpost",
-		Width:       levelWidth,
-		Height:      levelHeight,
-		TileSize:    g.library.TileSize,
-		AtlasPath:   g.library.AtlasPath,
-		FloorTile:   g.library.FloorTile,
-		Tiles:       tiles,
-		PlacedRooms: placedRooms,
-		PlayerSpawn: playerSpawn,
+		Name:              "Procedurally Generated Outpost",
+		Width:             levelWidth,
+		Height:            levelHeight,
+		TileSize:          g.library.TileSize,
+		AtlasPath:         g.library.AtlasPath,
+		FloorTile:         g.library.FloorTile,
+		Tiles:             tiles,
+		PlacedRooms:       placedRooms,
+		PlacedFurnishings: placedFurnishings,
+		PlayerSpawn:       playerSpawn,
 	}
 
 	return level, nil
@@ -318,4 +332,50 @@ func (g *Generator) findPlayerSpawn(rooms []*PlacedRoom) PlayerSpawn {
 
 	// Ultimate fallback
 	return PlayerSpawn{X: 100, Y: 100}
+}
+
+// placeFurnishings places all furnishings defined in placed rooms
+func (g *Generator) placeFurnishings(rooms []*PlacedRoom) []*furnishing.PlacedFurnishing {
+	var placed []*furnishing.PlacedFurnishing
+
+	// If no furnishing library is set, return empty list
+	if g.furnishingLibrary == nil {
+		return placed
+	}
+
+	for _, placedRoom := range rooms {
+		room := placedRoom.Room
+
+		// Process each furnishing placement in the room definition
+		for _, furnishingPlacement := range room.Furnishings {
+			// Look up the furnishing definition
+			furnishingDef := g.furnishingLibrary.GetFurnishingByName(furnishingPlacement.FurnishingName)
+			if furnishingDef == nil {
+				// Skip if furnishing not found
+				continue
+			}
+
+			// Calculate world position
+			worldX := placedRoom.X + furnishingPlacement.X
+			worldY := placedRoom.Y + furnishingPlacement.Y
+
+			// Create placed furnishing instance
+			placedFurnishing := &furnishing.PlacedFurnishing{
+				Definition: furnishingDef,
+				X:          worldX,
+				Y:          worldY,
+				RoomID:     placedRoom.ID,
+				State:      furnishingPlacement.State,
+			}
+
+			// If state is empty, use default
+			if placedFurnishing.State == "" {
+				placedFurnishing.State = "default"
+			}
+
+			placed = append(placed, placedFurnishing)
+		}
+	}
+
+	return placed
 }
