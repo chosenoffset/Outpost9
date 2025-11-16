@@ -7,6 +7,7 @@ import (
 
 	"chosenoffset.com/outpost9/atlas"
 	"chosenoffset.com/outpost9/renderer"
+	"chosenoffset.com/outpost9/room"
 )
 
 // SpawnPoint defines a player or entity spawn location
@@ -142,4 +143,90 @@ func (m *Map) GetTileType(x, y int) string {
 		return "unknown"
 	}
 	return tile.GetTilePropertyString("type", "unknown")
+}
+
+// LoadMapFromRoomLibrary loads a room library and generates a procedural level
+func LoadMapFromRoomLibrary(libraryPath string, config room.GeneratorConfig, loader renderer.ResourceLoader) (*Map, error) {
+	// Load the room library
+	library, err := room.LoadRoomLibrary(libraryPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load room library %s: %w", libraryPath, err)
+	}
+
+	// Create generator
+	generator := room.NewGenerator(library, config)
+
+	// Generate level
+	generated, err := generator.Generate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate level: %w", err)
+	}
+
+	// Convert to MapData
+	mapData := &MapData{
+		Name:      generated.Name,
+		Width:     generated.Width,
+		Height:    generated.Height,
+		TileSize:  generated.TileSize,
+		AtlasPath: generated.AtlasPath,
+		FloorTile: generated.FloorTile,
+		PlayerSpawn: SpawnPoint{
+			X: float64(generated.PlayerSpawn.X),
+			Y: float64(generated.PlayerSpawn.Y),
+		},
+		Tiles: generated.Tiles,
+	}
+
+	// Load the atlas
+	atlasObj, err := atlas.LoadAtlas(mapData.AtlasPath, loader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load atlas %s: %w", mapData.AtlasPath, err)
+	}
+
+	gameMap := &Map{
+		Data:  mapData,
+		Atlas: atlasObj,
+	}
+
+	return gameMap, nil
+}
+
+// GenerateMapFromLibrary generates a map from an already-loaded room library
+func GenerateMapFromLibrary(library *room.RoomLibrary, config room.GeneratorConfig, loader renderer.ResourceLoader) (*Map, error) {
+	// Create generator
+	generator := room.NewGenerator(library, config)
+
+	// Generate level
+	generated, err := generator.Generate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate level: %w", err)
+	}
+
+	// Convert to MapData
+	mapData := &MapData{
+		Name:      generated.Name,
+		Width:     generated.Width,
+		Height:    generated.Height,
+		TileSize:  generated.TileSize,
+		AtlasPath: generated.AtlasPath,
+		FloorTile: generated.FloorTile,
+		PlayerSpawn: SpawnPoint{
+			X: float64(generated.PlayerSpawn.X),
+			Y: float64(generated.PlayerSpawn.Y),
+		},
+		Tiles: generated.Tiles,
+	}
+
+	// Load the atlas
+	atlasObj, err := atlas.LoadAtlas(mapData.AtlasPath, loader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load atlas %s: %w", mapData.AtlasPath, err)
+	}
+
+	gameMap := &Map{
+		Data:  mapData,
+		Atlas: atlasObj,
+	}
+
+	return gameMap, nil
 }

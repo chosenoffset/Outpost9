@@ -9,9 +9,9 @@ import (
 
 // GameEntry represents a discoverable game in the data directory
 type GameEntry struct {
-	Name   string   // Display name (directory name)
-	Dir    string   // Directory path relative to data/
-	Levels []string // List of available level files
+	Name          string   // Display name (directory name)
+	Dir           string   // Directory path relative to data/
+	RoomLibraries []string // List of room library files (for procedural generation)
 }
 
 // ScanDataDirectory scans the data directory for available games
@@ -36,20 +36,20 @@ func ScanDataDirectory(dataPath string) ([]GameEntry, error) {
 			continue
 		}
 
-		// Scan for level files in this directory
+		// Scan for room library files in this directory
 		gamePath := filepath.Join(dataPath, dirName)
-		levels, err := scanLevels(gamePath)
+		roomLibraries, err := scanRoomLibraries(gamePath)
 		if err != nil {
 			// Skip directories that can't be read
 			continue
 		}
 
-		// Only include directories with at least one level file
-		if len(levels) > 0 {
+		// Only include directories with at least one room library
+		if len(roomLibraries) > 0 {
 			games = append(games, GameEntry{
-				Name:   dirName,
-				Dir:    dirName,
-				Levels: levels,
+				Name:          dirName,
+				Dir:           dirName,
+				RoomLibraries: roomLibraries,
 			})
 		}
 	}
@@ -57,14 +57,14 @@ func ScanDataDirectory(dataPath string) ([]GameEntry, error) {
 	return games, nil
 }
 
-// scanLevels finds all .json level files in a game directory
-func scanLevels(gamePath string) ([]string, error) {
+// scanRoomLibraries finds all room library files in a game directory
+func scanRoomLibraries(gamePath string) ([]string, error) {
 	entries, err := os.ReadDir(gamePath)
 	if err != nil {
 		return nil, err
 	}
 
-	var levels []string
+	var roomLibraries []string
 	for _, entry := range entries {
 		// Skip directories
 		if entry.IsDir() {
@@ -78,9 +78,13 @@ func scanLevels(gamePath string) ([]string, error) {
 			if name == "atlas.json" {
 				continue
 			}
-			levels = append(levels, name)
+
+			// Look for room library files (files with "room" in the name)
+			if strings.Contains(strings.ToLower(name), "room") {
+				roomLibraries = append(roomLibraries, name)
+			}
 		}
 	}
 
-	return levels, nil
+	return roomLibraries, nil
 }
