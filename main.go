@@ -443,11 +443,6 @@ func main() {
 		log.Fatalf("Failed to scan data directory: %v", err)
 	}
 
-	log.Printf("Found %d game(s)", len(games))
-	for _, game := range games {
-		log.Printf("  - %s (%d levels)", game.Name, len(game.Levels))
-	}
-
 	// Create the main menu
 	mainMenu := menu.NewMainMenu(games, rend, inputMgr, screenWidth, screenHeight)
 
