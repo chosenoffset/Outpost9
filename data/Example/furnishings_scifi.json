@@ -1,0 +1,200 @@
+{
+  "name": "Outpost 9 Furnishings",
+  "description": "Furnishings and objects for sci-fi space station environments",
+  "furnishings": [
+    {
+      "name": "generator",
+      "display_name": "Power Generator",
+      "description": "A humming power generator. Critical for station operations.",
+      "tile_name": "generator",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["machinery", "power", "critical"],
+      "properties": {
+        "power_output": "500",
+        "status": "online",
+        "repair_skill": "engineering"
+      }
+    },
+    {
+      "name": "computer_terminal",
+      "display_name": "Computer Terminal",
+      "description": "A functional computer terminal with access to station systems.",
+      "tile_name": "terminal",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["computer", "data", "hackable"],
+      "properties": {
+        "access_level": "standard",
+        "has_data": "true"
+      }
+    },
+    {
+      "name": "medical_bay",
+      "display_name": "Medical Bay",
+      "description": "An automated medical station for treating injuries.",
+      "tile_name": "medbay",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["medical", "healing", "equipment"],
+      "properties": {
+        "heal_amount": "50",
+        "charges": "3"
+      }
+    },
+    {
+      "name": "storage_locker",
+      "display_name": "Storage Locker",
+      "description": "A metal storage locker. The lock appears damaged.",
+      "tile_name": "locker",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["container", "storage"],
+      "properties": {
+        "loot_table": "equipment",
+        "max_uses": "1"
+      }
+    },
+    {
+      "name": "oxygen_recycler",
+      "display_name": "Oxygen Recycler",
+      "description": "Life support equipment maintaining breathable atmosphere.",
+      "tile_name": "recycler",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["life_support", "critical", "machinery"],
+      "properties": {
+        "oxygen_production": "100",
+        "status": "operational"
+      }
+    },
+    {
+      "name": "security_camera",
+      "display_name": "Security Camera",
+      "description": "A surveillance camera. The red light indicates it's active.",
+      "tile_name": "camera",
+      "interactable": true,
+      "walkable": true,
+      "tags": ["security", "surveillance"],
+      "properties": {
+        "can_disable": "true",
+        "hack_difficulty": "medium"
+      }
+    },
+    {
+      "name": "workbench",
+      "display_name": "Engineering Workbench",
+      "description": "A workbench with various tools and components.",
+      "tile_name": "workbench",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["crafting", "engineering"],
+      "properties": {
+        "craft_types": "repairs,modifications",
+        "tool_quality": "standard"
+      }
+    },
+    {
+      "name": "cryopod",
+      "display_name": "Cryogenic Pod",
+      "description": "An emergency cryogenic sleep pod. Status: Empty.",
+      "tile_name": "cryopod",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["equipment", "special"],
+      "properties": {
+        "occupied": "false",
+        "functional": "true"
+      }
+    },
+    {
+      "name": "holotable",
+      "display_name": "Holographic Display",
+      "description": "A holographic projector displaying station schematics.",
+      "tile_name": "holotable",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["display", "navigation"],
+      "properties": {
+        "map_access": "true",
+        "data_type": "schematics"
+      }
+    },
+    {
+      "name": "supply_crate",
+      "display_name": "Supply Crate",
+      "description": "A sealed supply crate from Earth.",
+      "tile_name": "supply_crate",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["container", "supplies"],
+      "properties": {
+        "loot_table": "supplies",
+        "max_uses": "1"
+      }
+    },
+    {
+      "name": "reactor_core",
+      "display_name": "Reactor Core",
+      "description": "The main reactor core. Handle with extreme caution.",
+      "tile_name": "reactor",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["power", "critical", "dangerous"],
+      "properties": {
+        "radiation_level": "high",
+        "power_output": "10000",
+        "status": "stable"
+      }
+    },
+    {
+      "name": "airlock_panel",
+      "display_name": "Airlock Control Panel",
+      "description": "Controls for the nearby airlock. Use with caution.",
+      "tile_name": "airlock_panel",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["control", "dangerous"],
+      "properties": {
+        "controls": "airlock",
+        "requires_authorization": "true"
+      }
+    },
+    {
+      "name": "debris",
+      "display_name": "Debris",
+      "description": "Scattered debris from damaged equipment.",
+      "tile_name": "debris",
+      "interactable": false,
+      "walkable": true,
+      "tags": ["decoration", "damage"],
+      "properties": {}
+    },
+    {
+      "name": "wall_panel",
+      "display_name": "Wall Panel",
+      "description": "An exposed wall panel with visible circuitry.",
+      "tile_name": "wall_panel",
+      "interactable": true,
+      "walkable": true,
+      "tags": ["maintenance", "hackable"],
+      "properties": {
+        "can_rewire": "true",
+        "difficulty": "easy"
+      }
+    },
+    {
+      "name": "communication_array",
+      "display_name": "Communications Array",
+      "description": "Long-range communication equipment. Currently offline.",
+      "tile_name": "comm_array",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["communication", "equipment"],
+      "properties": {
+        "status": "offline",
+        "repair_required": "true"
+      }
+    }
+  ]
+}
