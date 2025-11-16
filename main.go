@@ -73,47 +73,29 @@ func (gm *GameManager) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (gm *GameManager) loadGame(selection menu.Selection) error {
-	filePath := fmt.Sprintf("data/%s/%s", selection.GameDir, selection.LevelFile)
+	libraryPath := fmt.Sprintf("data/%s/%s", selection.GameDir, selection.RoomLibraryFile)
 
-	var gameMap *maploader.Map
-	var err error
+	// Load procedurally generated level from room library
+	log.Printf("Loading room library: %s", libraryPath)
 
-	if selection.IsRoomLibrary {
-		// Load procedurally generated level from room library
-		log.Printf("Loading room library: %s", filePath)
-
-		config := room.GeneratorConfig{
-			MinRooms:    5,
-			MaxRooms:    10,
-			Seed:        0, // Use random seed each time
-			ConnectAll:  true,
-			AllowOverlap: false,
-		}
-
-		gameMap, err = maploader.LoadMapFromRoomLibrary(filePath, config, gm.loader)
-		if err != nil {
-			return fmt.Errorf("failed to generate map from room library: %w", err)
-		}
-
-		log.Printf("Generated procedural map: %s (%dx%d, tile size: %dpx)",
-			gameMap.Data.Name,
-			gameMap.Data.Width,
-			gameMap.Data.Height,
-			gameMap.Data.TileSize)
-	} else {
-		// Load traditional static level
-		log.Printf("Loading level: %s", filePath)
-		gameMap, err = maploader.LoadMap(filePath, gm.loader)
-		if err != nil {
-			return fmt.Errorf("failed to load map: %w", err)
-		}
-
-		log.Printf("Loaded map: %s (%dx%d, tile size: %dpx)",
-			gameMap.Data.Name,
-			gameMap.Data.Width,
-			gameMap.Data.Height,
-			gameMap.Data.TileSize)
+	config := room.GeneratorConfig{
+		MinRooms:     5,
+		MaxRooms:     10,
+		Seed:         0, // Use random seed each time
+		ConnectAll:   true,
+		AllowOverlap: false,
 	}
+
+	gameMap, err := maploader.LoadMapFromRoomLibrary(libraryPath, config, gm.loader)
+	if err != nil {
+		return fmt.Errorf("failed to generate map from room library: %w", err)
+	}
+
+	log.Printf("Generated procedural map: %s (%dx%d, tile size: %dpx)",
+		gameMap.Data.Name,
+		gameMap.Data.Width,
+		gameMap.Data.Height,
+		gameMap.Data.TileSize)
 
 	// Generate wall segments from map data
 	walls := shadows.CreateWallSegmentsFromMap(gameMap)

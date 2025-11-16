@@ -4,7 +4,7 @@ This document explains the new room-based procedural generation system for Outpo
 
 ## Overview
 
-Outpost 9 now supports procedurally generated levels! Instead of manually creating entire level files, you can define individual room templates and let the game combine them randomly to create unique outposts for each playthrough.
+Outpost 9 uses procedurally generated levels! Instead of manually creating entire level files, you define individual room templates and let the game combine them randomly to create unique outposts for each playthrough.
 
 ## How It Works
 
@@ -146,12 +146,11 @@ The `rooms.json` file includes several example rooms:
 
 1. Run the game
 2. Select "Example" game
-3. You'll see both traditional levels and procedural options:
-   - `[PROCEDURAL] rooms.json` - Purple colored
-   - Traditional level files - Gray colored
-4. Select the procedural option and press SPACE
+3. You'll see available room libraries displayed in purple:
+   - `rooms.json` - Example room library with 8 room types
+4. Select a room library and press SPACE to start
 
-Each time you start a procedural level, you'll get a different layout!
+Each time you start the game, you'll get a different layout!
 
 ### Creating Your Own Rooms
 
@@ -248,7 +247,6 @@ Potential improvements to the system:
 
 ## Resources
 
-- Original level format: `data/Example/level1.json`
 - Example room library: `data/Example/rooms.json`
 - Atlas definition: `data/Example/atlas.json`
 - Main documentation: `data/Example/README.md`

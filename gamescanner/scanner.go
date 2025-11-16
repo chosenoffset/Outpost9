@@ -11,7 +11,6 @@ import (
 type GameEntry struct {
 	Name          string   // Display name (directory name)
 	Dir           string   // Directory path relative to data/
-	Levels        []string // List of available level files
 	RoomLibraries []string // List of room library files (for procedural generation)
 }
 
@@ -37,20 +36,19 @@ func ScanDataDirectory(dataPath string) ([]GameEntry, error) {
 			continue
 		}
 
-		// Scan for level and room library files in this directory
+		// Scan for room library files in this directory
 		gamePath := filepath.Join(dataPath, dirName)
-		levels, roomLibraries, err := scanGameFiles(gamePath)
+		roomLibraries, err := scanRoomLibraries(gamePath)
 		if err != nil {
 			// Skip directories that can't be read
 			continue
 		}
 
-		// Only include directories with at least one level file or room library
-		if len(levels) > 0 || len(roomLibraries) > 0 {
+		// Only include directories with at least one room library
+		if len(roomLibraries) > 0 {
 			games = append(games, GameEntry{
 				Name:          dirName,
 				Dir:           dirName,
-				Levels:        levels,
 				RoomLibraries: roomLibraries,
 			})
 		}
@@ -59,13 +57,14 @@ func ScanDataDirectory(dataPath string) ([]GameEntry, error) {
 	return games, nil
 }
 
-// scanGameFiles finds all level and room library files in a game directory
-func scanGameFiles(gamePath string) (levels []string, roomLibraries []string, err error) {
+// scanRoomLibraries finds all room library files in a game directory
+func scanRoomLibraries(gamePath string) ([]string, error) {
 	entries, err := os.ReadDir(gamePath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
+	var roomLibraries []string
 	for _, entry := range entries {
 		// Skip directories
 		if entry.IsDir() {
@@ -80,15 +79,12 @@ func scanGameFiles(gamePath string) (levels []string, roomLibraries []string, er
 				continue
 			}
 
-			// Check if this is a room library file
+			// Look for room library files (files with "room" in the name)
 			if strings.Contains(strings.ToLower(name), "room") {
 				roomLibraries = append(roomLibraries, name)
-			} else {
-				// Otherwise treat as a traditional level file
-				levels = append(levels, name)
 			}
 		}
 	}
 
-	return levels, roomLibraries, nil
+	return roomLibraries, nil
 }
