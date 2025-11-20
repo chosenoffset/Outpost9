@@ -2,91 +2,123 @@ package shadows
 
 import (
 	"math"
-
-	"chosenoffset.com/outpost9/maploader"
+	"sort"
 )
 
-// CastShadow projects a shadow from a wall segment based on viewer position
-// Returns a polygon representing the shadow volume
-func CastShadow(viewerPos Point, seg Segment, maxDistance float64, tileSize int, gameMap *maploader.Map, isCornerShadow bool) []Point {
-	// Get the shadow start edge based on player position relative to the tile
-	shadowStart := GetShadowStartEdge(seg, tileSize, gameMap, viewerPos, isCornerShadow)
+// ComputeVisibilityPolygon calculates what the viewer can see from their position
+// Returns a polygon representing the visible area (everything outside is in shadow)
+func ComputeVisibilityPolygon(viewerPos Point, segments []Segment, maxDistance float64) []Point {
+	// Collect all unique endpoints (vertices) from wall segments
+	vertices := collectVertices(segments)
 
-	// Calculate direction vectors from viewer to shadow start points
-	dirA := Point{
-		X: shadowStart.A.X - viewerPos.X,
-		Y: shadowStart.A.Y - viewerPos.Y,
-	}
-	dirB := Point{
-		X: shadowStart.B.X - viewerPos.X,
-		Y: shadowStart.B.Y - viewerPos.Y,
-	}
+	// For each vertex, we'll cast rays at angles slightly before and after it
+	// This handles edge cases where the ray passes through a vertex
+	var rays []ray
+	for _, vertex := range vertices {
+		angle := math.Atan2(vertex.Y-viewerPos.Y, vertex.X-viewerPos.X)
 
-	lenA := math.Sqrt(dirA.X*dirA.X + dirA.Y*dirA.Y)
-	lenB := math.Sqrt(dirB.X*dirB.X + dirB.Y*dirB.Y)
-
-	if lenA < 0.001 || lenB < 0.001 {
-		return nil
+		// Add three rays: one at the exact angle, one slightly before, one slightly after
+		epsilon := 0.0001
+		rays = append(rays,
+			ray{angle: angle - epsilon},
+			ray{angle: angle},
+			ray{angle: angle + epsilon},
+		)
 	}
 
-	// Normalize direction vectors
-	dirA.X /= lenA
-	dirA.Y /= lenA
-	dirB.X /= lenB
-	dirB.Y /= lenB
+	// Sort rays by angle
+	sort.Slice(rays, func(i, j int) bool {
+		return rays[i].angle < rays[j].angle
+	})
 
-	// Extend shadow rays far
-	extendDist := maxDistance * 2
+	// For each ray, find the closest intersection point
+	var visiblePoints []Point
+	for _, r := range rays {
+		// Ray direction
+		dx := math.Cos(r.angle)
+		dy := math.Sin(r.angle)
 
-	extendedA := Point{
-		X: shadowStart.A.X + dirA.X*extendDist,
-		Y: shadowStart.A.Y + dirA.Y*extendDist,
+		// Find closest intersection
+		closestDist := maxDistance
+		closestPoint := Point{
+			X: viewerPos.X + dx*maxDistance,
+			Y: viewerPos.Y + dy*maxDistance,
+		}
+
+		// Check intersection with all segments
+		for _, seg := range segments {
+			if intersect, dist, point := raySegmentIntersection(viewerPos, dx, dy, seg); intersect {
+				if dist < closestDist {
+					closestDist = dist
+					closestPoint = point
+				}
+			}
+		}
+
+		visiblePoints = append(visiblePoints, closestPoint)
 	}
-	extendedB := Point{
-		X: shadowStart.B.X + dirB.X*extendDist,
-		Y: shadowStart.B.Y + dirB.Y*extendDist,
-	}
 
-	return []Point{shadowStart.A, shadowStart.B, extendedB, extendedA}
+	return visiblePoints
 }
 
-// GetShadowStartEdge determines where the shadow should start based on the viewer position
-// and whether this is a main shadow or corner shadow
-// For merged segments, this works with the segment's actual geometry
-func GetShadowStartEdge(seg Segment, tileSize int, gameMap *maploader.Map, viewerPos Point, isCornerShadow bool) Segment {
-	adjusted := seg
+// ray represents a ray cast from the viewer at a specific angle
+type ray struct {
+	angle float64
+}
 
-	if isCornerShadow {
-		// Corner shadow: start from the EXPOSED edge itself
-		// The segment already represents the exposed edge, so use it directly
-		adjusted.A = seg.A
-		adjusted.B = seg.B
-	} else {
-		// Main shadow: start from the OPPOSITE side
-		// For horizontal/vertical segments, offset perpendicular to the edge
-		offset := float64(tileSize)
+// collectVertices extracts all unique endpoint vertices from segments
+func collectVertices(segments []Segment) []Point {
+	vertexMap := make(map[Point]bool)
 
-		switch seg.EdgeType {
-		case "top":
-			// Top edge is exposed - shadow starts from bottom (offset down)
-			adjusted.A = Point{X: seg.A.X, Y: seg.A.Y + offset}
-			adjusted.B = Point{X: seg.B.X, Y: seg.B.Y + offset}
-		case "bottom":
-			// Bottom edge is exposed - shadow starts from top (offset up)
-			adjusted.A = Point{X: seg.A.X, Y: seg.A.Y - offset}
-			adjusted.B = Point{X: seg.B.X, Y: seg.B.Y - offset}
-		case "left":
-			// Left edge is exposed - shadow starts from right (offset right)
-			adjusted.A = Point{X: seg.A.X + offset, Y: seg.A.Y}
-			adjusted.B = Point{X: seg.B.X + offset, Y: seg.B.Y}
-		case "right":
-			// Right edge is exposed - shadow starts from left (offset left)
-			adjusted.A = Point{X: seg.A.X - offset, Y: seg.A.Y}
-			adjusted.B = Point{X: seg.B.X - offset, Y: seg.B.Y}
-		}
+	for _, seg := range segments {
+		vertexMap[seg.A] = true
+		vertexMap[seg.B] = true
 	}
 
-	return adjusted
+	vertices := make([]Point, 0, len(vertexMap))
+	for vertex := range vertexMap {
+		vertices = append(vertices, vertex)
+	}
+
+	return vertices
+}
+
+// raySegmentIntersection checks if a ray intersects a line segment
+// Returns: (intersects bool, distance float64, intersection point Point)
+func raySegmentIntersection(origin Point, dx, dy float64, seg Segment) (bool, float64, Point) {
+	// Ray: P = origin + t * (dx, dy) for t >= 0
+	// Segment: Q = seg.A + u * (seg.B - seg.A) for 0 <= u <= 1
+
+	// Segment direction
+	segDX := seg.B.X - seg.A.X
+	segDY := seg.B.Y - seg.A.Y
+
+	// Solve: origin + t*(dx,dy) = seg.A + u*(segDX,segDY)
+	// This is a 2x2 linear system
+
+	denominator := dx*segDY - dy*segDX
+	if math.Abs(denominator) < 1e-10 {
+		// Ray and segment are parallel
+		return false, 0, Point{}
+	}
+
+	// Calculate u and t
+	diffX := seg.A.X - origin.X
+	diffY := seg.A.Y - origin.Y
+
+	u := (dx*diffY - dy*diffX) / denominator
+	t := (segDX*diffY - segDY*diffX) / denominator
+
+	// Check if intersection is within segment and in ray direction
+	if u >= 0 && u <= 1 && t >= 0 {
+		intersectionPoint := Point{
+			X: origin.X + t*dx,
+			Y: origin.Y + t*dy,
+		}
+		return true, t, intersectionPoint
+	}
+
+	return false, 0, Point{}
 }
 
 // GetDefaultShadowOffset calculates a default shadow offset for a segment

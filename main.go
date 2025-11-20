@@ -188,73 +188,25 @@ func (g *Game) Draw(screen renderer.Image) {
 	// Step 1: Draw all tiles (the world)
 	g.drawTiles(screen)
 
-	// Step 2: Create a shadow mask
-	shadowMask := g.renderer.NewImage(g.screenWidth, g.screenHeight)
-	// Start transparent (no shadows)
-	shadowMask.Fill(color.RGBA{0, 0, 0, 0})
-
-	// Step 3: Draw shadow volumes onto the mask
+	// Step 2: Compute visibility polygon - what the player can see
 	maxDist := float64(g.screenWidth + g.screenHeight)
+	visibilityPolygon := shadows.ComputeVisibilityPolygon(g.player.Pos, g.walls, maxDist)
 
-	for _, wall := range g.walls {
-		// Calculate segment's geometric center (works for both single-tile and merged segments)
-		segmentCenterX := (wall.A.X + wall.B.X) / 2.0
-		segmentCenterY := (wall.A.Y + wall.B.Y) / 2.0
+	// Step 3: For testing - draw full shadow everywhere
+	shadowMask := g.renderer.NewImage(g.screenWidth, g.screenHeight)
+	shadowMask.Fill(color.RGBA{0, 0, 0, 200}) // Dark shadows
 
-		// Determine player direction relative to segment center
-		playerAbove := g.player.Pos.Y < segmentCenterY
-		playerBelow := g.player.Pos.Y > segmentCenterY
-		playerLeft := g.player.Pos.X < segmentCenterX
-		playerRight := g.player.Pos.X > segmentCenterX
-
-		// Determine if this is a main wall shadow or a corner shadow
-		isMainShadow := false
-		isCornerShadow := false
-
-		switch wall.EdgeType {
-		case "top":
-			// Top edge exposed
-			if playerAbove {
-				isMainShadow = true // Straight shadow going down
-			} else if playerLeft || playerRight {
-				isCornerShadow = true // Angled corner shadow
-			}
-		case "bottom":
-			// Bottom edge exposed
-			if playerBelow {
-				isMainShadow = true // Straight shadow going up
-			} else if playerLeft || playerRight {
-				isCornerShadow = true // Angled corner shadow
-			}
-		case "left":
-			// Left edge exposed
-			if playerLeft {
-				isMainShadow = true // Straight shadow going right
-			} else if playerAbove || playerBelow {
-				isCornerShadow = true // Angled corner shadow
-			}
-		case "right":
-			// Right edge exposed
-			if playerRight {
-				isMainShadow = true // Straight shadow going left
-			} else if playerAbove || playerBelow {
-				isCornerShadow = true // Angled corner shadow
-			}
-		}
-
-		if isMainShadow || isCornerShadow {
-			shadowPoly := shadows.CastShadow(g.player.Pos, wall, maxDist, g.gameMap.Data.TileSize, g.gameMap, isCornerShadow)
-			if shadowPoly != nil {
-				// Draw solid black shadow
-				g.drawPolygon(shadowMask, shadowPoly, color.RGBA{0, 0, 0, 255})
-			}
-		}
+	// Step 4: Draw the visibility polygon to see if it's computing correctly
+	// For debugging: draw the visibility polygon as semi-transparent green
+	if len(visibilityPolygon) >= 3 {
+		// Draw the visibility polygon as a bright overlay to see what's visible
+		g.drawPolygon(shadowMask, visibilityPolygon, color.RGBA{0, 255, 0, 100}) // Green overlay
 	}
 
-	// Step 4: Draw the shadow mask on top of the world
+	// Step 5: Apply shadow mask to screen
 	screen.DrawImage(shadowMask, nil)
 
-	// Step 5: Redraw wall tiles that face the player (so they're visible above shadows)
+	// Step 6: Redraw visible walls
 	g.drawVisibleWalls(screen)
 
 	// Step 6: Draw player character on top of everything
