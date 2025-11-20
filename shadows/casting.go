@@ -52,51 +52,37 @@ func CastShadow(viewerPos Point, seg Segment, maxDistance float64, tileSize int,
 
 // GetShadowStartEdge determines where the shadow should start based on the viewer position
 // and whether this is a main shadow or corner shadow
+// For merged segments, this works with the segment's actual geometry
 func GetShadowStartEdge(seg Segment, tileSize int, gameMap *maploader.Map, viewerPos Point, isCornerShadow bool) Segment {
-	tileX := float64(seg.TileX) * float64(tileSize)
-	tileY := float64(seg.TileY) * float64(tileSize)
-
 	adjusted := seg
 
 	if isCornerShadow {
-		// Corner shadow: start from the EXPOSED edge itself (the outside corner edge)
-		switch seg.EdgeType {
-		case "top":
-			// Top edge exposed - angled shadow starts FROM the top edge
-			adjusted.A = Point{X: tileX + float64(tileSize), Y: tileY}
-			adjusted.B = Point{X: tileX, Y: tileY}
-		case "bottom":
-			// Bottom edge exposed - angled shadow starts FROM the bottom edge
-			adjusted.A = Point{X: tileX, Y: tileY + float64(tileSize)}
-			adjusted.B = Point{X: tileX + float64(tileSize), Y: tileY + float64(tileSize)}
-		case "left":
-			// Left edge exposed - angled shadow starts FROM the left edge
-			adjusted.A = Point{X: tileX, Y: tileY}
-			adjusted.B = Point{X: tileX, Y: tileY + float64(tileSize)}
-		case "right":
-			// Right edge exposed - angled shadow starts FROM the right edge
-			adjusted.A = Point{X: tileX + float64(tileSize), Y: tileY + float64(tileSize)}
-			adjusted.B = Point{X: tileX + float64(tileSize), Y: tileY}
-		}
+		// Corner shadow: start from the EXPOSED edge itself
+		// The segment already represents the exposed edge, so use it directly
+		adjusted.A = seg.A
+		adjusted.B = seg.B
 	} else {
-		// Main shadow: start from the OPPOSITE edge (far side of tile)
+		// Main shadow: start from the OPPOSITE side
+		// For horizontal/vertical segments, offset perpendicular to the edge
+		offset := float64(tileSize)
+
 		switch seg.EdgeType {
 		case "top":
-			// Top edge is exposed - shadow starts from BOTTOM edge
-			adjusted.A = Point{X: tileX, Y: tileY + float64(tileSize)}
-			adjusted.B = Point{X: tileX + float64(tileSize), Y: tileY + float64(tileSize)}
+			// Top edge is exposed - shadow starts from bottom (offset down)
+			adjusted.A = Point{X: seg.A.X, Y: seg.A.Y + offset}
+			adjusted.B = Point{X: seg.B.X, Y: seg.B.Y + offset}
 		case "bottom":
-			// Bottom edge is exposed - shadow starts from TOP edge
-			adjusted.A = Point{X: tileX + float64(tileSize), Y: tileY}
-			adjusted.B = Point{X: tileX, Y: tileY}
+			// Bottom edge is exposed - shadow starts from top (offset up)
+			adjusted.A = Point{X: seg.A.X, Y: seg.A.Y - offset}
+			adjusted.B = Point{X: seg.B.X, Y: seg.B.Y - offset}
 		case "left":
-			// Left edge is exposed - shadow starts from RIGHT edge
-			adjusted.A = Point{X: tileX + float64(tileSize), Y: tileY}
-			adjusted.B = Point{X: tileX + float64(tileSize), Y: tileY + float64(tileSize)}
+			// Left edge is exposed - shadow starts from right (offset right)
+			adjusted.A = Point{X: seg.A.X + offset, Y: seg.A.Y}
+			adjusted.B = Point{X: seg.B.X + offset, Y: seg.B.Y}
 		case "right":
-			// Right edge is exposed - shadow starts from LEFT edge
-			adjusted.A = Point{X: tileX, Y: tileY + float64(tileSize)}
-			adjusted.B = Point{X: tileX, Y: tileY}
+			// Right edge is exposed - shadow starts from left (offset left)
+			adjusted.A = Point{X: seg.A.X - offset, Y: seg.A.Y}
+			adjusted.B = Point{X: seg.B.X - offset, Y: seg.B.Y}
 		}
 	}
 

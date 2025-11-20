@@ -14,58 +14,58 @@ const TileSize = 16
 // ColorPalette defines colors for different tile types
 var ColorPalette = struct {
 	// Base tiles
-	FloorMetal1   color.RGBA
-	FloorMetal2   color.RGBA
-	FloorGrating  color.RGBA
-	WallMetal     color.RGBA
-	WallPanel     color.RGBA
+	FloorMetal1  color.RGBA
+	FloorMetal2  color.RGBA
+	FloorGrating color.RGBA
+	WallMetal    color.RGBA
+	WallPanel    color.RGBA
 
 	// Objects
-	DeskWood      color.RGBA
-	ChairMetal    color.RGBA
-	Terminal      color.RGBA
-	Console       color.RGBA
-	Locker        color.RGBA
-	Crate         color.RGBA
-	Generator     color.RGBA
+	DeskWood   color.RGBA
+	ChairMetal color.RGBA
+	Terminal   color.RGBA
+	Console    color.RGBA
+	Locker     color.RGBA
+	Crate      color.RGBA
+	Generator  color.RGBA
 
 	// Entities
-	Player        color.RGBA
-	EnemyBasic    color.RGBA
-	EnemyElite    color.RGBA
-	Item          color.RGBA
-	Weapon        color.RGBA
+	Player     color.RGBA
+	EnemyBasic color.RGBA
+	EnemyElite color.RGBA
+	Item       color.RGBA
+	Weapon     color.RGBA
 
 	// UI
-	Border        color.RGBA
-	Background    color.RGBA
+	Border     color.RGBA
+	Background color.RGBA
 }{
 	// Base tiles - various grays and metals
-	FloorMetal1:   color.RGBA{120, 120, 130, 255},  // Medium gray-blue
-	FloorMetal2:   color.RGBA{100, 100, 110, 255},  // Darker gray-blue
-	FloorGrating:  color.RGBA{80, 80, 90, 255},     // Dark gray with slight blue
-	WallMetal:     color.RGBA{60, 60, 70, 255},     // Very dark gray-blue
-	WallPanel:     color.RGBA{70, 80, 90, 255},     // Steel blue-gray
+	FloorMetal1:  color.RGBA{120, 120, 130, 255}, // Medium gray-blue
+	FloorMetal2:  color.RGBA{100, 100, 110, 255}, // Darker gray-blue
+	FloorGrating: color.RGBA{80, 80, 90, 255},    // Dark gray with slight blue
+	WallMetal:    color.RGBA{60, 60, 70, 255},    // Very dark gray-blue
+	WallPanel:    color.RGBA{70, 80, 90, 255},    // Steel blue-gray
 
 	// Objects - distinct colors for easy identification
-	DeskWood:      color.RGBA{139, 90, 60, 255},    // Brown
-	ChairMetal:    color.RGBA{180, 180, 190, 255},  // Light gray
-	Terminal:      color.RGBA{0, 150, 200, 255},    // Cyan/blue
-	Console:       color.RGBA{50, 120, 180, 255},   // Blue
-	Locker:        color.RGBA{140, 140, 150, 255},  // Gray
-	Crate:         color.RGBA{160, 120, 80, 255},   // Tan/brown
-	Generator:     color.RGBA{200, 150, 0, 255},    // Gold/yellow
+	DeskWood:   color.RGBA{139, 90, 60, 255},   // Brown
+	ChairMetal: color.RGBA{180, 180, 190, 255}, // Light gray
+	Terminal:   color.RGBA{0, 150, 200, 255},   // Cyan/blue
+	Console:    color.RGBA{50, 120, 180, 255},  // Blue
+	Locker:     color.RGBA{140, 140, 150, 255}, // Gray
+	Crate:      color.RGBA{160, 120, 80, 255},  // Tan/brown
+	Generator:  color.RGBA{200, 150, 0, 255},   // Gold/yellow
 
 	// Entities - bright, easily visible colors
-	Player:        color.RGBA{0, 255, 100, 255},    // Bright green
-	EnemyBasic:    color.RGBA{255, 50, 50, 255},    // Bright red
-	EnemyElite:    color.RGBA{200, 0, 200, 255},    // Magenta
-	Item:          color.RGBA{255, 215, 0, 255},    // Gold
-	Weapon:        color.RGBA{255, 140, 0, 255},    // Orange
+	Player:     color.RGBA{0, 255, 100, 255}, // Bright green
+	EnemyBasic: color.RGBA{255, 50, 50, 255}, // Bright red
+	EnemyElite: color.RGBA{200, 0, 200, 255}, // Magenta
+	Item:       color.RGBA{255, 215, 0, 255}, // Gold
+	Weapon:     color.RGBA{255, 140, 0, 255}, // Orange
 
 	// UI
-	Border:        color.RGBA{200, 200, 200, 255},  // Light gray
-	Background:    color.RGBA{40, 40, 45, 255},     // Very dark gray
+	Border:     color.RGBA{200, 200, 200, 255}, // Light gray
+	Background: color.RGBA{40, 40, 45, 255},    // Very dark gray
 }
 
 // CreateSolidTile creates a simple solid-colored tile

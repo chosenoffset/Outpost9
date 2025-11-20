@@ -120,10 +120,10 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	}
 
 	gm.game = &Game{
-		screenWidth:     gm.screenWidth,
-		screenHeight:    gm.screenHeight,
-		gameMap:         gameMap,
-		walls:           walls,
+		screenWidth:  gm.screenWidth,
+		screenHeight: gm.screenHeight,
+		gameMap:      gameMap,
+		walls:        walls,
 		player: Player{
 			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
@@ -138,15 +138,15 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 }
 
 type Game struct {
-	screenWidth    int
-	screenHeight   int
-	gameMap        *maploader.Map
-	walls          []shadows.Segment
-	player         Player
-	whiteImg       renderer.Image
-	renderer       renderer.Renderer
-	inputMgr       renderer.InputManager
-	entitiesAtlas  *atlas.Atlas
+	screenWidth     int
+	screenHeight    int
+	gameMap         *maploader.Map
+	walls           []shadows.Segment
+	player          Player
+	whiteImg        renderer.Image
+	renderer        renderer.Renderer
+	inputMgr        renderer.InputManager
+	entitiesAtlas   *atlas.Atlas
 	playerSpriteImg renderer.Image
 }
 
@@ -197,16 +197,15 @@ func (g *Game) Draw(screen renderer.Image) {
 	maxDist := float64(g.screenWidth + g.screenHeight)
 
 	for _, wall := range g.walls {
-		// Determine if this segment should cast a shadow based on player position
-		tileSize := float64(g.gameMap.Data.TileSize)
-		tileCenterX := float64(wall.TileX)*tileSize + tileSize/2.0
-		tileCenterY := float64(wall.TileY)*tileSize + tileSize/2.0
+		// Calculate segment's geometric center (works for both single-tile and merged segments)
+		segmentCenterX := (wall.A.X + wall.B.X) / 2.0
+		segmentCenterY := (wall.A.Y + wall.B.Y) / 2.0
 
-		// Determine player direction relative to tile
-		playerAbove := g.player.Pos.Y < tileCenterY
-		playerBelow := g.player.Pos.Y > tileCenterY
-		playerLeft := g.player.Pos.X < tileCenterX
-		playerRight := g.player.Pos.X > tileCenterX
+		// Determine player direction relative to segment center
+		playerAbove := g.player.Pos.Y < segmentCenterY
+		playerBelow := g.player.Pos.Y > segmentCenterY
+		playerLeft := g.player.Pos.X < segmentCenterX
+		playerRight := g.player.Pos.X > segmentCenterX
 
 		// Determine if this is a main wall shadow or a corner shadow
 		isMainShadow := false
@@ -354,41 +353,50 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 
 	for _, wall := range g.walls {
 		if shadows.IsFacingPoint(wall, g.player.Pos) {
-			tileKey := fmt.Sprintf("%d,%d", wall.TileX, wall.TileY)
-			if drawnTiles[tileKey] {
-				continue // Already drew this tile
+			// Iterate through all tiles covered by this segment (for merged segments)
+			tilesToDraw := wall.TilesCovered
+			if len(tilesToDraw) == 0 {
+				// Fallback to single tile if TilesCovered is empty (shouldn't happen with new code)
+				tilesToDraw = []shadows.Coord{{X: wall.TileX, Y: wall.TileY}}
 			}
 
-			// Check if this tile is in shadow by testing if the tile center is visible
-			tileCenterX := float64(wall.TileX)*float64(tileSize) + float64(tileSize)/2
-			tileCenterY := float64(wall.TileY)*float64(tileSize) + float64(tileSize)/2
+			for _, tileCoord := range tilesToDraw {
+				tileKey := fmt.Sprintf("%d,%d", tileCoord.X, tileCoord.Y)
+				if drawnTiles[tileKey] {
+					continue // Already drew this tile
+				}
 
-			if g.isPointInShadow(shadows.Point{tileCenterX, tileCenterY}) {
-				continue // This wall is in shadow, don't redraw it
+				// Check if this tile is in shadow by testing if the tile center is visible
+				tileCenterX := float64(tileCoord.X)*float64(tileSize) + float64(tileSize)/2
+				tileCenterY := float64(tileCoord.Y)*float64(tileSize) + float64(tileSize)/2
+
+				if g.isPointInShadow(shadows.Point{tileCenterX, tileCenterY}) {
+					continue // This wall is in shadow, don't redraw it
+				}
+
+				// Get the wall tile at this position
+				tileName, err := g.gameMap.GetTileAt(tileCoord.X, tileCoord.Y)
+				if err != nil || tileName == "" {
+					continue
+				}
+
+				tile, ok := g.gameMap.Atlas.GetTile(tileName)
+				if !ok {
+					continue
+				}
+
+				subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+
+				screenX := float64(tileCoord.X * tileSize)
+				screenY := float64(tileCoord.Y * tileSize)
+
+				opts := &renderer.DrawImageOptions{}
+				opts.GeoM = renderer.NewGeoM()
+				opts.GeoM.Translate(screenX, screenY)
+				screen.DrawImage(subImg, opts)
+
+				drawnTiles[tileKey] = true
 			}
-
-			// Get the wall tile at this segment's position
-			tileName, err := g.gameMap.GetTileAt(wall.TileX, wall.TileY)
-			if err != nil || tileName == "" {
-				continue
-			}
-
-			tile, ok := g.gameMap.Atlas.GetTile(tileName)
-			if !ok {
-				continue
-			}
-
-			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
-
-			screenX := float64(wall.TileX * tileSize)
-			screenY := float64(wall.TileY * tileSize)
-
-			opts := &renderer.DrawImageOptions{}
-			opts.GeoM = renderer.NewGeoM()
-			opts.GeoM.Translate(screenX, screenY)
-			screen.DrawImage(subImg, opts)
-
-			drawnTiles[tileKey] = true
 		}
 	}
 }
