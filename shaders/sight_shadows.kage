@@ -9,12 +9,11 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// DEBUG: Show what we're sampling
+	// DEBUG: Sample using the built-in texCoord instead of calculating our own
 	pixelPos := position.xy
 
-	// Sample wall texture at current pixel position
-	sampleTexCoord := pixelPos / imageSrcTextureSize()
-	wallSample := imageSrc0At(sampleTexCoord)
+	// Sample wall texture using built-in texture coordinates
+	wallSample := imageSrc0At(texCoord)
 
 	// DEBUG: Show the actual RGBA values we're getting
 	// If we're getting anything other than (0,0,0,0), show it
