@@ -14,16 +14,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dstSize := imageDstTextureSize()
 	pixelPos := texCoord * dstSize
 
-	// DEBUG: Test if coordinate calculation works at all
-	// Sample the current pixel position from wallTexture
-	// We can use texCoord directly since both source and destination are same size
-	currentSample := imageSrc0At(texCoord)
-
-	// If current pixel has a wall, show it in red (debug)
-	if currentSample.a > 0.5 {
-		return vec4(1, 0, 0, 0.5) // Red overlay on walls
-	}
-
 	// Direction and distance from player to this pixel
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
