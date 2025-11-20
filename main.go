@@ -133,18 +133,13 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	// Create wall texture render target
 	wallTexture := ebiten.NewImage(gm.screenWidth, gm.screenHeight)
 
-	// Convert player spawn from tile coordinates to pixel coordinates
-	tileSize := float64(gameMap.Data.TileSize)
-	playerPixelX := gameMap.Data.PlayerSpawn.X * tileSize
-	playerPixelY := gameMap.Data.PlayerSpawn.Y * tileSize
-
 	gm.game = &Game{
 		screenWidth:     gm.screenWidth,
 		screenHeight:    gm.screenHeight,
 		gameMap:         gameMap,
 		walls:           walls,
 		player: Player{
-			Pos:   shadows.Point{X: playerPixelX, Y: playerPixelY},
+			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
 		},
 		renderer:        gm.renderer,

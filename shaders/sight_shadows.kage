@@ -9,47 +9,6 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// Reconstruct pixel position from texture coordinates and destination size
-	dstSize := imageDstTextureSize()
-	pixelPos := texCoord * dstSize
-
-	// Direction and distance from player to this pixel
-	dir := pixelPos - PlayerPos
-	dist := length(dir)
-
-	// Player area always visible
-	if dist < 8.0 {
-		return vec4(0, 0, 0, 0) // Transparent
-	}
-
-	// Normalize direction for raycasting
-	dir = dir / dist
-
-	// Raycast from player toward this pixel
-	// Check if any wall blocks the path
-	stepSize := 1.0 // Check every pixel
-
-	for i := 0; i < 1000; i++ {
-		t := float(i) * stepSize
-
-		// Stop when we reach the target pixel
-		if t >= dist {
-			break
-		}
-
-		// Sample position along the ray
-		samplePos := PlayerPos + dir * t
-		sampleTexCoord := samplePos / dstSize
-
-		// Sample wall texture
-		wallSample := imageSrc0At(sampleTexCoord)
-
-		// If we hit a wall, this pixel is in shadow
-		if wallSample.a > 0.5 {
-			return vec4(0, 0, 0, 0.8) // Dark shadow
-		}
-	}
-
-	// No wall blocking - pixel is visible
-	return vec4(0, 0, 0, 0) // Transparent
+	// Disabled for now - just show the game normally
+	return vec4(0, 0, 0, 0) // Fully transparent
 }
