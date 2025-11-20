@@ -9,33 +9,44 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// Get screen dimensions
+	// position.xy is already in pixel coordinates
+	pixelPos := position.xy
 	screenSize := imageDstTextureSize()
 
-	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
-	playerTexCoord := PlayerPos / screenSize
+	// Calculate direction from player to current pixel (both in pixel space)
+	direction := pixelPos - PlayerPos
+	distance := length(direction)
 
-	// DEBUG: Show playerTexCoord as color in top-left quadrant
-	if texCoord.x < 0.5 && texCoord.y < 0.5 {
-		// Multiply by 10 to make visible (0.06 * 10 = 0.6)
-		return vec4(playerTexCoord.x * 10.0, playerTexCoord.y * 10.0, 0, 1.0)
+	// Normalize direction
+	if distance < 0.1 {
+		return vec4(0, 0, 0, 0) // Transparent near player
+	}
+	direction = direction / distance
+
+	// Raycast from player toward this pixel
+	// Step in pixel increments
+	for i := 1; i < 2000; i++ {
+		t := float(i) * 2.0 // 2 pixel steps
+
+		if t >= distance {
+			break
+		}
+
+		// Sample position along ray (in pixel coordinates)
+		samplePixelPos := PlayerPos + direction * t
+
+		// Convert to texCoord for sampling (0-1 range)
+		sampleTexCoord := samplePixelPos / screenSize
+
+		// Sample wall texture
+		wallSample := imageSrc0At(sampleTexCoord)
+
+		// If we hit a wall, this pixel is in shadow
+		if wallSample.a > 0.1 {
+			return vec4(0, 0, 0, 0.8) // Dark shadow
+		}
 	}
 
-	// DEBUG: Show PlayerPos raw in top-right quadrant
-	if texCoord.x >= 0.5 && texCoord.y < 0.5 {
-		return vec4(PlayerPos.x, PlayerPos.y, 0, 1.0)
-	}
-
-	// DEBUG: Show screenSize in bottom-left quadrant
-	if texCoord.x < 0.5 && texCoord.y >= 0.5 {
-		return vec4(screenSize.x, screenSize.y, 0, 1.0)
-	}
-
-	// Bottom-right: walls
-	currentWall := imageSrc0At(texCoord)
-	if currentWall.a > 0.1 {
-		return vec4(0, 1, 0, 0.5) // Green = wall
-	}
-
+	// No wall blocking - visible (transparent)
 	return vec4(0, 0, 0, 0)
 }
