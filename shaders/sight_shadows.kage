@@ -28,41 +28,20 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		return vec4(1, 0, 0, 0.5) // Red = near player
 	}
 
-	// Normalize direction
-	if distance < 0.1 {
-		return vec4(0, 0, 0, 0) // Transparent near player
-	}
-	direction = direction / distance
+	// DEBUG: Simple test - sample one specific point
+	// Sample 50 pixels to the right of player
+	testPixelPos := PlayerPos + vec2(50.0, 0.0)
+	testTexCoord := testPixelPos / screenSize
+	testWall := imageSrc0At(testTexCoord)
 
-	// Raycast from player toward this pixel
-	// Step in pixel increments
-	foundWall := false
-	for i := 1; i < 2000; i++ {
-		t := float(i) * 2.0 // 2 pixel steps
-
-		if t >= distance {
-			break
+	// If current pixel is close to that test point, show what we sampled
+	testDist := length(pixelPos - testPixelPos)
+	if testDist < 20.0 {
+		if testWall.a > 0.1 {
+			return vec4(1, 1, 0, 0.8) // Yellow = test point found wall
+		} else {
+			return vec4(1, 0, 1, 0.8) // Magenta = test point found no wall
 		}
-
-		// Sample position along ray (in pixel coordinates)
-		samplePixelPos := PlayerPos + direction * t
-
-		// Convert to texCoord for sampling (0-1 range)
-		sampleTexCoord := samplePixelPos / screenSize
-
-		// Sample wall texture
-		wallSample := imageSrc0At(sampleTexCoord)
-
-		// If we hit a wall, mark it
-		if wallSample.a > 0.1 {
-			foundWall = true
-			break
-		}
-	}
-
-	// DEBUG: Blue if raycasting found wall
-	if foundWall {
-		return vec4(0, 0, 1, 0.7) // Blue = wall blocks this pixel
 	}
 
 	// No wall blocking - visible (transparent)
