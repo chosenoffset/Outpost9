@@ -9,26 +9,25 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// Use position.xy directly - it's already in screen pixel coordinates
-	pixelPos := position.xy
+	// Use texCoord directly since that's what worked for wall detection earlier
+	pixelPos := texCoord * imageDstTextureSize()
 
 	// Direction and distance from player to this pixel
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
 
-	// Player area always visible
-	if dist < 8.0 {
-		return vec4(0, 0, 0, 0) // Transparent
-	}
-
 	// Normalize direction for raycasting
+	if dist < 0.1 {
+		// Avoid division by zero at player position
+		return vec4(0, 0, 0, 0)
+	}
 	dir = dir / dist
 
 	// Raycast from player toward this pixel
-	stepSize := 1.0
+	stepSize := 2.0
 	dstSize := imageDstTextureSize()
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 500; i++ {
 		t := float(i) * stepSize
 
 		if t >= dist {
