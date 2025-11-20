@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"log"
 
+	"chosenoffset.com/outpost9/atlas"
 	"chosenoffset.com/outpost9/gamescanner"
 	"chosenoffset.com/outpost9/maploader"
 	"chosenoffset.com/outpost9/menu"
@@ -101,31 +102,51 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	walls := shadows.CreateWallSegmentsFromMap(gameMap)
 	log.Printf("Generated %d wall segments", len(walls))
 
+	// Load entities atlas for player, enemies, items, etc.
+	entitiesAtlas, err := atlas.LoadAtlas("Art/atlases/entities.json", gm.loader)
+	if err != nil {
+		log.Printf("Warning: Failed to load entities atlas: %v", err)
+		// Continue without entities atlas - will use fallback rendering
+	}
+
+	// Extract player sprite if atlas loaded successfully
+	var playerSprite renderer.Image
+	if entitiesAtlas != nil {
+		playerSprite, err = entitiesAtlas.GetTileImage("player_idle")
+		if err != nil {
+			log.Printf("Warning: Failed to get player sprite: %v", err)
+		}
+	}
+
 	gm.game = &Game{
-		screenWidth:  gm.screenWidth,
-		screenHeight: gm.screenHeight,
-		gameMap:      gameMap,
-		walls:        walls,
+		screenWidth:     gm.screenWidth,
+		screenHeight:    gm.screenHeight,
+		gameMap:         gameMap,
+		walls:           walls,
 		player: Player{
 			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
 		},
-		renderer: gm.renderer,
-		inputMgr: gm.inputMgr,
+		renderer:        gm.renderer,
+		inputMgr:        gm.inputMgr,
+		entitiesAtlas:   entitiesAtlas,
+		playerSpriteImg: playerSprite,
 	}
 
 	return nil
 }
 
 type Game struct {
-	screenWidth  int
-	screenHeight int
-	gameMap      *maploader.Map
-	walls        []shadows.Segment
-	player       Player
-	whiteImg     renderer.Image
-	renderer     renderer.Renderer
-	inputMgr     renderer.InputManager
+	screenWidth    int
+	screenHeight   int
+	gameMap        *maploader.Map
+	walls          []shadows.Segment
+	player         Player
+	whiteImg       renderer.Image
+	renderer       renderer.Renderer
+	inputMgr       renderer.InputManager
+	entitiesAtlas  *atlas.Atlas
+	playerSpriteImg renderer.Image
 }
 
 func (g *Game) Update() error {
@@ -237,18 +258,27 @@ func (g *Game) Draw(screen renderer.Image) {
 	g.drawVisibleWalls(screen)
 
 	// Step 6: Draw player character on top of everything
-	g.renderer.FillCircle(screen,
-		float32(g.player.Pos.X),
-		float32(g.player.Pos.Y),
-		8,
-		color.RGBA{255, 255, 100, 255})
+	if g.playerSpriteImg != nil {
+		// Draw player sprite centered on player position
+		spriteSize := 16.0 // Tile size from atlas
+		g.renderer.DrawImageAt(screen, g.playerSpriteImg,
+			float32(g.player.Pos.X-spriteSize/2),
+			float32(g.player.Pos.Y-spriteSize/2))
+	} else {
+		// Fallback to circle if sprite not loaded
+		g.renderer.FillCircle(screen,
+			float32(g.player.Pos.X),
+			float32(g.player.Pos.Y),
+			8,
+			color.RGBA{255, 255, 100, 255})
 
-	g.renderer.StrokeCircle(screen,
-		float32(g.player.Pos.X),
-		float32(g.player.Pos.Y),
-		8,
-		2,
-		color.RGBA{200, 200, 50, 255})
+		g.renderer.StrokeCircle(screen,
+			float32(g.player.Pos.X),
+			float32(g.player.Pos.Y),
+			8,
+			2,
+			color.RGBA{200, 200, 50, 255})
+	}
 }
 
 func (g *Game) drawTiles(screen renderer.Image) {
