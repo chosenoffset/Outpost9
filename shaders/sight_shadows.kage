@@ -21,12 +21,19 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
 	playerTexCoord := PlayerPos / screenSize
 
+	// DEBUG: Show where shader thinks player is (yellow dot)
+	// If playerTexCoord is exactly at this pixel
+	pixelDiff := abs(texCoord - playerTexCoord)
+	if pixelDiff.x < 0.01 && pixelDiff.y < 0.01 {
+		return vec4(1, 1, 0, 1.0) // Bright yellow
+	}
+
 	// Calculate direction from player to current pixel (in texCoord space)
 	direction := texCoord - playerTexCoord
 	distance := length(direction)
 
-	// DEBUG: Red circle around player to verify PlayerPos
-	if distance < 0.05 { // 5% of screen
+	// DEBUG: Red circle around player to verify PlayerPos (make it HUGE to see if it exists at all)
+	if distance < 0.3 { // 30% of screen in texCoord space
 		return vec4(1, 0, 0, 0.3) // Red circle
 	}
 

@@ -216,6 +216,12 @@ func (g *Game) Draw(screen renderer.Image) {
 	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
 		ebitenScreen := ebitenImg.GetEbitenImage()
 
+		// DEBUG: Log player position (throttle to ~1/sec to avoid spam)
+		if ebiten.IsKeyPressed(ebiten.KeySpace) {
+			log.Printf("DEBUG PlayerPos: X=%.2f Y=%.2f (screen: %dx%d)",
+				g.player.Pos.X, g.player.Pos.Y, g.screenWidth, g.screenHeight)
+		}
+
 		// Shader options with player position uniform
 		opts := &ebiten.DrawRectShaderOptions{}
 		opts.Uniforms = map[string]interface{}{
