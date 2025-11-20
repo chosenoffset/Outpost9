@@ -12,20 +12,11 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Get screen dimensions
 	screenSize := imageDstTextureSize()
 
-	// DEBUG: Test if PlayerPos uniform is being received at all
-	// If PlayerPos.x > 0, show red in top-left corner
-	if texCoord.x < 0.1 && texCoord.y < 0.1 {
-		if PlayerPos.x > 0.0 {
-			return vec4(1, 0, 0, 0.8) // Red = PlayerPos is received
-		} else {
-			return vec4(1, 1, 0, 0.8) // Yellow = PlayerPos is zero or not received
-		}
-	}
-
-	// DEBUG: First check if current pixel is a wall (like the magenta test that worked)
-	currentPixel := imageSrc0At(texCoord)
-	if currentPixel.a > 0.1 {
-		return vec4(0, 1, 0, 0.5) // Green overlay on walls
+	// DEBUG: ENTIRE SCREEN test - is PlayerPos being received?
+	if PlayerPos.x > 0.0 {
+		return vec4(1, 0, 0, 0.5) // Red tint = PlayerPos is received
+	} else {
+		return vec4(1, 1, 0, 0.5) // Yellow tint = PlayerPos is zero/not received
 	}
 
 	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
