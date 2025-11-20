@@ -104,22 +104,37 @@ func extractPerimeterSegments(region []Coord, gameMap *maploader.Map, tileSize f
 		tileX := float64(x) * tileSize
 		tileY := float64(y) * tileSize
 
-		// Get the tile name to check its type
-		tileName, _ := gameMap.GetTileAt(x, y)
+		// Get the tile definition to check visual_bounds
+		tileDef, err := gameMap.GetTileDefAt(x, y)
+		tileName := ""
+		if err == nil {
+			tileName = tileDef.Name
+		}
+
+		// Get visual bounds (where actual pixels are within the tile)
+		bounds := getVisualBounds(tileDef, tileSize)
+
+		// Calculate actual pixel boundaries within this tile
+		// These are the positions of the actual wall pixels, not the tile grid
+		pixelLeft := tileX + bounds.left
+		pixelRight := tileX + bounds.right
+		pixelTop := tileY + bounds.top
+		pixelBottom := tileY + bounds.bottom
 
 		// Check each edge - create segment if it borders a non-blocking area
+		// Segments are positioned at the visual bounds, not tile edges
 
-		// Top edge
+		// Top edge (top of the wall pixels)
 		northCoord := Coord{X: x, Y: y - 1}
 		hasWallAbove := regionSet[northCoord]
 		shouldCreateTopEdge := !regionSet[northCoord]
 
-		// Skip top edge for bottom tiles that have walls above (same logic as before)
+		// Skip top edge for bottom tiles that have walls above
 		if shouldCreateTopEdge && !(hasWallAbove && (tileName == "nwb" || tileName == "nbx" || tileName == "neb" ||
 			tileName == "swb" || tileName == "sbx" || tileName == "seb")) {
 			segments = append(segments, Segment{
-				A:            Point{tileX, tileY},
-				B:            Point{tileX + tileSize, tileY},
+				A:            Point{pixelLeft, pixelTop},
+				B:            Point{pixelRight, pixelTop},
 				TileX:        x,
 				TileY:        y,
 				TilesCovered: []Coord{{X: x, Y: y}},
@@ -127,11 +142,11 @@ func extractPerimeterSegments(region []Coord, gameMap *maploader.Map, tileSize f
 			})
 		}
 
-		// Right edge
+		// Right edge (right side of wall pixels)
 		if !regionSet[Coord{X: x + 1, Y: y}] {
 			segments = append(segments, Segment{
-				A:            Point{tileX + tileSize, tileY},
-				B:            Point{tileX + tileSize, tileY + tileSize},
+				A:            Point{pixelRight, pixelTop},
+				B:            Point{pixelRight, pixelBottom},
 				TileX:        x,
 				TileY:        y,
 				TilesCovered: []Coord{{X: x, Y: y}},
@@ -139,11 +154,11 @@ func extractPerimeterSegments(region []Coord, gameMap *maploader.Map, tileSize f
 			})
 		}
 
-		// Bottom edge
+		// Bottom edge (bottom of wall pixels)
 		if !regionSet[Coord{X: x, Y: y + 1}] {
 			segments = append(segments, Segment{
-				A:            Point{tileX + tileSize, tileY + tileSize},
-				B:            Point{tileX, tileY + tileSize},
+				A:            Point{pixelRight, pixelBottom},
+				B:            Point{pixelLeft, pixelBottom},
 				TileX:        x,
 				TileY:        y,
 				TilesCovered: []Coord{{X: x, Y: y}},
@@ -151,11 +166,11 @@ func extractPerimeterSegments(region []Coord, gameMap *maploader.Map, tileSize f
 			})
 		}
 
-		// Left edge
+		// Left edge (left side of wall pixels)
 		if !regionSet[Coord{X: x - 1, Y: y}] {
 			segments = append(segments, Segment{
-				A:            Point{tileX, tileY + tileSize},
-				B:            Point{tileX, tileY},
+				A:            Point{pixelLeft, pixelBottom},
+				B:            Point{pixelLeft, pixelTop},
 				TileX:        x,
 				TileY:        y,
 				TilesCovered: []Coord{{X: x, Y: y}},
@@ -165,6 +180,54 @@ func extractPerimeterSegments(region []Coord, gameMap *maploader.Map, tileSize f
 	}
 
 	return segments
+}
+
+// visualBounds represents the actual pixel boundaries within a tile
+type visualBounds struct {
+	top, bottom, left, right float64
+}
+
+// getVisualBounds extracts visual bounds from tile definition, or returns defaults
+func getVisualBounds(tileDef *maploader.TileDef, tileSize float64) visualBounds {
+	// Default: entire tile is the wall
+	bounds := visualBounds{
+		top:    0,
+		bottom: tileSize,
+		left:   0,
+		right:  tileSize,
+	}
+
+	if tileDef == nil {
+		return bounds
+	}
+
+	// Try to get visual_bounds property
+	visualBoundsProp, ok := tileDef.GetTileProperty("visual_bounds")
+	if !ok {
+		return bounds
+	}
+
+	// Parse visual_bounds map
+	boundsMap, ok := visualBoundsProp.(map[string]interface{})
+	if !ok {
+		return bounds
+	}
+
+	// Extract each boundary value
+	if top, ok := boundsMap["top"].(float64); ok {
+		bounds.top = top
+	}
+	if bottom, ok := boundsMap["bottom"].(float64); ok {
+		bounds.bottom = bottom
+	}
+	if left, ok := boundsMap["left"].(float64); ok {
+		bounds.left = left
+	}
+	if right, ok := boundsMap["right"].(float64); ok {
+		bounds.right = right
+	}
+
+	return bounds
 }
 
 // mergeColinearSegments combines adjacent parallel segments into longer segments
