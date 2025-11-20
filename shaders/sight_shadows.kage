@@ -12,12 +12,23 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Get screen dimensions
 	screenSize := imageDstTextureSize()
 
+	// DEBUG: First check if current pixel is a wall (like the magenta test that worked)
+	currentPixel := imageSrc0At(texCoord)
+	if currentPixel.a > 0.1 {
+		return vec4(0, 1, 0, 0.5) // Green overlay on walls
+	}
+
 	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
 	playerTexCoord := PlayerPos / screenSize
 
 	// Calculate direction from player to current pixel (in texCoord space)
 	direction := texCoord - playerTexCoord
 	distance := length(direction)
+
+	// DEBUG: Red circle around player to verify PlayerPos
+	if distance < 0.05 { // 5% of screen
+		return vec4(1, 0, 0, 0.3) // Red circle
+	}
 
 	// If we're at the player position, no shadow
 	if distance < 0.001 {
@@ -48,7 +59,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 		// If we hit a wall, this pixel is in shadow
 		if wallSample.a > 0.1 {
-			return vec4(0, 0, 0, 0.8) // Dark shadow
+			return vec4(0, 0, 1, 0.6) // Blue shadow (debug color)
 		}
 	}
 
