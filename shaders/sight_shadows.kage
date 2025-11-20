@@ -21,49 +21,4 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// DEBUG: Show PlayerPos values as color (right half of screen)
 	// Normalize PlayerPos to 0-1 range (assuming ~1000px max)
 	return vec4(PlayerPos.x / 1000.0, PlayerPos.y / 1000.0, 0, 1.0)
-
-	// Calculate direction from player to current pixel (in texCoord space)
-	direction := texCoord - playerTexCoord
-	distance := length(direction)
-
-	// DEBUG: Red circle around player to verify PlayerPos (make it HUGE to see if it exists at all)
-	if distance < 0.3 { // 30% of screen in texCoord space
-		return vec4(1, 0, 0, 0.3) // Red circle
-	}
-
-	// If we're at the player position, no shadow
-	if distance < 0.001 {
-		return vec4(0, 0, 0, 0) // Transparent
-	}
-
-	// Normalize direction
-	direction = direction / distance
-
-	// Raycast from player toward this pixel
-	// Step size in texCoord space (small steps for accuracy)
-	stepSize := 1.0 / screenSize.x // One pixel step in texCoord space
-
-	// Kage requires constant loop bounds, so use fixed max iterations
-	for i := 1; i < 2000; i++ {
-		t := float(i) * stepSize
-
-		// Stop if we've traveled the full distance to the pixel
-		if t >= distance {
-			break
-		}
-
-		// Sample position along ray (in texCoord space)
-		sampleTexCoord := playerTexCoord + direction * t
-
-		// Sample wall texture (same as magenta test)
-		wallSample := imageSrc0At(sampleTexCoord)
-
-		// If we hit a wall, this pixel is in shadow
-		if wallSample.a > 0.1 {
-			return vec4(0, 0, 1, 0.6) // Blue shadow (debug color)
-		}
-	}
-
-	// No wall blocking - visible
-	return vec4(0, 0, 0, 0) // Transparent
 }
