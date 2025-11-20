@@ -9,44 +9,15 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// Use texCoord directly since that's what worked for wall detection earlier
-	pixelPos := texCoord * imageDstTextureSize()
+	// SIMPLE TEST: Just show what's in wallTexture at current position
+	// Sample wallTexture at this exact pixel using texCoord
+	wallSample := imageSrc0At(texCoord)
 
-	// Direction and distance from player to this pixel
-	dir := pixelPos - PlayerPos
-	dist := length(dir)
-
-	// Normalize direction for raycasting
-	if dist < 0.1 {
-		// Avoid division by zero at player position
-		return vec4(1, 0, 0, 0.8) // Red at player position
-	}
-	dir = dir / dist
-
-	// Raycast from player toward this pixel
-	stepSize := 2.0
-	dstSize := imageDstTextureSize()
-
-	for i := 0; i < 500; i++ {
-		t := float(i) * stepSize
-
-		if t >= dist {
-			break
-		}
-
-		// Sample position along the ray
-		samplePos := PlayerPos + dir * t
-		sampleTexCoord := samplePos / dstSize
-
-		// Sample wall texture
-		wallSample := imageSrc0At(sampleTexCoord)
-
-		// If we hit a wall, show GREEN to prove raycasting works
-		if wallSample.a > 0.5 {
-			return vec4(0, 1, 0, 0.8) // Green - wall hit!
-		}
+	// If there's a wall here, show it in magenta
+	if wallSample.a > 0.1 {
+		return vec4(1, 0, 1, 0.8) // Magenta where walls exist
 	}
 
-	// No wall blocking - show yellow to prove we got here
-	return vec4(1, 1, 0, 0.3) // Yellow - no wall hit
+	// Otherwise transparent
+	return vec4(0, 0, 0, 0)
 }
