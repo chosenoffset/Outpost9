@@ -370,15 +370,17 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 			screenX := float64(x * tileSize)
 			screenY := float64(y * tileSize)
 
-			// Extract underlying ebiten.Image since we're working directly with the texture
-			if ebitenImg, ok := subImg.(*ebitenrenderer.EbitenImage); ok {
-				ebitenSubImg := ebitenImg.GetEbitenImage()
+			// DEBUG: Draw solid rectangles instead of actual tiles to verify positions
+			wallRect := ebiten.NewImage(tileSize, tileSize)
+			wallRect.Fill(color.RGBA{255, 0, 255, 255}) // Magenta with full alpha
+			opts := &ebiten.DrawImageOptions{}
+			opts.GeoM.Translate(screenX, screenY)
+			texture.DrawImage(wallRect, opts)
 
-				opts := &ebiten.DrawImageOptions{}
-				opts.GeoM.Translate(screenX, screenY)
-				texture.DrawImage(ebitenSubImg, opts)
-			} else {
-				log.Printf("DEBUG: Failed to cast subImg to EbitenImage for tile '%s'", tileName)
+			// Log first wall
+			if wallCount == 1 {
+				log.Printf("DEBUG: First wall '%s' at tile (%d,%d) -> screen (%.0f,%.0f), tileSize: %d",
+					tileName, x, y, screenX, screenY, tileSize)
 			}
 		}
 	}
