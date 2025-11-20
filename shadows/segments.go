@@ -1,6 +1,9 @@
 package shadows
 
-import "chosenoffset.com/outpost9/maploader"
+import (
+	"chosenoffset.com/outpost9/atlas"
+	"chosenoffset.com/outpost9/maploader"
+)
 
 // CreateWallSegmentsFromMap generates wall segments from map data using a holistic contour-based approach
 // Instead of creating per-tile segments, this extracts the perimeter of contiguous sight-blocking regions
@@ -188,7 +191,7 @@ type visualBounds struct {
 }
 
 // getVisualBounds extracts visual bounds from tile definition, or returns defaults
-func getVisualBounds(tileDef *maploader.TileDef, tileSize float64) visualBounds {
+func getVisualBounds(tileDef *atlas.TileDefinition, tileSize float64) visualBounds {
 	// Default: entire tile is the wall
 	bounds := visualBounds{
 		top:    0,
