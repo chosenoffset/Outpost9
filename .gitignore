@@ -5,3 +5,5 @@ data/*/assets/entities.png
 
 # Ignore generated game data (but allow Example game for development)
 data/Outpost9
+
+Art
