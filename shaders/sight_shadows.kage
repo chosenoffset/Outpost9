@@ -28,6 +28,13 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		return vec4(1, 0, 0, 0.5) // Red = near player
 	}
 
+	// DEBUG: Test if position.xy is already normalized like texCoord
+	// Show yellow where position.xy and texCoord match
+	posTexDiff := abs(pixelPos - texCoord * screenSize)
+	if posTexDiff.x < 1.0 && posTexDiff.y < 1.0 {
+		return vec4(1, 1, 0, 0.8) // Yellow = they match
+	}
+
 	// Normalize direction
 	if distance < 0.1 {
 		return vec4(0, 0, 0, 0) // Transparent near player
