@@ -1,0 +1,119 @@
+{
+  "name": "objects_layer",
+  "layer": "objects",
+  "image_path": "data/Example/assets/object_tiles.png",
+  "tile_width": 16,
+  "tile_height": 16,
+  "tiles": [
+    {
+      "name": "desk_west",
+      "atlas_x": 0,
+      "atlas_y": 0,
+      "properties": {
+        "walkable": false,
+        "type": "furniture"
+      }
+    },
+    {
+      "name": "desk_east",
+      "atlas_x": 16,
+      "atlas_y": 0,
+      "properties": {
+        "walkable": false,
+        "type": "furniture"
+      }
+    },
+    {
+      "name": "chair_north",
+      "atlas_x": 32,
+      "atlas_y": 0,
+      "properties": {
+        "walkable": false,
+        "type": "furniture"
+      }
+    },
+    {
+      "name": "chair_south",
+      "atlas_x": 48,
+      "atlas_y": 0,
+      "properties": {
+        "walkable": false,
+        "type": "furniture"
+      }
+    },
+    {
+      "name": "computer_terminal",
+      "atlas_x": 0,
+      "atlas_y": 16,
+      "properties": {
+        "walkable": false,
+        "type": "electronics",
+        "interactive": true
+      }
+    },
+    {
+      "name": "console_left",
+      "atlas_x": 16,
+      "atlas_y": 16,
+      "properties": {
+        "walkable": false,
+        "type": "electronics"
+      }
+    },
+    {
+      "name": "console_center",
+      "atlas_x": 32,
+      "atlas_y": 16,
+      "properties": {
+        "walkable": false,
+        "type": "electronics"
+      }
+    },
+    {
+      "name": "console_right",
+      "atlas_x": 48,
+      "atlas_y": 16,
+      "properties": {
+        "walkable": false,
+        "type": "electronics"
+      }
+    },
+    {
+      "name": "locker_closed",
+      "atlas_x": 0,
+      "atlas_y": 32,
+      "properties": {
+        "walkable": false,
+        "type": "storage",
+        "interactive": true
+      }
+    },
+    {
+      "name": "locker_open",
+      "atlas_x": 16,
+      "atlas_y": 32,
+      "properties": {
+        "walkable": false,
+        "type": "storage"
+      }
+    },
+    {
+      "name": "crate",
+      "atlas_x": 32,
+      "atlas_y": 32,
+      "properties": {
+        "walkable": false,
+        "type": "storage"
+      }
+    },
+    {
+      "name": "generator",
+      "atlas_x": 48,
+      "atlas_y": 32,
+      "properties": {
+        "walkable": false,
+        "type": "machinery"
+      }
+    }
+  ]
+}

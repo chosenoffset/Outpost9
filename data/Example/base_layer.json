@@ -1,0 +1,126 @@
+{
+  "name": "base_layer",
+  "layer": "base",
+  "image_path": "data/Example/assets/base_tiles.png",
+  "tile_width": 16,
+  "tile_height": 16,
+  "tiles": [
+    {
+      "name": "floor_metal_01",
+      "atlas_x": 0,
+      "atlas_y": 0,
+      "properties": {
+        "walkable": true,
+        "type": "floor"
+      }
+    },
+    {
+      "name": "floor_metal_02",
+      "atlas_x": 16,
+      "atlas_y": 0,
+      "properties": {
+        "walkable": true,
+        "type": "floor"
+      }
+    },
+    {
+      "name": "floor_grating",
+      "atlas_x": 32,
+      "atlas_y": 0,
+      "properties": {
+        "walkable": true,
+        "type": "floor"
+      }
+    },
+    {
+      "name": "wall_corner_nw",
+      "atlas_x": 0,
+      "atlas_y": 16,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "wall_n",
+      "atlas_x": 16,
+      "atlas_y": 16,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "wall_corner_ne",
+      "atlas_x": 32,
+      "atlas_y": 16,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "wall_w",
+      "atlas_x": 0,
+      "atlas_y": 32,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "wall_center",
+      "atlas_x": 16,
+      "atlas_y": 32,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "wall_e",
+      "atlas_x": 32,
+      "atlas_y": 32,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "wall_corner_sw",
+      "atlas_x": 0,
+      "atlas_y": 48,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "wall_s",
+      "atlas_x": 16,
+      "atlas_y": 48,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "wall_corner_se",
+      "atlas_x": 32,
+      "atlas_y": 48,
+      "properties": {
+        "walkable": false,
+        "type": "wall",
+        "blocks_sight": true
+      }
+    }
+  ]
+}
