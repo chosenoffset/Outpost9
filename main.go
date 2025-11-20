@@ -211,13 +211,11 @@ func (g *Game) Draw(screen renderer.Image) {
 	g.wallTexture.Clear()
 
 	// DEBUG: Draw a test rectangle to verify texture rendering works
-	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok {
-		testImg := ebiten.NewImage(100, 100)
-		testImg.Fill(color.RGBA{255, 255, 255, 255}) // White with full alpha
-		opts := &ebiten.DrawImageOptions{}
-		opts.GeoM.Translate(200, 200) // Draw at 200,200
-		g.wallTexture.DrawImage(testImg, opts)
-	}
+	testImg := ebiten.NewImage(100, 100)
+	testImg.Fill(color.RGBA{255, 255, 255, 255}) // White with full alpha
+	opts := &ebiten.DrawImageOptions{}
+	opts.GeoM.Translate(200, 200) // Draw at 200,200
+	g.wallTexture.DrawImage(testImg, opts)
 
 	g.drawWallsToTexture(g.wallTexture)
 
