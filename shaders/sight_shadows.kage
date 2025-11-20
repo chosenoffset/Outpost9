@@ -9,6 +9,12 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// DEBUG: First check - are walls in wallTexture?
+	wallAtCurrentPixel := imageSrc0At(texCoord)
+	if wallAtCurrentPixel.a > 0.1 {
+		return vec4(0, 1, 0, 0.5) // Green = wall exists
+	}
+
 	// position.xy is already in pixel coordinates
 	pixelPos := position.xy
 	screenSize := imageDstTextureSize()
@@ -16,6 +22,11 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Calculate direction from player to current pixel (both in pixel space)
 	direction := pixelPos - PlayerPos
 	distance := length(direction)
+
+	// DEBUG: Red circle around player (40 pixel radius)
+	if distance < 40.0 {
+		return vec4(1, 0, 0, 0.5) // Red = near player
+	}
 
 	// Normalize direction
 	if distance < 0.1 {
@@ -25,6 +36,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 	// Raycast from player toward this pixel
 	// Step in pixel increments
+	foundWall := false
 	for i := 1; i < 2000; i++ {
 		t := float(i) * 2.0 // 2 pixel steps
 
@@ -41,10 +53,16 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		// Sample wall texture
 		wallSample := imageSrc0At(sampleTexCoord)
 
-		// If we hit a wall, this pixel is in shadow
+		// If we hit a wall, mark it
 		if wallSample.a > 0.1 {
-			return vec4(0, 0, 0, 0.8) // Dark shadow
+			foundWall = true
+			break
 		}
+	}
+
+	// DEBUG: Blue if raycasting found wall
+	if foundWall {
+		return vec4(0, 0, 1, 0.7) // Blue = wall blocks this pixel
 	}
 
 	// No wall blocking - visible (transparent)
