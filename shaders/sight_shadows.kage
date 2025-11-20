@@ -9,16 +9,18 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// DEBUG: Visualize the wall texture to see if it has data
+	// DEBUG: Show what we're sampling
 	pixelPos := position.xy
 
 	// Sample wall texture at current pixel position
 	sampleTexCoord := pixelPos / imageSrcTextureSize()
 	wallSample := imageSrc0At(sampleTexCoord)
 
-	// If wall texture has alpha at this position, show it in green
-	if wallSample.a > 0.1 {
-		return vec4(0, 1, 0, 0.8) // Green overlay where walls exist
+	// DEBUG: Show the actual RGBA values we're getting
+	// If we're getting anything other than (0,0,0,0), show it
+	if wallSample.r > 0.01 || wallSample.g > 0.01 || wallSample.b > 0.01 || wallSample.a > 0.01 {
+		// Show exactly what color we sampled - should be white at 200,200
+		return vec4(wallSample.r, wallSample.g, wallSample.b, 0.8)
 	}
 
 	// Show player position as red circle
@@ -26,6 +28,11 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dist := length(dir)
 	if dist < 50.0 {
 		return vec4(1, 0, 0, 0.5) // Red circle at player
+	}
+
+	// DEBUG: Show magenta at 200,200 area to verify we're checking the right spot
+	if pixelPos.x >= 200.0 && pixelPos.x <= 300.0 && pixelPos.y >= 200.0 && pixelPos.y <= 300.0 {
+		return vec4(1, 0, 1, 0.3) // Magenta where test square should be
 	}
 
 	return vec4(0, 0, 0, 0) // Transparent elsewhere
