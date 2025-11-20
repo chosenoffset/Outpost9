@@ -1,0 +1,53 @@
+//kage:unit pixels
+
+package main
+
+// Player position in screen coordinates
+var PlayerPos vec2
+
+// Maximum distance to check for occlusion
+var MaxDistance float
+
+// Wall texture (contains wall sprites with alpha channel)
+var WallTexture vec4
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// Current pixel position
+	pixelPos := position.xy
+
+	// Direction from player to this pixel
+	dir := pixelPos - PlayerPos
+	dist := length(dir)
+
+	// If we're at the player position, always visible
+	if dist < 1.0 {
+		return vec4(0, 0, 0, 0) // Transparent (no shadow)
+	}
+
+	// Normalize direction
+	dir = dir / dist
+
+	// Ray march from player toward this pixel
+	// Check for wall collisions along the way
+	const float stepSize = 1.0 // Check every pixel
+	numSteps := int(dist / stepSize)
+
+	for i := 0; i < numSteps; i++ {
+		t := float(i) * stepSize
+		samplePos := PlayerPos + dir * t
+
+		// Convert to texture coordinates
+		sampleTexCoord := samplePos / imageSrcTextureSize()
+
+		// Sample the wall texture at this position
+		wallSample := imageSrc0At(sampleTexCoord)
+
+		// If alpha > threshold, we hit a wall - this pixel is in shadow
+		if wallSample.a > 0.5 {
+			return vec4(0, 0, 0, 0.7) // Dark shadow
+		}
+	}
+
+	// Ray reached the pixel without hitting walls - visible
+	return vec4(0, 0, 0, 0) // Transparent (no shadow)
+}

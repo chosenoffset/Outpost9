@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"image/color"
 	"log"
@@ -15,8 +16,12 @@ import (
 	"chosenoffset.com/outpost9/room"
 	"chosenoffset.com/outpost9/shadows"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
+
+//go:embed shaders/sight_shadows.kage
+var shadowShaderSrc []byte
 
 type Player struct {
 	Pos   shadows.Point
@@ -120,11 +125,20 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 		}
 	}
 
+	// Initialize shadow shader
+	shadowShader, err := ebiten.NewShader(shadowShaderSrc)
+	if err != nil {
+		return fmt.Errorf("failed to create shadow shader: %w", err)
+	}
+
+	// Create wall texture render target
+	wallTexture := ebiten.NewImage(gm.screenWidth, gm.screenHeight)
+
 	gm.game = &Game{
-		screenWidth:  gm.screenWidth,
-		screenHeight: gm.screenHeight,
-		gameMap:      gameMap,
-		walls:        walls,
+		screenWidth:     gm.screenWidth,
+		screenHeight:    gm.screenHeight,
+		gameMap:         gameMap,
+		walls:           walls,
 		player: Player{
 			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
@@ -133,6 +147,8 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 		inputMgr:        gm.inputMgr,
 		entitiesAtlas:   entitiesAtlas,
 		playerSpriteImg: playerSprite,
+		shadowShader:    shadowShader,
+		wallTexture:     wallTexture,
 	}
 
 	return nil
@@ -149,6 +165,8 @@ type Game struct {
 	inputMgr        renderer.InputManager
 	entitiesAtlas   *atlas.Atlas
 	playerSpriteImg renderer.Image
+	shadowShader    *ebiten.Shader
+	wallTexture     *ebiten.Image // Render target containing just walls
 }
 
 func (g *Game) Update() error {
@@ -186,56 +204,32 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen renderer.Image) {
-	// Step 1: Draw all tiles (the world)
+	// Step 1: Draw all tiles (floor and walls) to the screen
 	g.drawTiles(screen)
 
-	// Step 2: Compute visibility polygon - what the player can see
-	maxDist := float64(g.screenWidth + g.screenHeight)
-	visibilityPolygon := shadows.ComputeVisibilityPolygon(g.player.Pos, g.walls, maxDist)
+	// Step 2: Render ONLY walls to wallTexture for shader input
+	// The shader will sample this texture to detect wall pixels
+	g.wallTexture.Clear()
+	g.drawWallsToTexture(g.wallTexture)
 
-	// Step 3: Draw shadows - FOR NOW: just verify visibility polygon is correct
-	shadowMask := g.renderer.NewImage(g.screenWidth, g.screenHeight)
-	shadowMask.Fill(color.RGBA{0, 0, 0, 0}) // Start transparent
-
-	// Step 4: Draw visibility polygon outline for debugging
-	if len(visibilityPolygon) >= 3 {
-		// Draw the polygon outline in bright color to see its shape
-		for i := 0; i < len(visibilityPolygon); i++ {
-			p1 := visibilityPolygon[i]
-			p2 := visibilityPolygon[(i+1)%len(visibilityPolygon)]
-
-			// Draw line segment (we'll use a thin quad as a line)
-			// This is just for debugging to see the visibility polygon shape
-			dx := p2.X - p1.X
-			dy := p2.Y - p1.Y
-			length := math.Sqrt(dx*dx + dy*dy)
-			if length > 0.001 {
-				// Normalize
-				dx /= length
-				dy /= length
-
-				// Perpendicular (for line thickness)
-				px := -dy * 2 // 2 pixel thickness
-				py := dx * 2
-
-				lineQuad := []shadows.Point{
-					{X: p1.X - px, Y: p1.Y - py},
-					{X: p1.X + px, Y: p1.Y + py},
-					{X: p2.X + px, Y: p2.Y + py},
-					{X: p2.X - px, Y: p2.Y - py},
-				}
-				g.drawPolygon(shadowMask, lineQuad, color.RGBA{0, 255, 0, 255}) // Bright green outline
-			}
+	// Step 3: Apply shadow shader - does pixel-perfect raycasting on GPU
+	// Each pixel checks: is there a wall between me and the player?
+	// Cast to ebiten.Image to use shader (renderer abstraction doesn't support shaders yet)
+	ebitenScreen, ok := screen.(*ebiten.Image)
+	if ok && g.shadowShader != nil {
+		// Shader options with player position uniform
+		opts := &ebiten.DrawRectShaderOptions{}
+		opts.Uniforms = map[string]interface{}{
+			"PlayerPos":   []float32{float32(g.player.Pos.X), float32(g.player.Pos.Y)},
+			"MaxDistance": float32(g.screenWidth + g.screenHeight),
 		}
+		opts.Images[0] = g.wallTexture
+
+		// Draw shader over entire screen
+		ebitenScreen.DrawRectShader(g.screenWidth, g.screenHeight, g.shadowShader, opts)
 	}
 
-	// Step 5: Apply shadow mask to screen
-	screen.DrawImage(shadowMask, nil)
-
-	// Step 6: Redraw visible walls
-	g.drawVisibleWalls(screen)
-
-	// Step 6: Draw player character on top of everything
+	// Step 4: Draw player character on top of shadows
 	if g.playerSpriteImg != nil {
 		// Draw player sprite centered on player position
 		spriteSize := 16.0 // Tile size from atlas
@@ -314,6 +308,52 @@ func (g *Game) drawTiles(screen renderer.Image) {
 			opts.GeoM.Translate(screenX, screenY)
 
 			screen.DrawImage(subImg, opts)
+		}
+	}
+}
+
+// drawWallsToTexture renders only wall tiles (sight-blocking) to a texture for shader input
+// The shader will sample this texture's alpha channel to detect walls during raycasting
+func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
+	if g.gameMap == nil || g.gameMap.Atlas == nil {
+		return
+	}
+
+	tileSize := g.gameMap.Data.TileSize
+
+	// Draw only sight-blocking tiles to the texture
+	for y := 0; y < g.gameMap.Data.Height; y++ {
+		for x := 0; x < g.gameMap.Data.Width; x++ {
+			// Check if this tile blocks sight
+			if !g.gameMap.BlocksSight(x, y) {
+				continue
+			}
+
+			// Get the wall tile
+			tileName, err := g.gameMap.GetTileAt(x, y)
+			if err != nil || tileName == "" {
+				continue
+			}
+
+			tile, ok := g.gameMap.Atlas.GetTile(tileName)
+			if !ok {
+				continue
+			}
+
+			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+
+			screenX := float64(x * tileSize)
+			screenY := float64(y * tileSize)
+
+			// Cast to ebiten.Image since we're working directly with the texture
+			ebitenSubImg, ok := subImg.(*ebiten.Image)
+			if !ok {
+				continue
+			}
+
+			opts := &ebiten.DrawImageOptions{}
+			opts.GeoM.Translate(screenX, screenY)
+			texture.DrawImage(ebitenSubImg, opts)
 		}
 	}
 }
