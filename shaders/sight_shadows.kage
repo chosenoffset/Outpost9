@@ -13,12 +13,12 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	screenSize := imageDstTextureSize()
 
 	// DEBUG: Show screenSize values as color (left half of screen)
+	// Multiply by 100 to see if values are tiny
 	if texCoord.x < 0.5 {
-		// Normalize screenSize to 0-1 range (assuming ~1000px max)
-		return vec4(screenSize.x / 1000.0, screenSize.y / 1000.0, 0, 1.0)
+		return vec4(screenSize.x * 100.0, screenSize.y * 100.0, 0, 1.0)
 	}
 
 	// DEBUG: Show PlayerPos values as color (right half of screen)
-	// Normalize PlayerPos to 0-1 range (assuming ~1000px max)
-	return vec4(PlayerPos.x / 1000.0, PlayerPos.y / 1000.0, 0, 1.0)
+	// Multiply by 100 to see if values are tiny
+	return vec4(PlayerPos.x * 100.0, PlayerPos.y * 100.0, 0, 1.0)
 }
