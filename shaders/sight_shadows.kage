@@ -45,8 +45,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		// Sample wall texture
 		wallSample := imageSrc0At(sampleTexCoord)
 
-		// If we hit a wall, this pixel is in shadow
-		if wallSample.a > 0.5 {
+		// If we hit a wall, this pixel is in shadow (use same threshold as magenta test)
+		if wallSample.a > 0.1 {
 			return vec4(0, 0, 0, 0.8) // Dark shadow
 		}
 	}
