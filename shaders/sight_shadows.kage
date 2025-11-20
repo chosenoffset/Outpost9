@@ -9,13 +9,18 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// Current pixel position
+	// DEBUG: First verify shader is running
+	// Draw a red circle around player position
 	pixelPos := position.xy
-
-	// Direction from player to this pixel
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
 
+	// Red circle at player position (50 pixel radius)
+	if dist < 50.0 {
+		return vec4(1, 0, 0, 0.5) // Red, semi-transparent
+	}
+
+	// Direction from player to this pixel
 	// If we're at the player position, always visible
 	if dist < 1.0 {
 		return vec4(0, 0, 0, 0) // Transparent (no shadow)
