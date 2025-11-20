@@ -354,22 +354,13 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 }
 
 func (g *Game) isPointInShadow(point shadows.Point) bool {
-	// Check if a point is in shadow by testing against all shadow-casting walls
+	// With visibility polygon approach: a point is in shadow if it's NOT visible
+	// Compute visibility polygon and check if point is inside it
 	maxDist := float64(g.screenWidth + g.screenHeight)
+	visibilityPolygon := shadows.ComputeVisibilityPolygon(g.player.Pos, g.walls, maxDist)
 
-	for _, wall := range g.walls {
-		if !shadows.IsFacingPoint(wall, g.player.Pos) {
-			continue
-		}
-
-		// Use false for isCornerShadow in point-in-shadow testing
-		shadowPoly := shadows.CastShadow(g.player.Pos, wall, maxDist, g.gameMap.Data.TileSize, g.gameMap, false)
-		if shadowPoly != nil && shadows.PointInPolygon(point, shadowPoly) {
-			return true
-		}
-	}
-
-	return false
+	// Point is in shadow if it's OUTSIDE the visibility polygon
+	return !shadows.PointInPolygon(point, visibilityPolygon)
 }
 
 func (g *Game) drawPolygon(dst renderer.Image, points []shadows.Point, c color.RGBA) {
