@@ -48,9 +48,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		// Sample the wall texture at this position
 		wallSample := imageSrc0At(sampleTexCoord)
 
-		// If we hit a wall (alpha > threshold), this pixel is in shadow
+		// DEBUG: If we hit a wall, show green instead of shadow
 		if wallSample.a > 0.5 {
-			return vec4(0, 0, 0, 0.8) // Dark shadow
+			return vec4(0, 1, 0, 0.8) // Green - wall detected during raycast
 		}
 	}
 
