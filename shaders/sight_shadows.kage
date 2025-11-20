@@ -12,20 +12,19 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Get screen dimensions
 	screenSize := imageDstTextureSize()
 
-	// DEBUG: ENTIRE SCREEN test - is PlayerPos being received?
-	if PlayerPos.x > 0.0 {
-		return vec4(1, 0, 0, 0.5) // Red tint = PlayerPos is received
-	} else {
-		return vec4(1, 1, 0, 0.5) // Yellow tint = PlayerPos is zero/not received
-	}
-
 	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
 	playerTexCoord := PlayerPos / screenSize
 
-	// DEBUG: Show where shader thinks player is (cyan dot at calculated position)
+	// DEBUG: Show large cyan square where player is (after coordinate conversion)
 	pixelDiff := abs(texCoord - playerTexCoord)
-	if pixelDiff.x < 0.05 && pixelDiff.y < 0.05 {
-		return vec4(0, 1, 1, 1.0) // Cyan dot at playerTexCoord
+	if pixelDiff.x < 0.1 && pixelDiff.y < 0.1 {
+		return vec4(0, 1, 1, 0.8) // Bright cyan square (10% of screen)
+	}
+
+	// DEBUG: Green walls (this worked before)
+	currentPixel := imageSrc0At(texCoord)
+	if currentPixel.a > 0.1 {
+		return vec4(0, 1, 0, 0.5) // Green overlay on walls
 	}
 
 	// Calculate direction from player to current pixel (in texCoord space)
