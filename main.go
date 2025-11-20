@@ -209,31 +209,10 @@ func (g *Game) Draw(screen renderer.Image) {
 	// Step 2: Render ONLY walls to wallTexture for shader input
 	// The shader will sample this texture to detect wall pixels
 	g.wallTexture.Clear()
-
-	// DEBUG: Draw a test rectangle to verify texture rendering works
-	testImg := ebiten.NewImage(100, 100)
-	testImg.Fill(color.RGBA{255, 255, 255, 255}) // White with full alpha
-	opts := &ebiten.DrawImageOptions{}
-	opts.GeoM.Translate(200, 200) // Draw at 200,200
-	g.wallTexture.DrawImage(testImg, opts)
-
 	g.drawWallsToTexture(g.wallTexture)
 
-	// DEBUG: Draw wall texture directly to screen to see what's in it
-	// DISABLED - let shader visualize it instead
-	/*
-	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok {
-		ebitenScreen := ebitenImg.GetEbitenImage()
-		drawOpts := &ebiten.DrawImageOptions{}
-		drawOpts.ColorScale.ScaleAlpha(0.5)
-		ebitenScreen.DrawImage(g.wallTexture, drawOpts)
-	}
-	*/
-
-	// Step 3: Apply shadow shader - RE-ENABLED to visualize wall data
-	// Shader shows GREEN where walls exist in texture, RED circle around player
-	// Each pixel checks: is there a wall between me and the player?
-	// Extract underlying ebiten.Image to use shader (renderer abstraction doesn't support shaders yet)
+	// Step 3: Apply shadow shader - pixel-perfect raycasting on GPU
+	// Each pixel independently checks if there's a wall between it and the player
 	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
 		ebitenScreen := ebitenImg.GetEbitenImage()
 
@@ -336,14 +315,13 @@ func (g *Game) drawTiles(screen renderer.Image) {
 // The shader will sample this texture's alpha channel to detect walls during raycasting
 func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 	if g.gameMap == nil || g.gameMap.Atlas == nil {
-		log.Println("DEBUG: gameMap or Atlas is nil")
 		return
 	}
 
 	tileSize := g.gameMap.Data.TileSize
 	drawnTiles := make(map[string]bool) // Track which tiles we've drawn
 
-	// Use wall segments instead of BlocksSight to ensure we get all walls
+	// Use wall segments to identify all wall tiles
 	for _, wall := range g.walls {
 		// Get tiles covered by this segment
 		tilesToDraw := wall.TilesCovered
@@ -375,7 +353,7 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 			screenX := float64(tileCoord.X * tileSize)
 			screenY := float64(tileCoord.Y * tileSize)
 
-			// Extract underlying ebiten.Image to draw actual wall tiles
+			// Extract underlying ebiten.Image to draw wall tiles
 			if ebitenImg, ok := subImg.(*ebitenrenderer.EbitenImage); ok {
 				ebitenSubImg := ebitenImg.GetEbitenImage()
 
@@ -385,8 +363,6 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 			}
 		}
 	}
-
-	log.Printf("DEBUG: drawWallsToTexture rendered %d wall tiles from %d segments", len(drawnTiles), len(g.walls))
 }
 
 func (g *Game) drawVisibleWalls(screen renderer.Image) {

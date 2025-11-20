@@ -9,30 +9,49 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// DEBUG: Sample using the built-in texCoord instead of calculating our own
+	// Get pixel position in screen coordinates
 	pixelPos := position.xy
 
-	// Sample wall texture using built-in texture coordinates
-	wallSample := imageSrc0At(texCoord)
-
-	// DEBUG: Show the actual RGBA values we're getting
-	// If we're getting anything other than (0,0,0,0), show it
-	if wallSample.r > 0.01 || wallSample.g > 0.01 || wallSample.b > 0.01 || wallSample.a > 0.01 {
-		// Show exactly what color we sampled - should be white at 200,200
-		return vec4(wallSample.r, wallSample.g, wallSample.b, 0.8)
-	}
-
-	// Show player position as red circle
+	// Direction and distance from player to this pixel
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
-	if dist < 50.0 {
-		return vec4(1, 0, 0, 0.5) // Red circle at player
+
+	// Player area is always visible
+	if dist < 8.0 {
+		return vec4(0, 0, 0, 0) // Transparent (visible)
 	}
 
-	// DEBUG: Show magenta at 200,200 area to verify we're checking the right spot
-	if pixelPos.x >= 200.0 && pixelPos.x <= 300.0 && pixelPos.y >= 200.0 && pixelPos.y <= 300.0 {
-		return vec4(1, 0, 1, 0.3) // Magenta where test square should be
+	// Normalize direction for ray marching
+	dir = dir / dist
+
+	// Ray march from player toward this pixel
+	// Check for wall occlusions along the way
+	stepSize := 2.0 // Check every 2 pixels for performance
+	screenSize := imageDstTextureSize()
+
+	for i := 0; i < 500; i++ {
+		t := float(i) * stepSize
+
+		// Stop if we've reached the target pixel
+		if t >= dist {
+			break
+		}
+
+		// Sample position along ray
+		samplePos := PlayerPos + dir * t
+
+		// Convert to normalized texture coordinates (0-1)
+		sampleTexCoord := samplePos / screenSize
+
+		// Sample the wall texture at this position
+		wallSample := imageSrc0At(sampleTexCoord)
+
+		// If we hit a wall (alpha > threshold), this pixel is in shadow
+		if wallSample.a > 0.5 {
+			return vec4(0, 0, 0, 0.8) // Dark shadow
+		}
 	}
 
-	return vec4(0, 0, 0, 0) // Transparent elsewhere
+	// Ray reached the pixel without hitting walls - visible
+	return vec4(0, 0, 0, 0) // Transparent (no shadow)
 }
