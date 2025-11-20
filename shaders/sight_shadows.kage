@@ -10,7 +10,6 @@ var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	pixelPos := position.xy
-	screenSize := imageDstTextureSize()
 
 	direction := pixelPos - PlayerPos
 	distance := length(direction)
