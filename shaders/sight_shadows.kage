@@ -18,9 +18,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
 
-	// Player area is always visible
-	if dist < 8.0 {
-		return vec4(0, 0, 0, 0) // Transparent (visible)
+	// DEBUG: Draw red circle at PlayerPos to verify uniform is correct
+	if dist < 20.0 {
+		return vec4(1, 0, 0, 0.8) // Red - player position indicator
 	}
 
 	// DEBUG: Test if anything beyond player radius executes
