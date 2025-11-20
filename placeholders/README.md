@@ -4,11 +4,11 @@ This package provides procedurally generated placeholder graphics for Outpost-9,
 
 ## Overview
 
-The placeholder system generates simple, color-coded sprite atlases at runtime. All graphics are created programmatically, so no art files are needed to get started.
+The placeholder system generates simple, color-coded sprite atlases at runtime. All graphics are created programmatically, so no art files are needed to get started. Assets are generated directly in the game's asset directory.
 
 ## Generated Atlases
 
-### 1. Base Layer (`Art/base_tiles.png`)
+### 1. Base Layer (`base_tiles.png`)
 **Size:** 48x64 pixels (3x4 tiles, 16x16 each)
 
 Contains floor and wall tiles for the sci-fi base:
@@ -16,7 +16,7 @@ Contains floor and wall tiles for the sci-fi base:
 - **Walls:** 9 wall segments (corners, edges, center)
 - **Color Scheme:** Grays and dark blue-grays
 
-### 2. Objects Layer (`Art/object_tiles.png`)
+### 2. Objects Layer (`object_tiles.png`)
 **Size:** 64x48 pixels (4x3 tiles, 16x16 each)
 
 Contains furniture and interactive objects:
@@ -25,7 +25,7 @@ Contains furniture and interactive objects:
 - **Storage:** Lockers, crates
 - **Machinery:** Generators
 
-### 3. Entities (`Art/entities.png`)
+### 3. Entities (`entities.png`)
 **Size:** 64x64 pixels (4x4 tiles, 16x16 each)
 
 Contains player, enemies, items, and effects:
@@ -39,22 +39,38 @@ Contains player, enemies, items, and effects:
 ### Generating Placeholder Graphics
 
 ```bash
-# Generate all placeholder atlases
+# Generate placeholders for the Example game (default)
 go run cmd/genplaceholders/main.go
+
+# Generate for a specific game
+go run cmd/genplaceholders/main.go -game data/MyGame
 ```
 
-This creates:
-- `Art/base_tiles.png`
-- `Art/object_tiles.png`
-- `Art/entities.png`
-- `Art/atlases/*.json` (atlas configuration files)
+This creates in `data/<game>/assets/`:
+- `base_tiles.png`
+- `object_tiles.png`
+- `entities.png`
+
+And configuration files in `data/<game>/`:
+- `base_layer.json`
+- `objects_layer.json`
+- `entities.json`
 
 ### Atlas Configuration
 
-Each atlas has a corresponding JSON configuration file in `Art/atlases/`:
+Each atlas has a corresponding JSON configuration file in the game directory:
 - `base_layer.json` - Base tile definitions
 - `objects_layer.json` - Object tile definitions
 - `entities.json` - Entity sprite definitions
+
+The JSON files reference images using paths relative to the project root:
+```json
+{
+  "image_path": "data/Example/assets/base_tiles.png",
+  "tile_width": 16,
+  "tile_height": 16
+}
+```
 
 ### Integration
 
@@ -62,8 +78,9 @@ The main game automatically loads the entities atlas for player rendering:
 
 ```go
 // Loads in main.go's loadGame() function
-entitiesAtlas, err := atlas.LoadAtlas("Art/atlases/entities.json", loader)
-playerSprite, err := entitiesAtlas.GetTileImage("player_idle")
+entitiesAtlasPath := fmt.Sprintf("data/%s/entities.json", selection.GameDir)
+entitiesAtlas, err := atlas.LoadAtlas(entitiesAtlasPath, loader)
+playerSprite, err := entitiesAtlas.GetTileSubImageByName("player_idle")
 ```
 
 ## Color Palette
@@ -114,7 +131,7 @@ Use the provided helper functions:
 
 When you have final artwork:
 
-1. Replace the PNG files in `Art/`
+1. Replace the PNG files in `data/<game>/assets/`
 2. Update the atlas JSON configurations if tile positions change
 3. **No code changes needed** - the game uses the same atlas loading system
 
@@ -140,15 +157,20 @@ placeholders/
 cmd/genplaceholders/
 └── main.go           # CLI tool to generate assets
 
-Art/
-├── base_tiles.png    # Generated base layer atlas
-├── object_tiles.png  # Generated objects layer atlas
-├── entities.png      # Generated entities atlas
-└── atlases/
-    ├── base_layer.json
-    ├── objects_layer.json
-    └── entities.json
+data/Example/         # Game directory (example)
+├── base_layer.json   # Base tiles atlas config
+├── objects_layer.json # Objects atlas config
+├── entities.json     # Entities atlas config
+├── atlas.json        # Main game atlas
+├── rooms.json        # Room definitions
+├── furnishings.json  # Furnishing data
+└── assets/
+    ├── base_tiles.png    # Generated base layer atlas
+    ├── object_tiles.png  # Generated objects layer atlas
+    └── entities.png      # Generated entities atlas
 ```
+
+All game-specific files, including placeholder graphics and configurations, are isolated within their respective game directories under `data/`.
 
 ## Next Steps
 
