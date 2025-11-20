@@ -9,20 +9,62 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// DEBUG: First check - are walls in wallTexture?
+	wallAtCurrentPixel := imageSrc0At(texCoord)
+	if wallAtCurrentPixel.a > 0.1 {
+		return vec4(0, 1, 0, 0.5) // Green = wall exists
+	}
+
+	// position.xy is already in pixel coordinates
+	pixelPos := position.xy
 	screenSize := imageDstTextureSize()
-	playerTexCoord := PlayerPos / screenSize
 
-	// Sample 10 points between player and current pixel
-	// Just interpolate linearly
-	for i := 1; i < 10; i++ {
-		t := float(i) / 10.0
-		sampleCoord := mix(playerTexCoord, texCoord, t)
+	// Calculate direction from player to current pixel (both in pixel space)
+	direction := pixelPos - PlayerPos
+	distance := length(direction)
 
-		wall := imageSrc0At(sampleCoord)
-		if wall.a > 0.1 {
-			return vec4(0, 0, 0, 0.8) // Shadow
+	// DEBUG: Red circle around player (40 pixel radius)
+	if distance < 40.0 {
+		return vec4(1, 0, 0, 0.5) // Red = near player
+	}
+
+	// Normalize direction
+	if distance < 0.1 {
+		return vec4(0, 0, 0, 0) // Transparent near player
+	}
+	direction = direction / distance
+
+	// Raycast from player toward this pixel
+	// Step in pixel increments
+	foundWall := false
+	for i := 1; i < 200; i++ { // Reduced iterations for debugging
+		t := float(i) * 2.0 // 2 pixel steps
+
+		if t >= distance {
+			break
+		}
+
+		// Sample position along ray (in pixel coordinates)
+		samplePixelPos := PlayerPos + direction * t
+
+		// Convert to texCoord for sampling (0-1 range)
+		sampleTexCoord := samplePixelPos / screenSize
+
+		// Sample wall texture
+		wallSample := imageSrc0At(sampleTexCoord)
+
+		// If we hit a wall, mark it
+		if wallSample.a > 0.1 {
+			foundWall = true
+			break
 		}
 	}
 
-	return vec4(0, 0, 0, 0) // Transparent
+	// DEBUG: Blue if raycasting found wall
+	if foundWall {
+		return vec4(0, 0, 1, 0.7) // Blue = wall blocks this pixel
+	}
+
+	// No wall blocking - visible (transparent)
+	return vec4(0, 0, 0, 0)
 }
