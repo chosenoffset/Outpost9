@@ -12,6 +12,12 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Get screen dimensions
 	screenSize := imageDstTextureSize()
 
+	// DEBUG: First test - do walls exist in wallTexture at all?
+	currentWall := imageSrc0At(texCoord)
+	if currentWall.a > 0.1 {
+		return vec4(0, 1, 0, 0.5) // Green = wall exists here
+	}
+
 	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
 	playerTexCoord := PlayerPos / screenSize
 
@@ -19,39 +25,47 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	direction := texCoord - playerTexCoord
 	distance := length(direction)
 
-	// If we're very close to player, no shadow
-	if distance < 0.001 {
-		return vec4(0, 0, 0, 0) // Transparent
+	// DEBUG: Show small red circle around player
+	if distance < 0.05 {
+		return vec4(1, 0, 0, 0.5) // Red = near player
 	}
 
 	// Normalize direction
 	direction = direction / distance
 
 	// Raycast from player toward this pixel
-	// Step size: one pixel in texCoord space
 	stepSize := 1.0 / screenSize.x
+
+	// Track if we found ANY wall along the ray
+	foundWall := false
 
 	// March along ray
 	for i := 1; i < 2000; i++ {
 		t := float(i) * stepSize
 
-		// Stop if we've traveled the full distance to the pixel
+		// Stop if we've traveled the full distance
 		if t >= distance {
 			break
 		}
 
-		// Sample position along ray (in texCoord space)
+		// Sample position along ray
 		sampleTexCoord := playerTexCoord + direction * t
 
 		// Sample wall texture
 		wallSample := imageSrc0At(sampleTexCoord)
 
-		// If we hit a wall, this pixel is in shadow
+		// If we hit a wall, mark it
 		if wallSample.a > 0.1 {
-			return vec4(0, 0, 0, 0.8) // Dark shadow
+			foundWall = true
+			break
 		}
 	}
 
-	// No wall blocking - visible (transparent)
+	// DEBUG: Show blue if we found a wall blocking this pixel
+	if foundWall {
+		return vec4(0, 0, 1, 0.7) // Blue = raycasting found wall
+	}
+
+	// No wall found - transparent
 	return vec4(0, 0, 0, 0)
 }
