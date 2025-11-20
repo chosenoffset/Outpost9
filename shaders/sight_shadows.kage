@@ -9,43 +9,39 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// Convert texCoord (0-1) to pixel position
+	// Get screen dimensions
 	screenSize := imageDstTextureSize()
-	pixelPos := texCoord * screenSize
 
-	// Calculate direction from player to this pixel
-	dir := pixelPos - PlayerPos
-	dist := length(dir)
+	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
+	playerTexCoord := PlayerPos / screenSize
 
-	// DEBUG: Show bright yellow circle where shader thinks player is
-	if dist < 20.0 {
-		return vec4(1, 1, 0, 0.9) // Bright yellow
+	// Calculate direction from player to current pixel (in texCoord space)
+	direction := texCoord - playerTexCoord
+	distance := length(direction)
+
+	// If we're at the player position, no shadow
+	if distance < 0.001 {
+		return vec4(0, 0, 0, 0) // Transparent
 	}
 
 	// Normalize direction
-	dir = dir / dist
+	direction = direction / distance
 
 	// Raycast from player toward this pixel
-	stepSize := 2.0
+	// Step size in texCoord space (small steps for accuracy)
+	stepSize := 1.0 / screenSize.x // One pixel step in texCoord space
+	numSteps := int(distance / stepSize)
 
-	for i := 0; i < 500; i++ {
+	for i := 1; i < numSteps; i++ {
 		t := float(i) * stepSize
 
-		// Stop when we reach the target pixel
-		if t >= dist {
-			break
-		}
+		// Sample position along ray (in texCoord space)
+		sampleTexCoord := playerTexCoord + direction * t
 
-		// Sample position along ray (in pixel coordinates)
-		samplePixelPos := PlayerPos + dir * t
-
-		// Convert back to normalized texCoord for sampling
-		sampleTexCoord := samplePixelPos / screenSize
-
-		// Sample wall texture
+		// Sample wall texture (same as magenta test)
 		wallSample := imageSrc0At(sampleTexCoord)
 
-		// If we hit a wall, this pixel is in shadow (use same threshold as magenta test)
+		// If we hit a wall, this pixel is in shadow
 		if wallSample.a > 0.1 {
 			return vec4(0, 0, 0, 0.8) // Dark shadow
 		}
