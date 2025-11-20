@@ -1,2 +1,8 @@
-Art
+# Ignore generated art assets
+Art/*.png
+Art/*.jpg
+
+# Allow JSON configuration files
+!Art/atlases/*.json
+
 data/Outpost9

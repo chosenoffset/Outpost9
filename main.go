@@ -112,7 +112,7 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	// Extract player sprite if atlas loaded successfully
 	var playerSprite renderer.Image
 	if entitiesAtlas != nil {
-		playerSprite, err = entitiesAtlas.GetTileImage("player_idle")
+		playerSprite, err = entitiesAtlas.GetTileSubImageByName("player_idle")
 		if err != nil {
 			log.Printf("Warning: Failed to get player sprite: %v", err)
 		}
@@ -261,9 +261,10 @@ func (g *Game) Draw(screen renderer.Image) {
 	if g.playerSpriteImg != nil {
 		// Draw player sprite centered on player position
 		spriteSize := 16.0 // Tile size from atlas
-		g.renderer.DrawImageAt(screen, g.playerSpriteImg,
-			float32(g.player.Pos.X-spriteSize/2),
-			float32(g.player.Pos.Y-spriteSize/2))
+		opts := &renderer.DrawImageOptions{}
+		opts.GeoM = renderer.NewGeoM()
+		opts.GeoM.Translate(g.player.Pos.X-spriteSize/2, g.player.Pos.Y-spriteSize/2)
+		screen.DrawImage(g.playerSpriteImg, opts)
 	} else {
 		// Fallback to circle if sprite not loaded
 		g.renderer.FillCircle(screen,

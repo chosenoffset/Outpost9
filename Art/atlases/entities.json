@@ -1,0 +1,167 @@
+{
+  "name": "entities",
+  "layer": "entities",
+  "image_path": "Art/entities.png",
+  "tile_width": 16,
+  "tile_height": 16,
+  "tiles": [
+    {
+      "name": "player_idle",
+      "atlas_x": 0,
+      "atlas_y": 0,
+      "properties": {
+        "type": "player",
+        "animation": "idle"
+      }
+    },
+    {
+      "name": "player_walk_1",
+      "atlas_x": 16,
+      "atlas_y": 0,
+      "properties": {
+        "type": "player",
+        "animation": "walk",
+        "frame": 1
+      }
+    },
+    {
+      "name": "player_walk_2",
+      "atlas_x": 32,
+      "atlas_y": 0,
+      "properties": {
+        "type": "player",
+        "animation": "walk",
+        "frame": 2
+      }
+    },
+    {
+      "name": "player_walk_3",
+      "atlas_x": 48,
+      "atlas_y": 0,
+      "properties": {
+        "type": "player",
+        "animation": "walk",
+        "frame": 3
+      }
+    },
+    {
+      "name": "enemy_basic",
+      "atlas_x": 0,
+      "atlas_y": 16,
+      "properties": {
+        "type": "enemy",
+        "category": "basic",
+        "hostile": true
+      }
+    },
+    {
+      "name": "enemy_elite",
+      "atlas_x": 16,
+      "atlas_y": 16,
+      "properties": {
+        "type": "enemy",
+        "category": "elite",
+        "hostile": true
+      }
+    },
+    {
+      "name": "enemy_boss",
+      "atlas_x": 32,
+      "atlas_y": 16,
+      "properties": {
+        "type": "enemy",
+        "category": "boss",
+        "hostile": true
+      }
+    },
+    {
+      "name": "enemy_turret",
+      "atlas_x": 48,
+      "atlas_y": 16,
+      "properties": {
+        "type": "enemy",
+        "category": "turret",
+        "hostile": true,
+        "stationary": true
+      }
+    },
+    {
+      "name": "item_health",
+      "atlas_x": 0,
+      "atlas_y": 32,
+      "properties": {
+        "type": "item",
+        "category": "consumable",
+        "effect": "heal"
+      }
+    },
+    {
+      "name": "item_ammo",
+      "atlas_x": 16,
+      "atlas_y": 32,
+      "properties": {
+        "type": "item",
+        "category": "consumable",
+        "effect": "ammo"
+      }
+    },
+    {
+      "name": "item_key",
+      "atlas_x": 32,
+      "atlas_y": 32,
+      "properties": {
+        "type": "item",
+        "category": "key_item",
+        "effect": "unlock"
+      }
+    },
+    {
+      "name": "item_weapon",
+      "atlas_x": 48,
+      "atlas_y": 32,
+      "properties": {
+        "type": "item",
+        "category": "weapon",
+        "effect": "equip"
+      }
+    },
+    {
+      "name": "projectile_bullet",
+      "atlas_x": 0,
+      "atlas_y": 48,
+      "properties": {
+        "type": "projectile",
+        "category": "bullet"
+      }
+    },
+    {
+      "name": "projectile_plasma",
+      "atlas_x": 16,
+      "atlas_y": 48,
+      "properties": {
+        "type": "projectile",
+        "category": "plasma"
+      }
+    },
+    {
+      "name": "effect_flash",
+      "atlas_x": 32,
+      "atlas_y": 48,
+      "properties": {
+        "type": "effect",
+        "category": "muzzle_flash",
+        "duration": 3
+      }
+    },
+    {
+      "name": "effect_impact",
+      "atlas_x": 48,
+      "atlas_y": 48,
+      "properties": {
+        "type": "effect",
+        "category": "impact",
+        "duration": 5
+      }
+    }
+  ]
+}
