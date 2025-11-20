@@ -340,53 +340,52 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 	}
 
 	tileSize := g.gameMap.Data.TileSize
-	wallCount := 0
+	drawnTiles := make(map[string]bool) // Track which tiles we've drawn
 
-	// Draw only sight-blocking tiles to the texture
-	for y := 0; y < g.gameMap.Data.Height; y++ {
-		for x := 0; x < g.gameMap.Data.Width; x++ {
-			// Check if this tile blocks sight
-			if !g.gameMap.BlocksSight(x, y) {
-				continue
+	// Use wall segments instead of BlocksSight to ensure we get all walls
+	for _, wall := range g.walls {
+		// Get tiles covered by this segment
+		tilesToDraw := wall.TilesCovered
+		if len(tilesToDraw) == 0 {
+			// Fallback to single tile if TilesCovered is empty
+			tilesToDraw = []shadows.Coord{{X: wall.TileX, Y: wall.TileY}}
+		}
+
+		for _, tileCoord := range tilesToDraw {
+			tileKey := fmt.Sprintf("%d,%d", tileCoord.X, tileCoord.Y)
+			if drawnTiles[tileKey] {
+				continue // Already drew this tile
 			}
+			drawnTiles[tileKey] = true
 
-			wallCount++
-
-			// Get the wall tile
-			tileName, err := g.gameMap.GetTileAt(x, y)
+			// Get the wall tile at this position
+			tileName, err := g.gameMap.GetTileAt(tileCoord.X, tileCoord.Y)
 			if err != nil || tileName == "" {
-				log.Printf("DEBUG: Wall at %d,%d has empty tileName or error: %v", x, y, err)
 				continue
 			}
 
 			tile, ok := g.gameMap.Atlas.GetTile(tileName)
 			if !ok {
-				log.Printf("DEBUG: Failed to get tile '%s' from atlas", tileName)
 				continue
 			}
 
-			// Store for potential later use
-			_ = g.gameMap.Atlas.GetTileSubImage(tile)
+			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
 
-			screenX := float64(x * tileSize)
-			screenY := float64(y * tileSize)
+			screenX := float64(tileCoord.X * tileSize)
+			screenY := float64(tileCoord.Y * tileSize)
 
-			// DEBUG: Draw solid rectangles instead of actual tiles to verify positions
-			wallRect := ebiten.NewImage(tileSize, tileSize)
-			wallRect.Fill(color.RGBA{255, 0, 255, 255}) // Magenta with full alpha
-			opts := &ebiten.DrawImageOptions{}
-			opts.GeoM.Translate(screenX, screenY)
-			texture.DrawImage(wallRect, opts)
+			// Extract underlying ebiten.Image to draw actual wall tiles
+			if ebitenImg, ok := subImg.(*ebitenrenderer.EbitenImage); ok {
+				ebitenSubImg := ebitenImg.GetEbitenImage()
 
-			// Log first wall
-			if wallCount == 1 {
-				log.Printf("DEBUG: First wall '%s' at tile (%d,%d) -> screen (%.0f,%.0f), tileSize: %d",
-					tileName, x, y, screenX, screenY, tileSize)
+				opts := &ebiten.DrawImageOptions{}
+				opts.GeoM.Translate(screenX, screenY)
+				texture.DrawImage(ebitenSubImg, opts)
 			}
 		}
 	}
 
-	log.Printf("DEBUG: drawWallsToTexture rendered %d wall tiles", wallCount)
+	log.Printf("DEBUG: drawWallsToTexture rendered %d wall tiles from %d segments", len(drawnTiles), len(g.walls))
 }
 
 func (g *Game) drawVisibleWalls(screen renderer.Image) {
