@@ -12,60 +12,30 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Get screen dimensions
 	screenSize := imageDstTextureSize()
 
-	// DEBUG: First test - do walls exist in wallTexture at all?
-	currentWall := imageSrc0At(texCoord)
-	if currentWall.a > 0.1 {
-		return vec4(0, 1, 0, 0.5) // Green = wall exists here
-	}
-
 	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
 	playerTexCoord := PlayerPos / screenSize
 
-	// Calculate direction from player to current pixel (in texCoord space)
-	direction := texCoord - playerTexCoord
-	distance := length(direction)
-
-	// DEBUG: Show small red circle around player
-	if distance < 0.05 {
-		return vec4(1, 0, 0, 0.5) // Red = near player
+	// DEBUG: Show playerTexCoord as color in top-left quadrant
+	if texCoord.x < 0.5 && texCoord.y < 0.5 {
+		// Multiply by 10 to make visible (0.06 * 10 = 0.6)
+		return vec4(playerTexCoord.x * 10.0, playerTexCoord.y * 10.0, 0, 1.0)
 	}
 
-	// Normalize direction
-	direction = direction / distance
-
-	// Raycast from player toward this pixel
-	stepSize := 1.0 / screenSize.x
-
-	// Track if we found ANY wall along the ray
-	foundWall := false
-
-	// March along ray
-	for i := 1; i < 2000; i++ {
-		t := float(i) * stepSize
-
-		// Stop if we've traveled the full distance
-		if t >= distance {
-			break
-		}
-
-		// Sample position along ray
-		sampleTexCoord := playerTexCoord + direction * t
-
-		// Sample wall texture
-		wallSample := imageSrc0At(sampleTexCoord)
-
-		// If we hit a wall, mark it
-		if wallSample.a > 0.1 {
-			foundWall = true
-			break
-		}
+	// DEBUG: Show PlayerPos raw in top-right quadrant
+	if texCoord.x >= 0.5 && texCoord.y < 0.5 {
+		return vec4(PlayerPos.x, PlayerPos.y, 0, 1.0)
 	}
 
-	// DEBUG: Show blue if we found a wall blocking this pixel
-	if foundWall {
-		return vec4(0, 0, 1, 0.7) // Blue = raycasting found wall
+	// DEBUG: Show screenSize in bottom-left quadrant
+	if texCoord.x < 0.5 && texCoord.y >= 0.5 {
+		return vec4(screenSize.x, screenSize.y, 0, 1.0)
 	}
 
-	// No wall found - transparent
+	// Bottom-right: walls
+	currentWall := imageSrc0At(texCoord)
+	if currentWall.a > 0.1 {
+		return vec4(0, 1, 0, 0.5) // Green = wall
+	}
+
 	return vec4(0, 0, 0, 0)
 }
