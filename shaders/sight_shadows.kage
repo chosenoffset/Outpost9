@@ -9,41 +9,46 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// DEBUG: First check - are walls in wallTexture?
-	wallAtCurrentPixel := imageSrc0At(texCoord)
-	if wallAtCurrentPixel.a > 0.1 {
-		return vec4(0, 1, 0, 0.5) // Green = wall exists
-	}
-
-	// position.xy is already in pixel coordinates
-	pixelPos := position.xy
 	screenSize := imageDstTextureSize()
 
-	// Calculate direction from player to current pixel (both in pixel space)
-	direction := pixelPos - PlayerPos
+	// Convert PlayerPos (pixels) to texCoord space (0-1)
+	playerTexCoord := PlayerPos / screenSize
+
+	// Work entirely in texCoord space (0-1)
+	direction := texCoord - playerTexCoord
 	distance := length(direction)
 
-	// DEBUG: Red circle around player (40 pixel radius)
-	if distance < 40.0 {
-		return vec4(1, 0, 0, 0.5) // Red = near player
+	// Skip player position
+	if distance < 0.01 {
+		return vec4(0, 0, 0, 0)
 	}
 
-	// DEBUG: Simple test - sample one specific point
-	// Sample 50 pixels to the right of player
-	testPixelPos := PlayerPos + vec2(50.0, 0.0)
-	testTexCoord := testPixelPos / screenSize
-	testWall := imageSrc0At(testTexCoord)
+	// Normalize direction
+	direction = direction / distance
 
-	// If current pixel is close to that test point, show what we sampled
-	testDist := length(pixelPos - testPixelPos)
-	if testDist < 20.0 {
-		if testWall.a > 0.1 {
-			return vec4(1, 1, 0, 0.8) // Yellow = test point found wall
-		} else {
-			return vec4(1, 0, 1, 0.8) // Magenta = test point found no wall
+	// Raycast from player to current pixel
+	// Step size in texCoord space (1 pixel = 1/screenSize.x)
+	stepSize := 1.0 / screenSize.x
+
+	for i := 1; i < 2000; i++ {
+		t := float(i) * stepSize
+
+		if t >= distance {
+			break
+		}
+
+		// Sample along ray in texCoord space
+		sampleCoord := playerTexCoord + direction * t
+
+		// Sample wall texture
+		wall := imageSrc0At(sampleCoord)
+
+		// If we hit a wall, show shadow
+		if wall.a > 0.1 {
+			return vec4(0, 0, 0, 0.8) // Dark shadow
 		}
 	}
 
-	// No wall blocking - visible (transparent)
+	// Clear line of sight - transparent
 	return vec4(0, 0, 0, 0)
 }
