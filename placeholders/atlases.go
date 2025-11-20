@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"os"
 )
 
 // GenerateBaseTilesAtlas creates the base_tiles.png atlas
@@ -628,30 +629,37 @@ func abs(x int) int {
 	return x
 }
 
-// GenerateAndSave generates all atlases and saves them
-func GenerateAndSave() error {
+// GenerateAndSave generates all atlases and saves them to the specified game directory
+func GenerateAndSave(gameDir string) error {
 	fmt.Println("Generating placeholder atlases...")
+
+	assetsDir := fmt.Sprintf("%s/assets", gameDir)
+
+	// Ensure assets directory exists
+	if err := os.MkdirAll(assetsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create assets directory: %w", err)
+	}
 
 	// Generate base tiles
 	baseAtlas := GenerateBaseTilesAtlas()
-	if err := SavePNG(baseAtlas, "Art/base_tiles.png"); err != nil {
+	if err := SavePNG(baseAtlas, fmt.Sprintf("%s/base_tiles.png", assetsDir)); err != nil {
 		return fmt.Errorf("failed to save base_tiles.png: %w", err)
 	}
-	fmt.Println("✓ Generated Art/base_tiles.png (48x64, 3x4 tiles)")
+	fmt.Printf("✓ Generated %s/base_tiles.png (48x64, 3x4 tiles)\n", assetsDir)
 
 	// Generate object tiles
 	objectAtlas := GenerateObjectTilesAtlas()
-	if err := SavePNG(objectAtlas, "Art/object_tiles.png"); err != nil {
+	if err := SavePNG(objectAtlas, fmt.Sprintf("%s/object_tiles.png", assetsDir)); err != nil {
 		return fmt.Errorf("failed to save object_tiles.png: %w", err)
 	}
-	fmt.Println("✓ Generated Art/object_tiles.png (64x48, 4x3 tiles)")
+	fmt.Printf("✓ Generated %s/object_tiles.png (64x48, 4x3 tiles)\n", assetsDir)
 
 	// Generate entities
 	entitiesAtlas := GenerateEntitiesAtlas()
-	if err := SavePNG(entitiesAtlas, "Art/entities.png"); err != nil {
+	if err := SavePNG(entitiesAtlas, fmt.Sprintf("%s/entities.png", assetsDir)); err != nil {
 		return fmt.Errorf("failed to save entities.png: %w", err)
 	}
-	fmt.Println("✓ Generated Art/entities.png (64x64, 4x4 tiles)")
+	fmt.Printf("✓ Generated %s/entities.png (64x64, 4x4 tiles)\n", assetsDir)
 
 	fmt.Println("Placeholder atlases generated successfully!")
 	return nil

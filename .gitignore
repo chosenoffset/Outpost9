@@ -1,8 +1,7 @@
-# Ignore generated art assets
-Art/*.png
-Art/*.jpg
+# Ignore generated placeholder graphics in game asset directories
+data/*/assets/base_tiles.png
+data/*/assets/object_tiles.png
+data/*/assets/entities.png
 
-# Allow JSON configuration files
-!Art/atlases/*.json
-
+# Ignore generated game data (but allow Example game for development)
 data/Outpost9

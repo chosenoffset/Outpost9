@@ -1,7 +1,7 @@
 {
   "name": "entities",
   "layer": "entities",
-  "image_path": "Art/entities.png",
+  "image_path": "data/Example/assets/entities.png",
   "tile_width": 16,
   "tile_height": 16,
   "tiles": [

@@ -1,7 +1,7 @@
 {
   "name": "objects_layer",
   "layer": "objects",
-  "image_path": "Art/object_tiles.png",
+  "image_path": "data/Example/assets/object_tiles.png",
   "tile_width": 16,
   "tile_height": 16,
   "tiles": [

@@ -103,7 +103,8 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	log.Printf("Generated %d wall segments", len(walls))
 
 	// Load entities atlas for player, enemies, items, etc.
-	entitiesAtlas, err := atlas.LoadAtlas("Art/atlases/entities.json", gm.loader)
+	entitiesAtlasPath := fmt.Sprintf("data/%s/entities.json", selection.GameDir)
+	entitiesAtlas, err := atlas.LoadAtlas(entitiesAtlasPath, gm.loader)
 	if err != nil {
 		log.Printf("Warning: Failed to load entities atlas: %v", err)
 		// Continue without entities atlas - will use fallback rendering

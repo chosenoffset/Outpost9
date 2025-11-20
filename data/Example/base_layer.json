@@ -1,7 +1,7 @@
 {
   "name": "base_layer",
   "layer": "base",
-  "image_path": "Art/base_tiles.png",
+  "image_path": "data/Example/assets/base_tiles.png",
   "tile_width": 16,
   "tile_height": 16,
   "tiles": [

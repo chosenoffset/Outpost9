@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -8,11 +9,16 @@ import (
 )
 
 func main() {
+	// Parse command line flags
+	gameDir := flag.String("game", "data/Example", "Game directory to generate assets for")
+	flag.Parse()
+
 	fmt.Println("Outpost-9 Placeholder Graphics Generator")
 	fmt.Println("=========================================")
+	fmt.Printf("Game directory: %s\n", *gameDir)
 	fmt.Println()
 
-	if err := placeholders.GenerateAndSave(); err != nil {
+	if err := placeholders.GenerateAndSave(*gameDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
