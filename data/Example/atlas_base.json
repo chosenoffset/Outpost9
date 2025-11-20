@@ -1,5 +1,5 @@
 {
-  "name": "dungeon_tileset",
+  "name": "base_tiles",
   "layer": "base",
   "image_path": "data/Example/assets/base_tiles.png",
   "tile_width": 16,
