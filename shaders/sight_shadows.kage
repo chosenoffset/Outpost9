@@ -9,54 +9,24 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// DEBUG: First verify shader is running
-	// Draw a red circle around player position
+	// DEBUG: Visualize the wall texture to see if it has data
 	pixelPos := position.xy
+
+	// Sample wall texture at current pixel position
+	sampleTexCoord := pixelPos / imageSrcTextureSize()
+	wallSample := imageSrc0At(sampleTexCoord)
+
+	// If wall texture has alpha at this position, show it in green
+	if wallSample.a > 0.1 {
+		return vec4(0, 1, 0, 0.8) // Green overlay where walls exist
+	}
+
+	// Show player position as red circle
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
-
-	// Red circle at player position (50 pixel radius)
 	if dist < 50.0 {
-		return vec4(1, 0, 0, 0.5) // Red, semi-transparent
+		return vec4(1, 0, 0, 0.5) // Red circle at player
 	}
 
-	// Direction from player to this pixel
-	// If we're at the player position, always visible
-	if dist < 1.0 {
-		return vec4(0, 0, 0, 0) // Transparent (no shadow)
-	}
-
-	// Normalize direction
-	dir = dir / dist
-
-	// Ray march from player toward this pixel
-	// Check for wall collisions along the way
-	stepSize := 1.0 // Check every pixel
-
-	// Kage requires fixed loop bounds - use max screen diagonal
-	// 800x600 screen = ~1000 pixels diagonal
-	for i := 0; i < 1000; i++ {
-		t := float(i) * stepSize
-
-		// Stop if we've gone past the target pixel
-		if t >= dist {
-			break
-		}
-
-		samplePos := PlayerPos + dir * t
-
-		// Convert to texture coordinates
-		sampleTexCoord := samplePos / imageSrcTextureSize()
-
-		// Sample the wall texture at this position
-		wallSample := imageSrc0At(sampleTexCoord)
-
-		// If alpha > threshold, we hit a wall - this pixel is in shadow
-		if wallSample.a > 0.5 {
-			return vec4(0, 0, 0, 0.7) // Dark shadow
-		}
-	}
-
-	// Ray reached the pixel without hitting walls - visible
-	return vec4(0, 0, 0, 0) // Transparent (no shadow)
+	return vec4(0, 0, 0, 0) // Transparent elsewhere
 }
