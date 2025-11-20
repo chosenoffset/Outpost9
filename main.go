@@ -209,6 +209,16 @@ func (g *Game) Draw(screen renderer.Image) {
 	// Step 2: Render ONLY walls to wallTexture for shader input
 	// The shader will sample this texture to detect wall pixels
 	g.wallTexture.Clear()
+
+	// DEBUG: Draw a test rectangle to verify texture rendering works
+	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok {
+		testImg := ebiten.NewImage(100, 100)
+		testImg.Fill(color.RGBA{255, 255, 255, 255}) // White with full alpha
+		opts := &ebiten.DrawImageOptions{}
+		opts.GeoM.Translate(200, 200) // Draw at 200,200
+		g.wallTexture.DrawImage(testImg, opts)
+	}
+
 	g.drawWallsToTexture(g.wallTexture)
 
 	// DEBUG: Draw wall texture to see if walls are being rendered
@@ -325,10 +335,12 @@ func (g *Game) drawTiles(screen renderer.Image) {
 // The shader will sample this texture's alpha channel to detect walls during raycasting
 func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 	if g.gameMap == nil || g.gameMap.Atlas == nil {
+		log.Println("DEBUG: gameMap or Atlas is nil")
 		return
 	}
 
 	tileSize := g.gameMap.Data.TileSize
+	wallCount := 0
 
 	// Draw only sight-blocking tiles to the texture
 	for y := 0; y < g.gameMap.Data.Height; y++ {
@@ -338,14 +350,18 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 				continue
 			}
 
+			wallCount++
+
 			// Get the wall tile
 			tileName, err := g.gameMap.GetTileAt(x, y)
 			if err != nil || tileName == "" {
+				log.Printf("DEBUG: Wall at %d,%d has empty tileName or error: %v", x, y, err)
 				continue
 			}
 
 			tile, ok := g.gameMap.Atlas.GetTile(tileName)
 			if !ok {
+				log.Printf("DEBUG: Failed to get tile '%s' from atlas", tileName)
 				continue
 			}
 
@@ -361,9 +377,13 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 				opts := &ebiten.DrawImageOptions{}
 				opts.GeoM.Translate(screenX, screenY)
 				texture.DrawImage(ebitenSubImg, opts)
+			} else {
+				log.Printf("DEBUG: Failed to cast subImg to EbitenImage for tile '%s'", tileName)
 			}
 		}
 	}
+
+	log.Printf("DEBUG: drawWallsToTexture rendered %d wall tiles", wallCount)
 }
 
 func (g *Game) drawVisibleWalls(screen renderer.Image) {
