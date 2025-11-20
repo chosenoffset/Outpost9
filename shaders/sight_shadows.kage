@@ -9,38 +9,37 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// DEBUG: Green walls - texCoord sampling works
-	wallAtCurrentPixel := imageSrc0At(texCoord)
-	if wallAtCurrentPixel.a > 0.1 {
-		return vec4(0, 1, 0, 0.5)
-	}
-
 	pixelPos := position.xy
 	screenSize := imageDstTextureSize()
 
 	direction := pixelPos - PlayerPos
 	distance := length(direction)
 
-	// DEBUG: Red circle - position.xy distance works
-	if distance < 40.0 {
-		return vec4(1, 0, 0, 0.5)
-	}
-
-	if distance < 0.1 {
+	// Skip player position
+	if distance < 1.0 {
 		return vec4(0, 0, 0, 0)
 	}
+
 	direction = direction / distance
 
-	// DEBUG: Sample just 10 specific points along the ray
-	// Show cyan if ANY of them hit a wall
-	for i := 1; i <= 10; i++ {
-		t := distance * float(i) / 10.0 // Sample at 10%, 20%, 30%... of distance
-		samplePixelPos := PlayerPos + direction * t
-		sampleTexCoord := samplePixelPos / screenSize
+	// Raycast from player to current pixel
+	// Step in 2-pixel increments for performance
+	for i := 1; i < 1000; i++ {
+		t := float(i) * 2.0
 
-		wall := imageSrc0At(sampleTexCoord)
+		if t >= distance {
+			break
+		}
+
+		// Sample position along ray
+		samplePos := PlayerPos + direction * t
+
+		// Sample wall texture directly with pixel coordinates (no division!)
+		wall := imageSrc0At(samplePos)
+
+		// If we hit a wall, this pixel is in shadow
 		if wall.a > 0.1 {
-			return vec4(0, 1, 1, 0.7) // Cyan = found wall along ray
+			return vec4(0, 0, 0, 0.8) // Dark shadow
 		}
 	}
 
