@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math"
 
 	"chosenoffset.com/outpost9/atlas"
 	"chosenoffset.com/outpost9/gamescanner"
@@ -214,9 +213,10 @@ func (g *Game) Draw(screen renderer.Image) {
 
 	// Step 3: Apply shadow shader - does pixel-perfect raycasting on GPU
 	// Each pixel checks: is there a wall between me and the player?
-	// Cast to ebiten.Image to use shader (renderer abstraction doesn't support shaders yet)
-	ebitenScreen, ok := screen.(*ebiten.Image)
-	if ok && g.shadowShader != nil {
+	// Extract underlying ebiten.Image to use shader (renderer abstraction doesn't support shaders yet)
+	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
+		ebitenScreen := ebitenImg.GetEbitenImage()
+
 		// Shader options with player position uniform
 		opts := &ebiten.DrawRectShaderOptions{}
 		opts.Uniforms = map[string]interface{}{
@@ -345,15 +345,14 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 			screenX := float64(x * tileSize)
 			screenY := float64(y * tileSize)
 
-			// Cast to ebiten.Image since we're working directly with the texture
-			ebitenSubImg, ok := subImg.(*ebiten.Image)
-			if !ok {
-				continue
-			}
+			// Extract underlying ebiten.Image since we're working directly with the texture
+			if ebitenImg, ok := subImg.(*ebitenrenderer.EbitenImage); ok {
+				ebitenSubImg := ebitenImg.GetEbitenImage()
 
-			opts := &ebiten.DrawImageOptions{}
-			opts.GeoM.Translate(screenX, screenY)
-			texture.DrawImage(ebitenSubImg, opts)
+				opts := &ebiten.DrawImageOptions{}
+				opts.GeoM.Translate(screenX, screenY)
+				texture.DrawImage(ebitenSubImg, opts)
+			}
 		}
 	}
 }
