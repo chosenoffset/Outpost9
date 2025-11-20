@@ -22,9 +22,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	direction = direction / distance
 
 	// Raycast from player to current pixel
-	// Step in 2-pixel increments for performance
-	for i := 1; i < 1000; i++ {
-		t := float(i) * 2.0
+	// Step in 1-pixel increments to avoid corner bleed-through
+	for i := 1; i < 2000; i++ {
+		t := float(i) * 1.0
 
 		if t >= distance {
 			break

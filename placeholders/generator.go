@@ -41,11 +41,11 @@ var ColorPalette = struct {
 	Background color.RGBA
 }{
 	// Base tiles - various grays and metals
-	FloorMetal1:  color.RGBA{120, 120, 130, 255}, // Medium gray-blue
-	FloorMetal2:  color.RGBA{100, 100, 110, 255}, // Darker gray-blue
-	FloorGrating: color.RGBA{80, 80, 90, 255},    // Dark gray with slight blue
-	WallMetal:    color.RGBA{60, 60, 70, 255},    // Very dark gray-blue
-	WallPanel:    color.RGBA{70, 80, 90, 255},    // Steel blue-gray
+	FloorMetal1:  color.RGBA{80, 85, 95, 255},   // Medium gray-blue
+	FloorMetal2:  color.RGBA{70, 75, 85, 255},   // Darker gray-blue
+	FloorGrating: color.RGBA{60, 65, 75, 255},   // Dark gray with slight blue
+	WallMetal:    color.RGBA{140, 145, 155, 255}, // Much lighter gray-blue for walls
+	WallPanel:    color.RGBA{120, 130, 140, 255}, // Steel blue-gray
 
 	// Objects - distinct colors for easy identification
 	DeskWood:   color.RGBA{139, 90, 60, 255},   // Brown
