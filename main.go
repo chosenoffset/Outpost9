@@ -220,16 +220,18 @@ func (g *Game) Draw(screen renderer.Image) {
 	g.drawWallsToTexture(g.wallTexture)
 
 	// DEBUG: Draw wall texture directly to screen to see what's in it
+	// DISABLED - let shader visualize it instead
+	/*
 	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok {
 		ebitenScreen := ebitenImg.GetEbitenImage()
 		drawOpts := &ebiten.DrawImageOptions{}
 		drawOpts.ColorScale.ScaleAlpha(0.5)
 		ebitenScreen.DrawImage(g.wallTexture, drawOpts)
 	}
+	*/
 
-	// Step 3: Apply shadow shader - does pixel-perfect raycasting on GPU
-	// DISABLED FOR DEBUG
-	/*
+	// Step 3: Apply shadow shader - RE-ENABLED to visualize wall data
+	// Shader shows GREEN where walls exist in texture, RED circle around player
 	// Each pixel checks: is there a wall between me and the player?
 	// Extract underlying ebiten.Image to use shader (renderer abstraction doesn't support shaders yet)
 	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
@@ -246,7 +248,6 @@ func (g *Game) Draw(screen renderer.Image) {
 		// Draw shader over entire screen
 		ebitenScreen.DrawRectShader(g.screenWidth, g.screenHeight, g.shadowShader, opts)
 	}
-	*/
 
 	// Step 4: Draw player character on top of shadows
 	if g.playerSpriteImg != nil {
