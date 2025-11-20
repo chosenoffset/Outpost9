@@ -17,9 +17,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
 
-	// Skip at exact player position
-	if dist < 0.5 {
-		return vec4(0, 0, 0, 0)
+	// DEBUG: Show bright yellow circle where shader thinks player is
+	if dist < 20.0 {
+		return vec4(1, 1, 0, 0.9) // Bright yellow
 	}
 
 	// Normalize direction
