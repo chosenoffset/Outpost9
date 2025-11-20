@@ -365,7 +365,8 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 				continue
 			}
 
-			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+			// Store for potential later use
+			_ = g.gameMap.Atlas.GetTileSubImage(tile)
 
 			screenX := float64(x * tileSize)
 			screenY := float64(y * tileSize)
