@@ -14,30 +14,16 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dstSize := imageDstTextureSize()
 	pixelPos := texCoord * dstSize
 
-	// DEBUG: Visualize PlayerPos by showing it as color
-	// Normalize PlayerPos to 0-1 range by dividing by screen size
-	playerPosNormalized := PlayerPos / dstSize
-
-	// Show PlayerPos values as color in top-left corner
-	if pixelPos.x < 100.0 && pixelPos.y < 100.0 {
-		return vec4(playerPosNormalized.x, playerPosNormalized.y, 0, 0.8)
-	}
-
-	// Show pixelPos as color in top-right corner
-	if pixelPos.x > dstSize.x - 100.0 && pixelPos.y < 100.0 {
-		pixelPosNormalized := pixelPos / dstSize
-		return vec4(pixelPosNormalized.x, pixelPosNormalized.y, 0, 0.8)
-	}
-
 	// Direction and distance from player to this pixel
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
 
-	// DEBUG: Draw red circle at PlayerPos to verify uniform is correct
-	if dist < 20.0 {
-		return vec4(1, 0, 0, 0.8) // Red - player position indicator
+	// DEBUG: VERY VISIBLE - Make entire screen show distance from player
+	// Close = black, medium = blue, far = white
+	normalizedDist := dist / 200.0
+	if normalizedDist > 1.0 {
+		normalizedDist = 1.0
 	}
 
-	// Everything else blue
-	return vec4(0, 0, 1, 0.3)
+	return vec4(normalizedDist, normalizedDist, normalizedDist, 0.9)
 }
