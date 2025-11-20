@@ -23,13 +23,12 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 	// Raycast from player toward current pixel
 	// Check if anything blocks the path BEFORE we reach this pixel
-	// Step in 0.5-pixel increments for better accuracy
-	for i := 1; i < 4000; i++ {
-		t := float(i) * 0.5
+	for i := 1; i < 2000; i++ {
+		t := float(i) * 1.0
 
-		// Stop just before we reach the current pixel
-		// This way walls are visible, but pixels behind walls are shadowed
-		if t >= distance - 1.0 {
+		// Stop before we reach the current pixel's tile
+		// Use 8 pixel buffer (half a tile) to avoid sampling the current pixel itself
+		if t >= distance - 8.0 {
 			break
 		}
 
