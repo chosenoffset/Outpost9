@@ -192,15 +192,47 @@ func (g *Game) Draw(screen renderer.Image) {
 	maxDist := float64(g.screenWidth + g.screenHeight)
 	visibilityPolygon := shadows.ComputeVisibilityPolygon(g.player.Pos, g.walls, maxDist)
 
-	// Step 3: For testing - draw full shadow everywhere
+	// Step 3: Draw shadows - everything OUTSIDE the visibility polygon should be dark
 	shadowMask := g.renderer.NewImage(g.screenWidth, g.screenHeight)
-	shadowMask.Fill(color.RGBA{0, 0, 0, 200}) // Dark shadows
+	shadowMask.Fill(color.RGBA{0, 0, 0, 0}) // Start transparent
 
-	// Step 4: Draw the visibility polygon to see if it's computing correctly
-	// For debugging: draw the visibility polygon as semi-transparent green
+	// Step 4: Draw shadow quads between visibility polygon and screen edges
 	if len(visibilityPolygon) >= 3 {
-		// Draw the visibility polygon as a bright overlay to see what's visible
-		g.drawPolygon(shadowMask, visibilityPolygon, color.RGBA{0, 255, 0, 100}) // Green overlay
+		shadowColor := color.RGBA{0, 0, 0, 180}
+		screenW := float64(g.screenWidth)
+		screenH := float64(g.screenHeight)
+
+		// For each visibility polygon edge, check if we should draw shadows beyond it
+		for i := 0; i < len(visibilityPolygon); i++ {
+			p1 := visibilityPolygon[i]
+			p2 := visibilityPolygon[(i+1)%len(visibilityPolygon)]
+
+			// Extend rays from player through p1 and p2 to screen boundaries
+			ext1 := g.extendToScreenEdge(g.player.Pos, p1, maxDist)
+			ext2 := g.extendToScreenEdge(g.player.Pos, p2, maxDist)
+
+			// Determine which screen corners/edges to include in shadow
+			// If extended points are at screen boundary, create shadow quad
+
+			// For now, simpler approach: draw shadow triangles from each edge outward
+			// Check if this edge should cast shadow (faces away from center of view)
+			centerX := screenW / 2.0
+			centerY := screenH / 2.0
+
+			// Edge midpoint
+			midX := (p1.X + p2.X) / 2.0
+			midY := (p1.Y + p2.Y) / 2.0
+
+			// If edge is farther from screen center than player, it might need shadow
+			playerDist := (g.player.Pos.X-centerX)*(g.player.Pos.X-centerX) + (g.player.Pos.Y-centerY)*(g.player.Pos.Y-centerY)
+			edgeDist := (midX-centerX)*(midX-centerX) + (midY-centerY)*(midY-centerY)
+
+			if edgeDist > playerDist {
+				// Draw shadow quad extending from this edge
+				shadowQuad := []shadows.Point{p1, p2, ext2, ext1}
+				g.drawPolygon(shadowMask, shadowQuad, shadowColor)
+			}
+		}
 	}
 
 	// Step 5: Apply shadow mask to screen
@@ -361,6 +393,29 @@ func (g *Game) isPointInShadow(point shadows.Point) bool {
 
 	// Point is in shadow if it's OUTSIDE the visibility polygon
 	return !shadows.PointInPolygon(point, visibilityPolygon)
+}
+
+// extendToScreenEdge extends a ray from 'from' through 'to' until it hits a screen edge
+func (g *Game) extendToScreenEdge(from, to shadows.Point, maxDist float64) shadows.Point {
+	// Direction vector
+	dx := to.X - from.X
+	dy := to.Y - from.Y
+
+	// Normalize and extend
+	length := maxDist * 2.0
+	if dx != 0 || dy != 0 {
+		currentLen := (dx*dx + dy*dy)
+		if currentLen > 0.001 {
+			scale := length / currentLen
+			dx *= scale
+			dy *= scale
+		}
+	}
+
+	return shadows.Point{
+		X: from.X + dx,
+		Y: from.Y + dy,
+	}
 }
 
 func (g *Game) drawPolygon(dst renderer.Image, points []shadows.Point, c color.RGBA) {
