@@ -9,14 +9,15 @@ var PlayerPos vec2
 var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
-	// Get pixel position in screen coordinates
-	pixelPos := position.xy
-	textureSize := imageSrcTextureSize()
+	// Reconstruct pixel position from texture coordinates and destination size
+	// texCoord is in 0-1 range, multiply by destination size to get pixel coords
+	dstSize := imageDstTextureSize()
+	pixelPos := texCoord * dstSize
 
 	// DEBUG: Test if coordinate calculation works at all
 	// Sample the current pixel position from wallTexture
-	currentTexCoord := pixelPos / textureSize
-	currentSample := imageSrc0At(currentTexCoord)
+	// We can use texCoord directly since both source and destination are same size
+	currentSample := imageSrc0At(texCoord)
 
 	// If current pixel has a wall, show it in red (debug)
 	if currentSample.a > 0.5 {
@@ -51,7 +52,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		samplePos := PlayerPos + dir * t
 
 		// Convert to normalized texture coordinates (0-1)
-		sampleTexCoord := samplePos / textureSize
+		// Divide by destination size since wallTexture is same size as screen
+		sampleTexCoord := samplePos / dstSize
 
 		// Sample the wall texture at this position
 		wallSample := imageSrc0At(sampleTexCoord)
