@@ -11,13 +11,6 @@ var MaxDistance float
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	pixelPos := position.xy
 
-	// First check: is the CURRENT pixel a wall?
-	// Walls should always be visible (no shadow on the wall itself)
-	currentPixelWall := imageSrc0At(pixelPos)
-	if currentPixelWall.a > 0.1 {
-		return vec4(0, 0, 0, 0) // Transparent - wall is visible
-	}
-
 	direction := pixelPos - PlayerPos
 	distance := length(direction)
 
@@ -28,12 +21,15 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 	direction = direction / distance
 
-	// Raycast from player to current pixel
-	// This pixel is NOT a wall, so check if anything blocks line of sight
-	for i := 1; i < 2000; i++ {
-		t := float(i) * 1.0
+	// Raycast from player toward current pixel
+	// Check if anything blocks the path BEFORE we reach this pixel
+	// Step in 0.5-pixel increments for better accuracy
+	for i := 1; i < 4000; i++ {
+		t := float(i) * 0.5
 
-		if t >= distance {
+		// Stop just before we reach the current pixel
+		// This way walls are visible, but pixels behind walls are shadowed
+		if t >= distance - 1.0 {
 			break
 		}
 
@@ -43,12 +39,12 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		// Sample wall texture
 		wall := imageSrc0At(samplePos)
 
-		// If we hit a wall, this pixel is behind it (in shadow)
+		// If we hit a wall before reaching current pixel, this pixel is in shadow
 		if wall.a > 0.1 {
 			return vec4(0, 0, 0, 0.8) // Dark shadow
 		}
 	}
 
-	// No wall blocking - visible
+	// Nothing blocking path to this pixel - visible
 	return vec4(0, 0, 0, 0)
 }
