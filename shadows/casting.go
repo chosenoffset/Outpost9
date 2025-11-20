@@ -11,32 +11,51 @@ func ComputeVisibilityPolygon(viewerPos Point, segments []Segment, maxDistance f
 	// Collect all unique endpoints (vertices) from wall segments
 	vertices := collectVertices(segments)
 
-	// For each vertex, we'll cast rays at angles slightly before and after it
-	// This handles edge cases where the ray passes through a vertex
-	var rays []ray
+	// Build list of angles to cast rays at
+	var angles []float64
+
+	// Add angles for each wall vertex (with epsilon offsets for edge cases)
+	epsilon := 0.0001
 	for _, vertex := range vertices {
 		angle := math.Atan2(vertex.Y-viewerPos.Y, vertex.X-viewerPos.X)
-
-		// Add three rays: one at the exact angle, one slightly before, one slightly after
-		epsilon := 0.0001
-		rays = append(rays,
-			ray{angle: angle - epsilon},
-			ray{angle: angle},
-			ray{angle: angle + epsilon},
+		angles = append(angles,
+			angle-epsilon,
+			angle,
+			angle+epsilon,
 		)
 	}
 
-	// Sort rays by angle
-	sort.Slice(rays, func(i, j int) bool {
-		return rays[i].angle < rays[j].angle
-	})
+	// Also add rays at regular intervals to fill gaps
+	// This ensures we capture open areas and screen boundaries
+	numExtraRays := 360 // One ray per degree
+	for i := 0; i < numExtraRays; i++ {
+		angle := float64(i) * 2.0 * math.Pi / float64(numExtraRays)
+		angles = append(angles, angle)
+	}
 
-	// For each ray, find the closest intersection point
+	// Remove duplicate angles and sort
+	angleMap := make(map[float64]bool)
+	var uniqueAngles []float64
+	for _, angle := range angles {
+		// Normalize angle to [0, 2π)
+		normalized := math.Mod(angle, 2.0*math.Pi)
+		if normalized < 0 {
+			normalized += 2.0 * math.Pi
+		}
+		if !angleMap[normalized] {
+			angleMap[normalized] = true
+			uniqueAngles = append(uniqueAngles, normalized)
+		}
+	}
+
+	sort.Float64s(uniqueAngles)
+
+	// For each angle, cast a ray and find the closest intersection
 	var visiblePoints []Point
-	for _, r := range rays {
+	for _, angle := range uniqueAngles {
 		// Ray direction
-		dx := math.Cos(r.angle)
-		dy := math.Sin(r.angle)
+		dx := math.Cos(angle)
+		dy := math.Sin(angle)
 
 		// Find closest intersection
 		closestDist := maxDistance
