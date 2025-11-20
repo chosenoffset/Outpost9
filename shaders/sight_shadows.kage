@@ -23,12 +23,18 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		return vec4(0, 0, 0, 0) // Transparent (visible)
 	}
 
+	// DEBUG: Test if anything beyond player radius executes
+	// Show blue for all pixels beyond 50 units from player
+	if dist > 50.0 {
+		return vec4(0, 0, 1, 0.5) // Blue - far from player
+	}
+
 	// Normalize direction for ray marching
 	dir = dir / dist
 
 	// Ray march from player toward this pixel
 	// Check for wall occlusions along the way
-	stepSize := 2.0 // Check every 2 pixels for performance
+	stepSize := 1.0 // Reduce step size to catch walls better
 
 	for i := 0; i < 500; i++ {
 		t := float(i) * stepSize
@@ -54,6 +60,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 
-	// Ray reached the pixel without hitting walls - visible
-	return vec4(0, 0, 0, 0) // Transparent (no shadow)
+	// Ray reached the pixel without hitting walls - visible (yellow)
+	return vec4(1, 1, 0, 0.3) // Yellow - no wall hit
 }
