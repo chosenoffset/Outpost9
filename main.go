@@ -192,29 +192,39 @@ func (g *Game) Draw(screen renderer.Image) {
 	maxDist := float64(g.screenWidth + g.screenHeight)
 	visibilityPolygon := shadows.ComputeVisibilityPolygon(g.player.Pos, g.walls, maxDist)
 
-	// Step 3: Draw shadows - everything OUTSIDE the visibility polygon should be dark
+	// Step 3: Draw shadows - FOR NOW: just verify visibility polygon is correct
 	shadowMask := g.renderer.NewImage(g.screenWidth, g.screenHeight)
 	shadowMask.Fill(color.RGBA{0, 0, 0, 0}) // Start transparent
 
-	// Step 4: Draw shadows OUTSIDE the visibility polygon
-	// Strategy: extend rays from each visibility polygon edge outward to create shadow quads
+	// Step 4: Draw visibility polygon outline for debugging
 	if len(visibilityPolygon) >= 3 {
-		shadowColor := color.RGBA{0, 0, 0, 180}
-
-		// For each edge of the visibility polygon, extend it outward to create shadows
+		// Draw the polygon outline in bright color to see its shape
 		for i := 0; i < len(visibilityPolygon); i++ {
 			p1 := visibilityPolygon[i]
 			p2 := visibilityPolygon[(i+1)%len(visibilityPolygon)]
 
-			// Extend rays from player through these points far beyond the screen
-			ext1 := g.extendToScreenEdge(g.player.Pos, p1, maxDist)
-			ext2 := g.extendToScreenEdge(g.player.Pos, p2, maxDist)
+			// Draw line segment (we'll use a thin quad as a line)
+			// This is just for debugging to see the visibility polygon shape
+			dx := p2.X - p1.X
+			dy := p2.Y - p1.Y
+			length := math.Sqrt(dx*dx + dy*dy)
+			if length > 0.001 {
+				// Normalize
+				dx /= length
+				dy /= length
 
-			// Draw shadow quad: from edge outward
-			// The quad is: [p1, p2, ext2, ext1]
-			// This extends from the visibility polygon edge outward
-			shadowQuad := []shadows.Point{p1, p2, ext2, ext1}
-			g.drawPolygon(shadowMask, shadowQuad, shadowColor)
+				// Perpendicular (for line thickness)
+				px := -dy * 2 // 2 pixel thickness
+				py := dx * 2
+
+				lineQuad := []shadows.Point{
+					{X: p1.X - px, Y: p1.Y - py},
+					{X: p1.X + px, Y: p1.Y + py},
+					{X: p2.X + px, Y: p2.Y + py},
+					{X: p2.X - px, Y: p2.Y - py},
+				}
+				g.drawPolygon(shadowMask, lineQuad, color.RGBA{0, 255, 0, 255}) // Bright green outline
+			}
 		}
 	}
 

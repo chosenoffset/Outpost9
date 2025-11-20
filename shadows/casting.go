@@ -11,7 +11,8 @@ func ComputeVisibilityPolygon(viewerPos Point, segments []Segment, maxDistance f
 	// Collect all unique endpoints (vertices) from wall segments
 	vertices := collectVertices(segments)
 
-	// Build list of angles to cast rays at
+	// Build list of angles to cast rays at - ONLY toward wall vertices
+	// This creates straight-edged, wall-aligned visibility (no curves)
 	var angles []float64
 
 	// Add angles for each wall vertex (with epsilon offsets for edge cases)
@@ -23,14 +24,6 @@ func ComputeVisibilityPolygon(viewerPos Point, segments []Segment, maxDistance f
 			angle,
 			angle+epsilon,
 		)
-	}
-
-	// Also add rays at regular intervals to fill gaps
-	// This ensures we capture open areas and screen boundaries
-	numExtraRays := 360 // One ray per degree
-	for i := 0; i < numExtraRays; i++ {
-		angle := float64(i) * 2.0 * math.Pi / float64(numExtraRays)
-		angles = append(angles, angle)
 	}
 
 	// Remove duplicate angles and sort
