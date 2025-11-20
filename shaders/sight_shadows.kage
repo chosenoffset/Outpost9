@@ -14,6 +14,21 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dstSize := imageDstTextureSize()
 	pixelPos := texCoord * dstSize
 
+	// DEBUG: Visualize PlayerPos by showing it as color
+	// Normalize PlayerPos to 0-1 range by dividing by screen size
+	playerPosNormalized := PlayerPos / dstSize
+
+	// Show PlayerPos values as color in top-left corner
+	if pixelPos.x < 100.0 && pixelPos.y < 100.0 {
+		return vec4(playerPosNormalized.x, playerPosNormalized.y, 0, 0.8)
+	}
+
+	// Show pixelPos as color in top-right corner
+	if pixelPos.x > dstSize.x - 100.0 && pixelPos.y < 100.0 {
+		pixelPosNormalized := pixelPos / dstSize
+		return vec4(pixelPosNormalized.x, pixelPosNormalized.y, 0, 0.8)
+	}
+
 	// Direction and distance from player to this pixel
 	dir := pixelPos - PlayerPos
 	dist := length(dir)
@@ -23,43 +38,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		return vec4(1, 0, 0, 0.8) // Red - player position indicator
 	}
 
-	// DEBUG: Test if anything beyond player radius executes
-	// Show blue for all pixels beyond 50 units from player
-	if dist > 50.0 {
-		return vec4(0, 0, 1, 0.5) // Blue - far from player
-	}
-
-	// Normalize direction for ray marching
-	dir = dir / dist
-
-	// Ray march from player toward this pixel
-	// Check for wall occlusions along the way
-	stepSize := 1.0 // Reduce step size to catch walls better
-
-	for i := 0; i < 500; i++ {
-		t := float(i) * stepSize
-
-		// Stop if we've reached the target pixel
-		if t >= dist {
-			break
-		}
-
-		// Sample position along ray
-		samplePos := PlayerPos + dir * t
-
-		// Convert to normalized texture coordinates (0-1)
-		// Divide by destination size since wallTexture is same size as screen
-		sampleTexCoord := samplePos / dstSize
-
-		// Sample the wall texture at this position
-		wallSample := imageSrc0At(sampleTexCoord)
-
-		// DEBUG: If we hit a wall, show green instead of shadow
-		if wallSample.a > 0.5 {
-			return vec4(0, 1, 0, 0.8) // Green - wall detected during raycast
-		}
-	}
-
-	// Ray reached the pixel without hitting walls - visible (yellow)
-	return vec4(1, 1, 0, 0.3) // Yellow - no wall hit
+	// Everything else blue
+	return vec4(0, 0, 1, 0.3)
 }
