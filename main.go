@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 
 	"chosenoffset.com/outpost9/atlas"
 	"chosenoffset.com/outpost9/gamescanner"
