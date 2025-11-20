@@ -196,42 +196,25 @@ func (g *Game) Draw(screen renderer.Image) {
 	shadowMask := g.renderer.NewImage(g.screenWidth, g.screenHeight)
 	shadowMask.Fill(color.RGBA{0, 0, 0, 0}) // Start transparent
 
-	// Step 4: Draw shadow quads between visibility polygon and screen edges
+	// Step 4: Draw shadows OUTSIDE the visibility polygon
+	// Strategy: extend rays from each visibility polygon edge outward to create shadow quads
 	if len(visibilityPolygon) >= 3 {
 		shadowColor := color.RGBA{0, 0, 0, 180}
-		screenW := float64(g.screenWidth)
-		screenH := float64(g.screenHeight)
 
-		// For each visibility polygon edge, check if we should draw shadows beyond it
+		// For each edge of the visibility polygon, extend it outward to create shadows
 		for i := 0; i < len(visibilityPolygon); i++ {
 			p1 := visibilityPolygon[i]
 			p2 := visibilityPolygon[(i+1)%len(visibilityPolygon)]
 
-			// Extend rays from player through p1 and p2 to screen boundaries
+			// Extend rays from player through these points far beyond the screen
 			ext1 := g.extendToScreenEdge(g.player.Pos, p1, maxDist)
 			ext2 := g.extendToScreenEdge(g.player.Pos, p2, maxDist)
 
-			// Determine which screen corners/edges to include in shadow
-			// If extended points are at screen boundary, create shadow quad
-
-			// For now, simpler approach: draw shadow triangles from each edge outward
-			// Check if this edge should cast shadow (faces away from center of view)
-			centerX := screenW / 2.0
-			centerY := screenH / 2.0
-
-			// Edge midpoint
-			midX := (p1.X + p2.X) / 2.0
-			midY := (p1.Y + p2.Y) / 2.0
-
-			// If edge is farther from screen center than player, it might need shadow
-			playerDist := (g.player.Pos.X-centerX)*(g.player.Pos.X-centerX) + (g.player.Pos.Y-centerY)*(g.player.Pos.Y-centerY)
-			edgeDist := (midX-centerX)*(midX-centerX) + (midY-centerY)*(midY-centerY)
-
-			if edgeDist > playerDist {
-				// Draw shadow quad extending from this edge
-				shadowQuad := []shadows.Point{p1, p2, ext2, ext1}
-				g.drawPolygon(shadowMask, shadowQuad, shadowColor)
-			}
+			// Draw shadow quad: from edge outward
+			// The quad is: [p1, p2, ext2, ext1]
+			// This extends from the visibility polygon edge outward
+			shadowQuad := []shadows.Point{p1, p2, ext2, ext1}
+			g.drawPolygon(shadowMask, shadowQuad, shadowColor)
 		}
 	}
 
