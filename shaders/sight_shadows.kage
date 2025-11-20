@@ -8,9 +8,6 @@ var PlayerPos vec2
 // Maximum distance to check for occlusion
 var MaxDistance float
 
-// Wall texture (contains wall sprites with alpha channel)
-var WallTexture vec4
-
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Current pixel position
 	pixelPos := position.xy
@@ -29,11 +26,18 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 	// Ray march from player toward this pixel
 	// Check for wall collisions along the way
-	const float stepSize = 1.0 // Check every pixel
-	numSteps := int(dist / stepSize)
+	stepSize := 1.0 // Check every pixel
 
-	for i := 0; i < numSteps; i++ {
+	// Kage requires fixed loop bounds - use max screen diagonal
+	// 800x600 screen = ~1000 pixels diagonal
+	for i := 0; i < 1000; i++ {
 		t := float(i) * stepSize
+
+		// Stop if we've gone past the target pixel
+		if t >= dist {
+			break
+		}
+
 		samplePos := PlayerPos + dir * t
 
 		// Convert to texture coordinates
