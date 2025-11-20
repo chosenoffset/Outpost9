@@ -19,8 +19,10 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	dist := length(dir)
 
 	// DEBUG: VERY VISIBLE - Make entire screen show distance from player
-	// Close = black, medium = blue, far = white
-	normalizedDist := dist / 200.0
+	// Close = black, far = white
+	// Use max screen dimension as range (0-800 or 0-600)
+	maxDist := 1000.0
+	normalizedDist := dist / maxDist
 	if normalizedDist > 1.0 {
 		normalizedDist = 1.0
 	}
