@@ -10,45 +10,19 @@ var MaxDistance float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	screenSize := imageDstTextureSize()
-
-	// Convert PlayerPos (pixels) to texCoord space (0-1)
 	playerTexCoord := PlayerPos / screenSize
 
-	// Work entirely in texCoord space (0-1)
-	direction := texCoord - playerTexCoord
-	distance := length(direction)
+	// Sample 10 points between player and current pixel
+	// Just interpolate linearly
+	for i := 1; i < 10; i++ {
+		t := float(i) / 10.0
+		sampleCoord := mix(playerTexCoord, texCoord, t)
 
-	// Skip player position
-	if distance < 0.01 {
-		return vec4(0, 0, 0, 0)
-	}
-
-	// Normalize direction
-	direction = direction / distance
-
-	// Raycast from player to current pixel
-	// Step size in texCoord space (1 pixel = 1/screenSize.x)
-	stepSize := 1.0 / screenSize.x
-
-	for i := 1; i < 2000; i++ {
-		t := float(i) * stepSize
-
-		if t >= distance {
-			break
-		}
-
-		// Sample along ray in texCoord space
-		sampleCoord := playerTexCoord + direction * t
-
-		// Sample wall texture
 		wall := imageSrc0At(sampleCoord)
-
-		// If we hit a wall, show shadow
 		if wall.a > 0.1 {
-			return vec4(0, 0, 0, 0.8) // Dark shadow
+			return vec4(0, 0, 0, 0.8) // Shadow
 		}
 	}
 
-	// Clear line of sight - transparent
-	return vec4(0, 0, 0, 0)
+	return vec4(0, 0, 0, 0) // Transparent
 }
