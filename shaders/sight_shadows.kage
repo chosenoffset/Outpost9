@@ -12,11 +12,46 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Get screen dimensions
 	screenSize := imageDstTextureSize()
 
-	// DEBUG: Show raw values directly (left half of screen)
-	if texCoord.x < 0.5 {
-		return vec4(screenSize.x, screenSize.y, 0, 1.0)
+	// Convert PlayerPos from pixel coordinates to texCoord space (0.0 to 1.0)
+	playerTexCoord := PlayerPos / screenSize
+
+	// Calculate direction from player to current pixel (in texCoord space)
+	direction := texCoord - playerTexCoord
+	distance := length(direction)
+
+	// If we're very close to player, no shadow
+	if distance < 0.001 {
+		return vec4(0, 0, 0, 0) // Transparent
 	}
 
-	// DEBUG: Show raw PlayerPos values (right half of screen)
-	return vec4(PlayerPos.x, PlayerPos.y, 0, 1.0)
+	// Normalize direction
+	direction = direction / distance
+
+	// Raycast from player toward this pixel
+	// Step size: one pixel in texCoord space
+	stepSize := 1.0 / screenSize.x
+
+	// March along ray
+	for i := 1; i < 2000; i++ {
+		t := float(i) * stepSize
+
+		// Stop if we've traveled the full distance to the pixel
+		if t >= distance {
+			break
+		}
+
+		// Sample position along ray (in texCoord space)
+		sampleTexCoord := playerTexCoord + direction * t
+
+		// Sample wall texture
+		wallSample := imageSrc0At(sampleTexCoord)
+
+		// If we hit a wall, this pixel is in shadow
+		if wallSample.a > 0.1 {
+			return vec4(0, 0, 0, 0.8) // Dark shadow
+		}
+	}
+
+	// No wall blocking - visible (transparent)
+	return vec4(0, 0, 0, 0)
 }
