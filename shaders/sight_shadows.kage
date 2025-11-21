@@ -26,9 +26,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	for i := 1; i < 2000; i++ {
 		t := float(i) * 1.0
 
-		// Stop before we reach the current pixel's tile
-		// Use 8 pixel buffer (half a tile) to avoid sampling the current pixel itself
-		if t >= distance - 8.0 {
+		// Stop just before reaching the current pixel
+		// Small buffer (2 pixels) to avoid sampling current pixel while keeping visibility straight
+		if t >= distance - 2.0 {
 			break
 		}
 
