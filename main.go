@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 
 	"chosenoffset.com/outpost9/atlas"
 	"chosenoffset.com/outpost9/gamescanner"
@@ -203,16 +204,16 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen renderer.Image) {
-	// Step 1: Draw all tiles (floor and walls) to the screen
-	g.drawTiles(screen)
+	// MULTI-PASS RENDERING FOR PIXEL-PERFECT SHADOWS
 
-	// Step 2: Render ONLY walls to wallTexture for shader input
-	// The shader will sample this texture to detect wall pixels
+	// Step 1: Draw ONLY floors to the screen
+	g.drawFloorsOnly(screen)
+
+	// Step 2: Render walls to wallTexture for shader input
 	g.wallTexture.Clear()
 	g.drawWallsToTexture(g.wallTexture)
 
-	// Step 3: Apply shadow shader - pixel-perfect raycasting on GPU
-	// Each pixel independently checks if there's a wall between it and the player
+	// Step 3: Apply shadow shader - darkens occluded areas
 	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
 		ebitenScreen := ebitenImg.GetEbitenImage()
 
@@ -222,19 +223,19 @@ func (g *Game) Draw(screen renderer.Image) {
 				g.player.Pos.X, g.player.Pos.Y, g.screenWidth, g.screenHeight)
 		}
 
-		// Shader options with player position uniform
 		opts := &ebiten.DrawRectShaderOptions{}
 		opts.Uniforms = map[string]interface{}{
 			"PlayerPos":   []float32{float32(g.player.Pos.X), float32(g.player.Pos.Y)},
 			"MaxDistance": float32(g.screenWidth + g.screenHeight),
 		}
 		opts.Images[0] = g.wallTexture
-
-		// Draw shader over entire screen
 		ebitenScreen.DrawRectShader(g.screenWidth, g.screenHeight, g.shadowShader, opts)
 	}
 
-	// Step 4: Draw player character on top of shadows
+	// Step 4: Draw walls that have clear line of sight ON TOP of shadows
+	g.drawVisibleWalls(screen)
+
+	// Step 5: Draw player character on top of everything
 	if g.playerSpriteImg != nil {
 		// Draw player sprite centered on player position
 		spriteSize := 16.0 // Tile size from atlas
@@ -256,6 +257,33 @@ func (g *Game) Draw(screen renderer.Image) {
 			8,
 			2,
 			color.RGBA{200, 200, 50, 255})
+	}
+}
+
+func (g *Game) drawFloorsOnly(screen renderer.Image) {
+	if g.gameMap == nil || g.gameMap.Atlas == nil {
+		return
+	}
+
+	tileSize := g.gameMap.Data.TileSize
+
+	// Draw floor layer only (fills entire map with floor tile)
+	if g.gameMap.Data.FloorTile != "" {
+		floorTile, ok := g.gameMap.Atlas.GetTile(g.gameMap.Data.FloorTile)
+		if ok {
+			floorImg := g.gameMap.Atlas.GetTileSubImage(floorTile)
+			for y := 0; y < g.gameMap.Data.Height; y++ {
+				for x := 0; x < g.gameMap.Data.Width; x++ {
+					screenX := float64(x * tileSize)
+					screenY := float64(y * tileSize)
+
+					opts := &renderer.DrawImageOptions{}
+					opts.GeoM = renderer.NewGeoM()
+					opts.GeoM.Translate(screenX, screenY)
+					screen.DrawImage(floorImg, opts)
+				}
+			}
+		}
 	}
 }
 
@@ -433,13 +461,43 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 }
 
 func (g *Game) isPointInShadow(point shadows.Point) bool {
-	// With visibility polygon approach: a point is in shadow if it's NOT visible
-	// Compute visibility polygon and check if point is inside it
-	maxDist := float64(g.screenWidth + g.screenHeight)
-	visibilityPolygon := shadows.ComputeVisibilityPolygon(g.player.Pos, g.walls, maxDist)
+	// Pixel-perfect raycasting to match shader behavior
+	// Cast ray from player to point and check if it hits a wall
 
-	// Point is in shadow if it's OUTSIDE the visibility polygon
-	return !shadows.PointInPolygon(point, visibilityPolygon)
+	dx := point.X - g.player.Pos.X
+	dy := point.Y - g.player.Pos.Y
+	distance := math.Sqrt(dx*dx + dy*dy)
+
+	if distance < 1.0 {
+		return false // Player position is never in shadow
+	}
+
+	// Normalize direction
+	dirX := dx / distance
+	dirY := dy / distance
+
+	// Sample along the ray (matching shader logic)
+	for t := 1.0; t < distance-0.5; t += 1.0 {
+		sampleX := g.player.Pos.X + dirX*t
+		sampleY := g.player.Pos.Y + dirY*t
+
+		// Check if this sample point is inside any wall tile
+		tileX := int(sampleX / float64(g.gameMap.Data.TileSize))
+		tileY := int(sampleY / float64(g.gameMap.Data.TileSize))
+
+		// Check if this tile is a wall
+		tileName, err := g.gameMap.GetTileAt(tileX, tileY)
+		if err == nil && tileName != "" {
+			// Check if it's actually a wall (has blocks_sight property)
+			if tile, ok := g.gameMap.Atlas.GetTile(tileName); ok {
+				if blocksSight, ok := tile.Properties["blocks_sight"].(bool); ok && blocksSight {
+					return true // Hit a wall before reaching the point
+				}
+			}
+		}
+	}
+
+	return false // Clear line of sight
 }
 
 // extendToScreenEdge extends a ray from 'from' through 'to' until it hits a screen edge
