@@ -18,6 +18,10 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	currentTileX := int(pixelPos.x / TileSize)
 	currentTileY := int(pixelPos.y / TileSize)
 
+	// Calculate which tile the player is in
+	playerTileX := int(PlayerPos.x / TileSize)
+	playerTileY := int(PlayerPos.y / TileSize)
+
 	direction := pixelPos - PlayerPos
 	distance := length(direction)
 
@@ -29,7 +33,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	direction = direction / distance
 
 	// Raycast from player toward current pixel
-	// Only check for walls in DIFFERENT tiles than the current pixel
+	// Only check for walls in tiles that are NOT current/adjacent
 	for i := 1; i < 2000; i++ {
 		t := float(i) * 1.0
 
@@ -44,16 +48,23 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		sampleTileX := int(samplePos.x / TileSize)
 		sampleTileY := int(samplePos.y / TileSize)
 
-		// Skip samples that are in the same tile as the current pixel
-		// This makes the current tile visible regardless of its contents
-		if sampleTileX == currentTileX && sampleTileY == currentTileY {
+		// Skip samples in current tile or player's tile
+		if (sampleTileX == currentTileX && sampleTileY == currentTileY) ||
+		   (sampleTileX == playerTileX && sampleTileY == playerTileY) {
+			continue
+		}
+
+		// Skip samples in tiles adjacent to current tile (within 1 tile distance)
+		dx := abs(sampleTileX - currentTileX)
+		dy := abs(sampleTileY - currentTileY)
+		if dx <= 1 && dy <= 1 {
 			continue
 		}
 
 		// Sample wall texture
 		wall := imageSrc0At(samplePos)
 
-		// If we hit a wall in a different tile, current pixel is in shadow
+		// If we hit a wall in a non-adjacent tile, current pixel is in shadow
 		if wall.a > 0.1 {
 			return vec4(0, 0, 0, 0.8) // Dark shadow
 		}
@@ -61,4 +72,11 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 	// Nothing blocking path to this pixel - visible
 	return vec4(0, 0, 0, 0)
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
