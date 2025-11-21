@@ -116,6 +116,14 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 		// Continue without entities atlas - will use fallback rendering
 	}
 
+	// Load objects atlas for furnishings (crates, terminals, doors, etc.)
+	objectsAtlasPath := fmt.Sprintf("data/%s/objects_layer.json", selection.GameDir)
+	objectsAtlas, err := atlas.LoadAtlas(objectsAtlasPath, gm.loader)
+	if err != nil {
+		log.Printf("Warning: Failed to load objects atlas: %v", err)
+		// Continue without objects atlas - furnishings won't render
+	}
+
 	// Extract player sprite if atlas loaded successfully
 	var playerSprite renderer.Image
 	if entitiesAtlas != nil {
@@ -146,6 +154,7 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 		renderer:        gm.renderer,
 		inputMgr:        gm.inputMgr,
 		entitiesAtlas:   entitiesAtlas,
+		objectsAtlas:    objectsAtlas,
 		playerSpriteImg: playerSprite,
 		shadowShader:    shadowShader,
 		wallTexture:     wallTexture,
@@ -164,6 +173,7 @@ type Game struct {
 	renderer        renderer.Renderer
 	inputMgr        renderer.InputManager
 	entitiesAtlas   *atlas.Atlas
+	objectsAtlas    *atlas.Atlas // Atlas for object/furnishing tiles
 	playerSpriteImg renderer.Image
 	shadowShader    *ebiten.Shader
 	wallTexture     *ebiten.Image // Render target containing just walls
@@ -279,7 +289,10 @@ func (g *Game) Draw(screen renderer.Image) {
 	// Step 1: Draw ONLY floors to the screen
 	g.drawFloorsOnly(screen)
 
-	// Step 2: Render walls to wallTexture for shader input
+	// Step 2: Draw furnishings/objects on top of floors
+	g.drawFurnishings(screen)
+
+	// Step 3: Render walls to wallTexture for shader input
 	g.wallTexture.Clear()
 	g.drawWallsToTexture(g.wallTexture)
 
@@ -366,6 +379,53 @@ func (g *Game) drawFloorsOnly(screen renderer.Image) {
 			opts.GeoM.Translate(screenX, screenY)
 			screen.DrawImage(subImg, opts)
 		}
+	}
+}
+
+// drawFurnishings renders all placed furnishings/objects in the level
+func (g *Game) drawFurnishings(screen renderer.Image) {
+	if g.gameMap == nil || g.objectsAtlas == nil {
+		return
+	}
+
+	// Check if there are any furnishings to draw
+	if len(g.gameMap.Data.PlacedFurnishings) == 0 {
+		return
+	}
+
+	tileSize := g.gameMap.Data.TileSize
+
+	for _, placed := range g.gameMap.Data.PlacedFurnishings {
+		if placed == nil || placed.Definition == nil {
+			continue
+		}
+
+		// Get the tile name from the furnishing definition
+		tileName := placed.Definition.TileName
+		if tileName == "" {
+			continue
+		}
+
+		// Look up the tile in the objects atlas
+		tile, ok := g.objectsAtlas.GetTile(tileName)
+		if !ok {
+			// Tile not found in atlas - skip this furnishing
+			log.Printf("Warning: tile '%s' not found in objects atlas for furnishing '%s'",
+				tileName, placed.Definition.Name)
+			continue
+		}
+
+		// Get the tile sprite
+		subImg := g.objectsAtlas.GetTileSubImage(tile)
+
+		// Calculate screen position (placed.X and placed.Y are in tile coordinates)
+		screenX := float64(placed.X * tileSize)
+		screenY := float64(placed.Y * tileSize)
+
+		opts := &renderer.DrawImageOptions{}
+		opts.GeoM = renderer.NewGeoM()
+		opts.GeoM.Translate(screenX, screenY)
+		screen.DrawImage(subImg, opts)
 	}
 }
 

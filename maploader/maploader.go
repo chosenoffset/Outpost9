@@ -122,12 +122,28 @@ func (m *Map) GetTileDefAt(x, y int) (*atlas.TileDefinition, error) {
 }
 
 // IsWalkable returns whether the tile at the given coordinates is walkable
+// This checks both the base tile and any furnishings at that position
 func (m *Map) IsWalkable(x, y int) bool {
 	tile, err := m.GetTileDefAt(x, y)
 	if err != nil {
 		return false
 	}
-	return tile.GetTilePropertyBool("walkable", true)
+
+	// First check if the base tile is walkable
+	if !tile.GetTilePropertyBool("walkable", true) {
+		return false
+	}
+
+	// Check if there's a non-walkable furnishing at this position
+	for _, placed := range m.Data.PlacedFurnishings {
+		if placed != nil && placed.X == x && placed.Y == y {
+			if placed.Definition != nil && !placed.Definition.Walkable {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // BlocksSight returns whether the tile at the given coordinates blocks line of sight

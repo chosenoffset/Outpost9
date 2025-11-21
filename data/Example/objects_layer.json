@@ -114,6 +114,47 @@
         "walkable": false,
         "type": "machinery"
       }
+    },
+    {
+      "name": "door_closed",
+      "atlas_x": 0,
+      "atlas_y": 48,
+      "properties": {
+        "walkable": false,
+        "type": "door",
+        "interactive": true,
+        "blocks_sight": true
+      }
+    },
+    {
+      "name": "door_open",
+      "atlas_x": 16,
+      "atlas_y": 48,
+      "properties": {
+        "walkable": true,
+        "type": "door",
+        "interactive": true,
+        "blocks_sight": false
+      }
+    },
+    {
+      "name": "chest_closed",
+      "atlas_x": 32,
+      "atlas_y": 48,
+      "properties": {
+        "walkable": false,
+        "type": "container",
+        "interactive": true
+      }
+    },
+    {
+      "name": "chest_open",
+      "atlas_x": 48,
+      "atlas_y": 48,
+      "properties": {
+        "walkable": false,
+        "type": "container"
+      }
     }
   ]
 }

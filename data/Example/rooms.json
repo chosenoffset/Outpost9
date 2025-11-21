@@ -23,7 +23,18 @@
           "type": "door"
         }
       ],
-      "furnishings": [],
+      "furnishings": [
+        {
+          "furnishing_name": "storage_locker",
+          "x": 1,
+          "y": 1
+        },
+        {
+          "furnishing_name": "supply_crate",
+          "x": 2,
+          "y": 3
+        }
+      ],
       "tiles": [
         ["wall", "wall", "wall", "wall", "wall", "wall", "wall"],
         ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
@@ -54,6 +65,13 @@
           "y": 2,
           "direction": "east",
           "type": "door"
+        }
+      ],
+      "furnishings": [
+        {
+          "furnishing_name": "computer_terminal",
+          "x": 3,
+          "y": 1
         }
       ],
       "tiles": [
@@ -100,7 +118,33 @@
           "type": "door"
         }
       ],
-      "furnishings": [],
+      "furnishings": [
+        {
+          "furnishing_name": "workstation_desk",
+          "x": 1,
+          "y": 1
+        },
+        {
+          "furnishing_name": "office_chair",
+          "x": 2,
+          "y": 1
+        },
+        {
+          "furnishing_name": "control_console",
+          "x": 7,
+          "y": 2
+        },
+        {
+          "furnishing_name": "power_generator",
+          "x": 1,
+          "y": 5
+        },
+        {
+          "furnishing_name": "storage_chest",
+          "x": 7,
+          "y": 5
+        }
+      ],
       "tiles": [
         ["wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall", "wall"],
         ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
