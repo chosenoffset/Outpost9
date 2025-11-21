@@ -9,7 +9,7 @@ import (
 )
 
 // TileSize is the standard size for placeholder tiles
-const TileSize = 16
+const TileSize = 32
 
 // ColorPalette defines colors for different tile types
 var ColorPalette = struct {
@@ -113,13 +113,17 @@ func CreatePatternedTile(baseColor, patternColor color.RGBA, pattern string) *im
 			}
 		}
 	case "dots":
-		// Draw dots
-		dots := []image.Point{{4, 4}, {11, 4}, {4, 11}, {11, 11}}
+		// Draw dots (scaled for tile size)
+		quarter := TileSize / 4
+		threeQuarter := 3 * TileSize / 4
+		dots := []image.Point{{quarter, quarter}, {threeQuarter, quarter}, {quarter, threeQuarter}, {threeQuarter, threeQuarter}}
 		for _, p := range dots {
-			img.Set(p.X, p.Y, patternColor)
-			img.Set(p.X+1, p.Y, patternColor)
-			img.Set(p.X, p.Y+1, patternColor)
-			img.Set(p.X+1, p.Y+1, patternColor)
+			// Draw 2x2 dots for 32x32 tiles
+			for dy := 0; dy < 2; dy++ {
+				for dx := 0; dx < 2; dx++ {
+					img.Set(p.X+dx, p.Y+dy, patternColor)
+				}
+			}
 		}
 	case "cross":
 		// Draw a cross

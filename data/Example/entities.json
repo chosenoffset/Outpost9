@@ -2,8 +2,8 @@
   "name": "entities",
   "layer": "entities",
   "image_path": "data/Example/assets/entities.png",
-  "tile_width": 16,
-  "tile_height": 16,
+  "tile_width": 32,
+  "tile_height": 32,
   "tiles": [
     {
       "name": "player_idle",
@@ -16,7 +16,7 @@
     },
     {
       "name": "player_walk_1",
-      "atlas_x": 16,
+      "atlas_x": 32,
       "atlas_y": 0,
       "properties": {
         "type": "player",
@@ -26,7 +26,7 @@
     },
     {
       "name": "player_walk_2",
-      "atlas_x": 32,
+      "atlas_x": 64,
       "atlas_y": 0,
       "properties": {
         "type": "player",
@@ -36,7 +36,7 @@
     },
     {
       "name": "player_walk_3",
-      "atlas_x": 48,
+      "atlas_x": 96,
       "atlas_y": 0,
       "properties": {
         "type": "player",
@@ -47,7 +47,7 @@
     {
       "name": "enemy_basic",
       "atlas_x": 0,
-      "atlas_y": 16,
+      "atlas_y": 32,
       "properties": {
         "type": "enemy",
         "category": "basic",
@@ -56,8 +56,8 @@
     },
     {
       "name": "enemy_elite",
-      "atlas_x": 16,
-      "atlas_y": 16,
+      "atlas_x": 32,
+      "atlas_y": 32,
       "properties": {
         "type": "enemy",
         "category": "elite",
@@ -66,8 +66,8 @@
     },
     {
       "name": "enemy_boss",
-      "atlas_x": 32,
-      "atlas_y": 16,
+      "atlas_x": 64,
+      "atlas_y": 32,
       "properties": {
         "type": "enemy",
         "category": "boss",
@@ -76,8 +76,8 @@
     },
     {
       "name": "enemy_turret",
-      "atlas_x": 48,
-      "atlas_y": 16,
+      "atlas_x": 96,
+      "atlas_y": 32,
       "properties": {
         "type": "enemy",
         "category": "turret",
@@ -88,7 +88,7 @@
     {
       "name": "item_health",
       "atlas_x": 0,
-      "atlas_y": 32,
+      "atlas_y": 64,
       "properties": {
         "type": "item",
         "category": "consumable",
@@ -97,8 +97,8 @@
     },
     {
       "name": "item_ammo",
-      "atlas_x": 16,
-      "atlas_y": 32,
+      "atlas_x": 32,
+      "atlas_y": 64,
       "properties": {
         "type": "item",
         "category": "consumable",
@@ -107,8 +107,8 @@
     },
     {
       "name": "item_key",
-      "atlas_x": 32,
-      "atlas_y": 32,
+      "atlas_x": 64,
+      "atlas_y": 64,
       "properties": {
         "type": "item",
         "category": "key_item",
@@ -117,8 +117,8 @@
     },
     {
       "name": "item_weapon",
-      "atlas_x": 48,
-      "atlas_y": 32,
+      "atlas_x": 96,
+      "atlas_y": 64,
       "properties": {
         "type": "item",
         "category": "weapon",
@@ -128,7 +128,7 @@
     {
       "name": "projectile_bullet",
       "atlas_x": 0,
-      "atlas_y": 48,
+      "atlas_y": 96,
       "properties": {
         "type": "projectile",
         "category": "bullet"
@@ -136,8 +136,8 @@
     },
     {
       "name": "projectile_plasma",
-      "atlas_x": 16,
-      "atlas_y": 48,
+      "atlas_x": 32,
+      "atlas_y": 96,
       "properties": {
         "type": "projectile",
         "category": "plasma"
@@ -145,8 +145,8 @@
     },
     {
       "name": "effect_flash",
-      "atlas_x": 32,
-      "atlas_y": 48,
+      "atlas_x": 64,
+      "atlas_y": 96,
       "properties": {
         "type": "effect",
         "category": "muzzle_flash",
@@ -155,8 +155,8 @@
     },
     {
       "name": "effect_impact",
-      "atlas_x": 48,
-      "atlas_y": 48,
+      "atlas_x": 96,
+      "atlas_y": 96,
       "properties": {
         "type": "effect",
         "category": "impact",

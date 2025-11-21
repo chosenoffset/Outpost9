@@ -198,6 +198,12 @@ func (m *MainMenu) Draw(screen renderer.Image) {
 	m.renderer.DrawText(screen, "Press SPACE or click the start button to begin.", 20, instructionY+20, instructionColor, 1.0)
 }
 
+// SetSize updates the menu dimensions when the window is resized
+func (m *MainMenu) SetSize(width, height int) {
+	m.screenWidth = width
+	m.screenHeight = height
+}
+
 // Helper types and functions
 
 type rect struct {

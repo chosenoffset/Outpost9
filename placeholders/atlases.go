@@ -154,19 +154,23 @@ func CreateWallCenter() *image.RGBA {
 
 // Object creation helpers
 func CreateDesk(direction string) *image.RGBA {
-	img := CreateBorderedTile(ColorPalette.DeskWood, Darken(ColorPalette.DeskWood, 0.7), 1)
+	img := CreateBorderedTile(ColorPalette.DeskWood, Darken(ColorPalette.DeskWood, 0.7), 2)
 
-	// Add a small screen/object on desk
+	// Add a small screen/object on desk (scaled for tile size)
 	screenColor := color.RGBA{100, 150, 200, 255}
+	quarter := TileSize / 4
+	half := TileSize / 2
+	threeQuarter := 3 * TileSize / 4
+
 	if direction == "west" {
-		for y := 5; y < 9; y++ {
-			for x := 10; x < 14; x++ {
+		for y := quarter; y < half+quarter/2; y++ {
+			for x := half; x < threeQuarter; x++ {
 				img.Set(x, y, screenColor)
 			}
 		}
 	} else {
-		for y := 5; y < 9; y++ {
-			for x := 2; x < 6; x++ {
+		for y := quarter; y < half+quarter/2; y++ {
+			for x := quarter; x < half; x++ {
 				img.Set(x, y, screenColor)
 			}
 		}
@@ -187,31 +191,39 @@ func CreateChair(direction string) *image.RGBA {
 
 	chairColor := ColorPalette.ChairMetal
 
+	// Scaled positions for chair
+	eighth := TileSize / 8
+	quarter := TileSize / 4
+	threeEighths := 3 * TileSize / 8
+	fiveEighths := 5 * TileSize / 8
+	threeQuarter := 3 * TileSize / 4
+	sevenEighths := 7 * TileSize / 8
+
 	// Simple chair shape - seat and back
 	switch direction {
 	case "north":
 		// Back at top
-		for y := 2; y < 5; y++ {
-			for x := 4; x < 12; x++ {
+		for y := eighth; y < quarter; y++ {
+			for x := quarter; x < threeQuarter; x++ {
 				img.Set(x, y, chairColor)
 			}
 		}
 		// Seat
-		for y := 6; y < 10; y++ {
-			for x := 5; x < 11; x++ {
+		for y := threeEighths; y < fiveEighths; y++ {
+			for x := threeEighths; x < fiveEighths+eighth; x++ {
 				img.Set(x, y, chairColor)
 			}
 		}
 	case "south":
 		// Seat
-		for y := 6; y < 10; y++ {
-			for x := 5; x < 11; x++ {
+		for y := threeEighths; y < fiveEighths; y++ {
+			for x := threeEighths; x < fiveEighths+eighth; x++ {
 				img.Set(x, y, chairColor)
 			}
 		}
 		// Back at bottom
-		for y := 11; y < 14; y++ {
-			for x := 4; x < 12; x++ {
+		for y := threeQuarter-eighth; y < sevenEighths; y++ {
+			for x := quarter; x < threeQuarter; x++ {
 				img.Set(x, y, chairColor)
 			}
 		}
@@ -221,12 +233,13 @@ func CreateChair(direction string) *image.RGBA {
 }
 
 func CreateTerminal() *image.RGBA {
-	img := CreateBorderedTile(ColorPalette.Terminal, Lighten(ColorPalette.Terminal, 0.3), 1)
+	img := CreateBorderedTile(ColorPalette.Terminal, Lighten(ColorPalette.Terminal, 0.3), 2)
 
-	// Add a screen effect
+	// Add a screen effect (scaled)
 	screenColor := Lighten(ColorPalette.Terminal, 0.5)
-	for y := 3; y < 13; y++ {
-		for x := 3; x < 13; x++ {
+	margin := TileSize / 8
+	for y := margin; y < TileSize-margin; y++ {
+		for x := margin; x < TileSize-margin; x++ {
 			if y%2 == 0 { // Scanline effect
 				img.Set(x, y, screenColor)
 			}
@@ -240,24 +253,36 @@ func CreateConsole(position string) *image.RGBA {
 	img := CreateSolidTile(ColorPalette.Console)
 	buttonColor := Lighten(ColorPalette.Console, 0.4)
 
+	// Scaled button positions
+	third := TileSize / 3
+	twoThirds := 2 * TileSize / 3
+	quarter := TileSize / 4
+	half := TileSize / 2
+	threeQuarter := 3 * TileSize / 4
+	buttonSize := TileSize / 8
+
 	// Add buttons/lights based on position
 	buttons := []image.Point{}
 	switch position {
 	case "left":
-		buttons = []image.Point{{10, 6}, {10, 10}}
+		buttons = []image.Point{{twoThirds, third}, {twoThirds, twoThirds}}
 	case "center":
-		buttons = []image.Point{{6, 8}, {10, 8}}
+		buttons = []image.Point{{third, half}, {twoThirds, half}}
 	case "right":
-		buttons = []image.Point{{6, 6}, {6, 10}}
+		buttons = []image.Point{{third, third}, {third, twoThirds}}
 	}
 
 	for _, p := range buttons {
-		for dy := 0; dy < 2; dy++ {
-			for dx := 0; dx < 2; dx++ {
+		for dy := 0; dy < buttonSize; dy++ {
+			for dx := 0; dx < buttonSize; dx++ {
 				img.Set(p.X+dx, p.Y+dy, buttonColor)
 			}
 		}
 	}
+
+	// Suppress unused variable warnings
+	_ = quarter
+	_ = threeQuarter
 
 	return img
 }
@@ -268,12 +293,16 @@ func CreateLocker(open bool) *image.RGBA {
 		lockerColor = Darken(lockerColor, 0.7)
 	}
 
-	img := CreateBorderedTile(lockerColor, Darken(ColorPalette.Locker, 0.5), 2)
+	borderWidth := TileSize / 8
+	img := CreateBorderedTile(lockerColor, Darken(ColorPalette.Locker, 0.5), borderWidth)
 
-	// Add a handle
+	// Add a handle (scaled)
 	handleColor := color.RGBA{200, 200, 210, 255}
-	for y := 7; y < 9; y++ {
-		for x := 11; x < 13; x++ {
+	handleY := TileSize / 2 - TileSize/16
+	handleX := TileSize * 2 / 3
+	handleSize := TileSize / 8
+	for y := handleY; y < handleY+handleSize; y++ {
+		for x := handleX; x < handleX+handleSize; x++ {
 			img.Set(x, y, handleColor)
 		}
 	}
@@ -282,33 +311,46 @@ func CreateLocker(open bool) *image.RGBA {
 }
 
 func CreateCrate() *image.RGBA {
-	img := CreateBorderedTile(ColorPalette.Crate, Darken(ColorPalette.Crate, 0.6), 2)
+	borderWidth := TileSize / 8
+	img := CreateBorderedTile(ColorPalette.Crate, Darken(ColorPalette.Crate, 0.6), borderWidth)
 
-	// Add cross pattern
+	// Add cross pattern (scaled)
 	crossColor := Darken(ColorPalette.Crate, 0.4)
-	for i := 3; i < 13; i++ {
-		img.Set(i, 8, crossColor)
-		img.Set(8, i, crossColor)
+	margin := TileSize / 8
+	center := TileSize / 2
+	for i := margin; i < TileSize-margin; i++ {
+		img.Set(i, center, crossColor)
+		img.Set(center, i, crossColor)
 	}
 
 	return img
 }
 
 func CreateGenerator() *image.RGBA {
-	img := CreateBorderedTile(ColorPalette.Generator, Darken(ColorPalette.Generator, 0.5), 1)
+	borderWidth := TileSize / 16
+	img := CreateBorderedTile(ColorPalette.Generator, Darken(ColorPalette.Generator, 0.5), borderWidth)
 
-	// Add some "energy" indicators
+	// Add some "energy" indicators (scaled)
 	lightColor := color.RGBA{255, 255, 0, 255}
-	lights := []image.Point{{4, 4}, {11, 4}, {4, 11}, {11, 11}}
+	quarter := TileSize / 4
+	threeQuarter := 3 * TileSize / 4
+	lights := []image.Point{{quarter, quarter}, {threeQuarter, quarter}, {quarter, threeQuarter}, {threeQuarter, threeQuarter}}
 
+	lightSize := TileSize / 16
 	for _, p := range lights {
-		img.Set(p.X, p.Y, lightColor)
+		for dy := 0; dy < lightSize; dy++ {
+			for dx := 0; dx < lightSize; dx++ {
+				img.Set(p.X+dx, p.Y+dy, lightColor)
+			}
+		}
 	}
 
-	// Add center vent pattern
+	// Add center vent pattern (scaled)
 	ventColor := Darken(ColorPalette.Generator, 0.7)
-	for y := 6; y < 10; y++ {
-		for x := 6; x < 10; x++ {
+	threeEighths := 3 * TileSize / 8
+	fiveEighths := 5 * TileSize / 8
+	for y := threeEighths; y < fiveEighths; y++ {
+		for x := threeEighths; x < fiveEighths; x++ {
 			if x%2 == y%2 {
 				img.Set(x, y, ventColor)
 			}
@@ -367,34 +409,42 @@ func CreatePlayerSprite() *image.RGBA {
 		}
 	}
 
-	// Draw player as a rounded rectangle (body)
+	// Draw player as a rounded rectangle (body) - scaled
 	bodyColor := ColorPalette.Player
 	outlineColor := Darken(bodyColor, 0.5)
 
+	// Scaled positions
+	eighth := TileSize / 8
+	quarter := TileSize / 4
+	threeEighths := 3 * TileSize / 8
+	half := TileSize / 2
+	fiveEighths := 5 * TileSize / 8
+	threeQuarter := 3 * TileSize / 4
+	sevenEighths := 7 * TileSize / 8
+
 	// Body (simplified humanoid shape)
-	for y := 4; y < 14; y++ {
-		for x := 5; x < 11; x++ {
+	for y := quarter; y < sevenEighths; y++ {
+		for x := threeEighths; x < fiveEighths+eighth; x++ {
 			img.Set(x, y, bodyColor)
 		}
 	}
 
 	// Head
-	for y := 2; y < 5; y++ {
-		for x := 6; x < 10; x++ {
+	for y := eighth; y < quarter+eighth; y++ {
+		for x := threeEighths+eighth/2; x < fiveEighths+eighth/2; x++ {
 			img.Set(x, y, bodyColor)
 		}
 	}
 
-	// Outline
-	outlinePoints := []image.Point{
-		{6, 2}, {7, 2}, {8, 2}, {9, 2}, // Head top
-		{5, 4}, {10, 4}, // Shoulders
-		{5, 13}, {10, 13}, // Feet
+	// Draw simple outline using border color
+	for x := threeEighths; x < fiveEighths+eighth; x++ {
+		img.Set(x, quarter, outlineColor) // Shoulders
+		img.Set(x, sevenEighths-1, outlineColor) // Feet
 	}
 
-	for _, p := range outlinePoints {
-		img.Set(p.X, p.Y, outlineColor)
-	}
+	// Suppress unused variable warning
+	_ = half
+	_ = threeQuarter
 
 	return img
 }
@@ -410,26 +460,26 @@ func CreateEnemySprite(enemyType string) *image.RGBA {
 	}
 
 	var enemyColor color.RGBA
-	var size int
+	var sizeRatio float64 // Ratio of TileSize
 
 	switch enemyType {
 	case "basic":
 		enemyColor = ColorPalette.EnemyBasic
-		size = 10
+		sizeRatio = 0.6
 	case "elite":
 		enemyColor = ColorPalette.EnemyElite
-		size = 11
+		sizeRatio = 0.7
 	case "boss":
 		enemyColor = color.RGBA{255, 100, 0, 255} // Orange
-		size = 14
+		sizeRatio = 0.85
 	case "turret":
 		enemyColor = color.RGBA{150, 150, 150, 255} // Gray
-		size = 12
+		sizeRatio = 0.75
 	}
 
 	// Draw as a hostile-looking shape (angular)
 	center := TileSize / 2
-	radius := size / 2
+	radius := int(float64(TileSize) * sizeRatio / 2)
 
 	// Simple diamond/angular shape
 	for y := 0; y < TileSize; y++ {
@@ -439,17 +489,19 @@ func CreateEnemySprite(enemyType string) *image.RGBA {
 
 			if dx+dy <= radius {
 				img.Set(x, y, enemyColor)
-			} else if dx+dy <= radius+1 {
+			} else if dx+dy <= radius+2 {
 				img.Set(x, y, Darken(enemyColor, 0.5))
 			}
 		}
 	}
 
-	// Add hostile "eyes" or markers
+	// Add hostile "eyes" or markers (scaled)
 	eyeColor := color.RGBA{255, 255, 0, 255}
+	eyeOffset := TileSize / 8
+	eyeY := center - TileSize/16
 	if enemyType != "turret" {
-		img.Set(center-2, center-1, eyeColor)
-		img.Set(center+2, center-1, eyeColor)
+		img.Set(center-eyeOffset, eyeY, eyeColor)
+		img.Set(center+eyeOffset, eyeY, eyeColor)
 	}
 
 	return img
@@ -483,22 +535,34 @@ func CreateItemSprite(itemType string) *image.RGBA {
 		symbol = "gun"
 	}
 
+	// Scaled positions
+	quarter := TileSize / 4
+	threeEighths := 3 * TileSize / 8
+	half := TileSize / 2
+	fiveEighths := 5 * TileSize / 8
+	threeQuarter := 3 * TileSize / 4
+
 	// Draw item with symbol
 	switch symbol {
 	case "plus":
-		// Medical cross
-		for x := 6; x < 10; x++ {
-			for y := 4; y < 12; y++ {
-				if (x >= 7 && x <= 8) || (y >= 7 && y <= 8) {
-					img.Set(x, y, itemColor)
-				}
+		// Medical cross (scaled)
+		crossWidth := TileSize / 8
+		for y := quarter; y < threeQuarter; y++ {
+			for x := half - crossWidth; x < half + crossWidth; x++ {
+				img.Set(x, y, itemColor)
+			}
+		}
+		for x := quarter; x < threeQuarter; x++ {
+			for y := half - crossWidth; y < half + crossWidth; y++ {
+				img.Set(x, y, itemColor)
 			}
 		}
 	case "box":
-		// Ammo box
-		for y := 5; y < 11; y++ {
-			for x := 5; x < 11; x++ {
-				if y == 5 || y == 10 || x == 5 || x == 10 {
+		// Ammo box (scaled)
+		for y := threeEighths; y < fiveEighths+quarter/2; y++ {
+			for x := threeEighths; x < fiveEighths+quarter/2; x++ {
+				if y == threeEighths || y == fiveEighths+quarter/2-1 ||
+					x == threeEighths || x == fiveEighths+quarter/2-1 {
 					img.Set(x, y, Darken(itemColor, 0.5))
 				} else {
 					img.Set(x, y, itemColor)
@@ -506,22 +570,36 @@ func CreateItemSprite(itemType string) *image.RGBA {
 			}
 		}
 	case "key":
-		// Simple key shape
-		for y := 6; y < 10; y++ {
-			img.Set(7, y, itemColor)
+		// Simple key shape (scaled)
+		keyWidth := TileSize / 16
+		for y := threeEighths; y < fiveEighths; y++ {
+			for dx := 0; dx < keyWidth; dx++ {
+				img.Set(half-keyWidth/2+dx, y, itemColor)
+			}
 		}
-		for x := 7; x < 11; x++ {
-			img.Set(x, 9, itemColor)
+		for x := half - keyWidth/2; x < fiveEighths + quarter/2; x++ {
+			for dy := 0; dy < keyWidth; dy++ {
+				img.Set(x, fiveEighths-1+dy, itemColor)
+			}
 		}
-		img.Set(8, 6, itemColor)
-		img.Set(9, 6, itemColor)
+		// Key head
+		for y := threeEighths - keyWidth; y < threeEighths + keyWidth; y++ {
+			for x := half - keyWidth; x < half + keyWidth; x++ {
+				img.Set(x, y, itemColor)
+			}
+		}
 	case "gun":
-		// Simple gun shape
-		for x := 5; x < 11; x++ {
-			img.Set(x, 8, itemColor)
+		// Simple gun shape (scaled)
+		gunWidth := TileSize / 16
+		for x := threeEighths; x < fiveEighths + quarter/2; x++ {
+			for dy := 0; dy < gunWidth; dy++ {
+				img.Set(x, half+dy, itemColor)
+			}
 		}
-		for y := 7; y < 10; y++ {
-			img.Set(9, y, itemColor)
+		for y := threeEighths + quarter/2; y < fiveEighths; y++ {
+			for dx := 0; dx < gunWidth; dx++ {
+				img.Set(fiveEighths+dx, y, itemColor)
+			}
 		}
 	}
 
@@ -539,25 +617,27 @@ func CreateProjectileSprite(projType string) *image.RGBA {
 	}
 
 	var projColor color.RGBA
+	center := TileSize / 2
 
 	switch projType {
 	case "bullet":
 		projColor = color.RGBA{255, 255, 0, 255} // Yellow
-		// Small bullet
-		for y := 7; y < 9; y++ {
-			for x := 7; x < 10; x++ {
+		// Small bullet (scaled)
+		bulletSize := TileSize / 8
+		for y := center - bulletSize/2; y < center + bulletSize/2; y++ {
+			for x := center - bulletSize/2; x < center + bulletSize; x++ {
 				img.Set(x, y, projColor)
 			}
 		}
 	case "plasma":
 		projColor = color.RGBA{0, 255, 255, 255} // Cyan
-		// Larger plasma ball
-		center := TileSize / 2
-		for y := 5; y < 11; y++ {
-			for x := 5; x < 11; x++ {
+		// Larger plasma ball (scaled)
+		radius := TileSize / 4
+		for y := 0; y < TileSize; y++ {
+			for x := 0; x < TileSize; x++ {
 				dx := x - center
 				dy := y - center
-				if dx*dx+dy*dy <= 9 {
+				if dx*dx+dy*dy <= radius*radius {
 					img.Set(x, y, projColor)
 				}
 			}
@@ -578,29 +658,33 @@ func CreateEffectSprite(effectType string) *image.RGBA {
 	}
 
 	center := TileSize / 2
+	eighth := TileSize / 8
 
 	switch effectType {
 	case "flash":
-		// Muzzle flash - star burst
+		// Muzzle flash - star burst (scaled)
 		flashColor := color.RGBA{255, 255, 100, 255}
+		// Main cross
 		for i := 0; i < TileSize; i++ {
 			img.Set(i, center, flashColor)
 			img.Set(center, i, flashColor)
-			if i == center-2 || i == center+2 {
-				for j := 0; j < TileSize; j++ {
-					img.Set(j, i, flashColor)
-					img.Set(i, j, flashColor)
-				}
+		}
+		// Diagonal rays
+		for i := center - eighth; i <= center+eighth; i++ {
+			for j := 0; j < TileSize; j++ {
+				img.Set(j, i, flashColor)
+				img.Set(i, j, flashColor)
 			}
 		}
 	case "impact":
-		// Impact spark
+		// Impact spark (scaled)
 		impactColor := color.RGBA{255, 100, 0, 255}
-		for y := 4; y < 12; y++ {
-			for x := 4; x < 12; x++ {
+		radius := TileSize / 4
+		for y := 0; y < TileSize; y++ {
+			for x := 0; x < TileSize; x++ {
 				dx := abs(x - center)
 				dy := abs(y - center)
-				if dx+dy <= 4 {
+				if dx+dy <= radius {
 					img.Set(x, y, impactColor)
 				}
 			}
@@ -633,21 +717,24 @@ func GenerateAndSave(gameDir string) error {
 	if err := SavePNG(baseAtlas, fmt.Sprintf("%s/base_tiles.png", assetsDir)); err != nil {
 		return fmt.Errorf("failed to save base_tiles.png: %w", err)
 	}
-	fmt.Printf("✓ Generated %s/base_tiles.png (48x64, 3x4 tiles)\n", assetsDir)
+	fmt.Printf("✓ Generated %s/base_tiles.png (%dx%d pixels, 3x2 tiles @ %dpx)\n",
+		assetsDir, 3*TileSize, 2*TileSize, TileSize)
 
 	// Generate object tiles
 	objectAtlas := GenerateObjectTilesAtlas()
 	if err := SavePNG(objectAtlas, fmt.Sprintf("%s/object_tiles.png", assetsDir)); err != nil {
 		return fmt.Errorf("failed to save object_tiles.png: %w", err)
 	}
-	fmt.Printf("✓ Generated %s/object_tiles.png (64x48, 4x3 tiles)\n", assetsDir)
+	fmt.Printf("✓ Generated %s/object_tiles.png (%dx%d pixels, 4x3 tiles @ %dpx)\n",
+		assetsDir, 4*TileSize, 3*TileSize, TileSize)
 
 	// Generate entities
 	entitiesAtlas := GenerateEntitiesAtlas()
 	if err := SavePNG(entitiesAtlas, fmt.Sprintf("%s/entities.png", assetsDir)); err != nil {
 		return fmt.Errorf("failed to save entities.png: %w", err)
 	}
-	fmt.Printf("✓ Generated %s/entities.png (64x64, 4x4 tiles)\n", assetsDir)
+	fmt.Printf("✓ Generated %s/entities.png (%dx%d pixels, 4x4 tiles @ %dpx)\n",
+		assetsDir, 4*TileSize, 4*TileSize, TileSize)
 
 	fmt.Println("Placeholder atlases generated successfully!")
 	return nil

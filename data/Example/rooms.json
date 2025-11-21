@@ -2,7 +2,7 @@
   "name": "Example Room Library",
   "description": "A collection of rooms for procedural level generation",
   "atlas_path": "data/Example/atlas.json",
-  "tile_size": 16,
+  "tile_size": 32,
   "floor_tile": "floor",
   "rooms": [
     {
@@ -153,6 +153,163 @@
         ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
         ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
         ["wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall", "wall"]
+      ]
+    },
+    {
+      "name": "chamber_large",
+      "description": "Large chamber with doors on all sides - great for boss encounters",
+      "type": "chamber",
+      "tags": ["room", "large", "boss"],
+      "width": 13,
+      "height": 11,
+      "spawn_weight": 10,
+      "min_count": 0,
+      "max_count": 2,
+      "connections": [
+        {
+          "x": 0,
+          "y": 5,
+          "direction": "west",
+          "type": "door"
+        },
+        {
+          "x": 12,
+          "y": 5,
+          "direction": "east",
+          "type": "door"
+        },
+        {
+          "x": 6,
+          "y": 0,
+          "direction": "north",
+          "type": "door"
+        },
+        {
+          "x": 6,
+          "y": 10,
+          "direction": "south",
+          "type": "door"
+        }
+      ],
+      "furnishings": [
+        {
+          "furnishing_name": "control_console",
+          "x": 6,
+          "y": 2
+        },
+        {
+          "furnishing_name": "power_generator",
+          "x": 2,
+          "y": 2
+        },
+        {
+          "furnishing_name": "power_generator",
+          "x": 10,
+          "y": 2
+        },
+        {
+          "furnishing_name": "storage_chest",
+          "x": 2,
+          "y": 8
+        },
+        {
+          "furnishing_name": "storage_chest",
+          "x": 10,
+          "y": 8
+        }
+      ],
+      "tiles": [
+        ["wall", "wall", "wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall", "wall", "wall", "wall"]
+      ]
+    },
+    {
+      "name": "corridor_horizontal",
+      "description": "Horizontal corridor segment",
+      "type": "corridor",
+      "tags": ["corridor", "horizontal"],
+      "width": 9,
+      "height": 3,
+      "spawn_weight": 15,
+      "min_count": 0,
+      "max_count": 0,
+      "connections": [
+        {
+          "x": 0,
+          "y": 1,
+          "direction": "west",
+          "type": "door"
+        },
+        {
+          "x": 8,
+          "y": 1,
+          "direction": "east",
+          "type": "door"
+        }
+      ],
+      "furnishings": [],
+      "tiles": [
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+      ]
+    },
+    {
+      "name": "storage_room",
+      "description": "Storage room with crates and lockers",
+      "type": "storage",
+      "tags": ["room", "loot", "small"],
+      "width": 6,
+      "height": 6,
+      "spawn_weight": 20,
+      "min_count": 0,
+      "max_count": 3,
+      "connections": [
+        {
+          "x": 0,
+          "y": 3,
+          "direction": "west",
+          "type": "door"
+        }
+      ],
+      "furnishings": [
+        {
+          "furnishing_name": "supply_crate",
+          "x": 1,
+          "y": 1
+        },
+        {
+          "furnishing_name": "supply_crate",
+          "x": 4,
+          "y": 1
+        },
+        {
+          "furnishing_name": "storage_locker",
+          "x": 1,
+          "y": 4
+        },
+        {
+          "furnishing_name": "storage_locker",
+          "x": 4,
+          "y": 4
+        }
+      ],
+      "tiles": [
+        ["wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall"]
       ]
     }
   ]
