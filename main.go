@@ -28,6 +28,11 @@ type Player struct {
 	Speed float64
 }
 
+// Camera tracks the viewport position for scrolling large levels
+type Camera struct {
+	X, Y float64 // Camera position (top-left corner of viewport in world coords)
+}
+
 // GameManager handles the overall game state, including menu and gameplay.
 type GameManager struct {
 	screenWidth  int
@@ -76,7 +81,23 @@ func (gm *GameManager) Draw(screen renderer.Image) {
 }
 
 func (gm *GameManager) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return gm.screenWidth, gm.screenHeight
+	// Update screen dimensions when window is resized
+	if outsideWidth != gm.screenWidth || outsideHeight != gm.screenHeight {
+		gm.screenWidth = outsideWidth
+		gm.screenHeight = outsideHeight
+		// Update menu dimensions
+		if gm.mainMenu != nil {
+			gm.mainMenu.SetSize(outsideWidth, outsideHeight)
+		}
+		// Update game dimensions
+		if gm.game != nil {
+			gm.game.screenWidth = outsideWidth
+			gm.game.screenHeight = outsideHeight
+			// Recreate wall texture for new size
+			gm.game.wallTexture = ebiten.NewImage(outsideWidth, outsideHeight)
+		}
+	}
+	return outsideWidth, outsideHeight
 }
 
 func (gm *GameManager) loadGame(selection menu.Selection) error {
@@ -86,8 +107,8 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	log.Printf("Loading room library: %s", libraryPath)
 
 	config := room.GeneratorConfig{
-		MinRooms:     3,
-		MaxRooms:     4,
+		MinRooms:     8,
+		MaxRooms:     12,
 		Seed:         0, // Use random seed each time
 		ConnectAll:   true,
 		AllowOverlap: false,
@@ -169,6 +190,7 @@ type Game struct {
 	gameMap         *maploader.Map
 	walls           []shadows.Segment
 	player          Player
+	camera          Camera // Camera for viewport scrolling
 	whiteImg        renderer.Image
 	renderer        renderer.Renderer
 	inputMgr        renderer.InputManager
@@ -184,7 +206,8 @@ func (g *Game) Update() error {
 	moveSpeed := g.player.Speed
 
 	// Player hitbox radius (half of sprite size, slightly smaller for better feel)
-	playerRadius := 6.0
+	// With 32x32 sprites, use a larger radius
+	playerRadius := 12.0
 
 	// Calculate intended movement
 	var dx, dy float64
@@ -235,7 +258,48 @@ func (g *Game) Update() error {
 		g.player.Pos.Y = maxY - playerRadius
 	}
 
+	// Update camera to follow player (center player on screen)
+	g.updateCamera()
+
 	return nil
+}
+
+// updateCamera centers the camera on the player, clamping to level bounds
+func (g *Game) updateCamera() {
+	if g.gameMap == nil {
+		return
+	}
+
+	// Center camera on player
+	g.camera.X = g.player.Pos.X - float64(g.screenWidth)/2
+	g.camera.Y = g.player.Pos.Y - float64(g.screenHeight)/2
+
+	// Clamp camera to level bounds
+	tileSize := float64(g.gameMap.Data.TileSize)
+	levelPixelWidth := float64(g.gameMap.Data.Width) * tileSize
+	levelPixelHeight := float64(g.gameMap.Data.Height) * tileSize
+
+	// Don't let camera go past level edges
+	if g.camera.X < 0 {
+		g.camera.X = 0
+	}
+	if g.camera.Y < 0 {
+		g.camera.Y = 0
+	}
+	if g.camera.X > levelPixelWidth-float64(g.screenWidth) {
+		g.camera.X = levelPixelWidth - float64(g.screenWidth)
+	}
+	if g.camera.Y > levelPixelHeight-float64(g.screenHeight) {
+		g.camera.Y = levelPixelHeight - float64(g.screenHeight)
+	}
+
+	// Handle case where level is smaller than screen
+	if levelPixelWidth < float64(g.screenWidth) {
+		g.camera.X = (levelPixelWidth - float64(g.screenWidth)) / 2
+	}
+	if levelPixelHeight < float64(g.screenHeight) {
+		g.camera.Y = (levelPixelHeight - float64(g.screenHeight)) / 2
+	}
 }
 
 // canMoveTo checks if the player can move to the specified position
@@ -319,25 +383,29 @@ func (g *Game) Draw(screen renderer.Image) {
 	g.drawVisibleWalls(screen)
 
 	// Step 5: Draw player character on top of everything
+	// Calculate player screen position with camera offset
+	playerScreenX := g.player.Pos.X - g.camera.X
+	playerScreenY := g.player.Pos.Y - g.camera.Y
+
 	if g.playerSpriteImg != nil {
 		// Draw player sprite centered on player position
-		spriteSize := 16.0 // Tile size from atlas
+		spriteSize := 32.0 // Tile size from atlas (32x32)
 		opts := &renderer.DrawImageOptions{}
 		opts.GeoM = renderer.NewGeoM()
-		opts.GeoM.Translate(g.player.Pos.X-spriteSize/2, g.player.Pos.Y-spriteSize/2)
+		opts.GeoM.Translate(playerScreenX-spriteSize/2, playerScreenY-spriteSize/2)
 		screen.DrawImage(g.playerSpriteImg, opts)
 	} else {
-		// Fallback to circle if sprite not loaded
+		// Fallback to circle if sprite not loaded (larger for 32x32 tiles)
 		g.renderer.FillCircle(screen,
-			float32(g.player.Pos.X),
-			float32(g.player.Pos.Y),
-			8,
+			float32(playerScreenX),
+			float32(playerScreenY),
+			14,
 			color.RGBA{255, 255, 100, 255})
 
 		g.renderer.StrokeCircle(screen,
-			float32(g.player.Pos.X),
-			float32(g.player.Pos.Y),
-			8,
+			float32(playerScreenX),
+			float32(playerScreenY),
+			14,
 			2,
 			color.RGBA{200, 200, 50, 255})
 	}
@@ -350,10 +418,30 @@ func (g *Game) drawFloorsOnly(screen renderer.Image) {
 
 	tileSize := g.gameMap.Data.TileSize
 
+	// Calculate visible tile range for culling
+	startTileX := int(g.camera.X) / tileSize
+	startTileY := int(g.camera.Y) / tileSize
+	endTileX := (int(g.camera.X) + g.screenWidth) / tileSize + 1
+	endTileY := (int(g.camera.Y) + g.screenHeight) / tileSize + 1
+
+	// Clamp to level bounds
+	if startTileX < 0 {
+		startTileX = 0
+	}
+	if startTileY < 0 {
+		startTileY = 0
+	}
+	if endTileX > g.gameMap.Data.Width {
+		endTileX = g.gameMap.Data.Width
+	}
+	if endTileY > g.gameMap.Data.Height {
+		endTileY = g.gameMap.Data.Height
+	}
+
 	// Only draw floor tiles where the tile data specifies a floor
 	// Empty/void tiles are not rendered (stay black)
-	for y := 0; y < g.gameMap.Data.Height; y++ {
-		for x := 0; x < g.gameMap.Data.Width; x++ {
+	for y := startTileY; y < endTileY; y++ {
+		for x := startTileX; x < endTileX; x++ {
 			tileName, err := g.gameMap.GetTileAt(x, y)
 			if err != nil || tileName == "" {
 				continue // Skip void/empty tiles
@@ -371,8 +459,9 @@ func (g *Game) drawFloorsOnly(screen renderer.Image) {
 			}
 
 			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
-			screenX := float64(x * tileSize)
-			screenY := float64(y * tileSize)
+			// Apply camera offset
+			screenX := float64(x*tileSize) - g.camera.X
+			screenY := float64(y*tileSize) - g.camera.Y
 
 			opts := &renderer.DrawImageOptions{}
 			opts.GeoM = renderer.NewGeoM()
@@ -400,6 +489,16 @@ func (g *Game) drawFurnishings(screen renderer.Image) {
 			continue
 		}
 
+		// Calculate world position for visibility check
+		worldX := float64(placed.X * tileSize)
+		worldY := float64(placed.Y * tileSize)
+
+		// Cull furnishings outside visible area
+		if worldX+float64(tileSize) < g.camera.X || worldX > g.camera.X+float64(g.screenWidth) ||
+			worldY+float64(tileSize) < g.camera.Y || worldY > g.camera.Y+float64(g.screenHeight) {
+			continue
+		}
+
 		// Get the tile name from the furnishing definition
 		tileName := placed.Definition.TileName
 		if tileName == "" {
@@ -418,9 +517,9 @@ func (g *Game) drawFurnishings(screen renderer.Image) {
 		// Get the tile sprite
 		subImg := g.objectsAtlas.GetTileSubImage(tile)
 
-		// Calculate screen position (placed.X and placed.Y are in tile coordinates)
-		screenX := float64(placed.X * tileSize)
-		screenY := float64(placed.Y * tileSize)
+		// Calculate screen position with camera offset
+		screenX := worldX - g.camera.X
+		screenY := worldY - g.camera.Y
 
 		opts := &renderer.DrawImageOptions{}
 		opts.GeoM = renderer.NewGeoM()
@@ -547,6 +646,7 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 	}
 
 	tileSize := g.gameMap.Data.TileSize
+	tileSizeF := float64(tileSize)
 
 	// Draw wall tiles that are visible (not in shadow)
 	// Check each wall tile to see if it's obscured by shadows
@@ -561,6 +661,14 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 		}
 
 		for _, tileCoord := range tilesToDraw {
+			// Cull tiles outside visible area
+			worldX := float64(tileCoord.X) * tileSizeF
+			worldY := float64(tileCoord.Y) * tileSizeF
+			if worldX+tileSizeF < g.camera.X || worldX > g.camera.X+float64(g.screenWidth) ||
+				worldY+tileSizeF < g.camera.Y || worldY > g.camera.Y+float64(g.screenHeight) {
+				continue
+			}
+
 			tileKey := fmt.Sprintf("%d,%d", tileCoord.X, tileCoord.Y)
 			if drawnTiles[tileKey] {
 				continue // Already drew this tile
@@ -661,8 +769,9 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 
 			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
 
-			screenX := float64(tileCoord.X * tileSize)
-			screenY := float64(tileCoord.Y * tileSize)
+			// Apply camera offset
+			screenX := float64(tileCoord.X*tileSize) - g.camera.X
+			screenY := float64(tileCoord.Y*tileSize) - g.camera.Y
 
 			opts := &renderer.DrawImageOptions{}
 			opts.GeoM = renderer.NewGeoM()
@@ -856,18 +965,22 @@ func (g *Game) drawPolygon(dst renderer.Image, points []shadows.Point, c color.R
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	// Return current screen dimensions (GameManager handles resize)
 	return g.screenWidth, g.screenHeight
 }
 
 func main() {
-	screenWidth := 800
-	screenHeight := 600
+	screenWidth := 1280
+	screenHeight := 800
 
 	// Initialize the renderer backend (ebiten)
 	rend := ebitenrenderer.NewRenderer()
 	inputMgr := ebitenrenderer.NewInputManager()
 	loader := ebitenrenderer.NewResourceLoader()
 	engine := ebitenrenderer.NewEngine()
+
+	// Enable window resizing and maximizing
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	// Scan data directory for available games
 	log.Println("Scanning data directory for available games...")
