@@ -187,13 +187,16 @@ func (g *Generator) selectRooms(numRooms int) ([]*RoomDefinition, error) {
 	selected = append(selected, entrance)
 	usageCount[entrance.Name]++
 
-	// Add rooms with min_count requirements
+	// Add rooms with min_count requirements (only if not already satisfied)
 	for _, room := range g.library.Rooms {
 		if room.MinCount > 0 {
-			for i := 0; i < room.MinCount; i++ {
+			// Only add more if we haven't reached the minimum yet
+			for usageCount[room.Name] < room.MinCount {
 				if len(selected) < numRooms {
 					selected = append(selected, room)
 					usageCount[room.Name]++
+				} else {
+					break
 				}
 			}
 		}
