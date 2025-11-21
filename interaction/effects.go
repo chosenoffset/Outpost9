@@ -38,14 +38,14 @@ type GameStateMutator interface {
 	GameStateProvider
 	SetFlag(name string, value bool)
 	SetCounter(name string, value int)
-	IncrementCounter(name string, delta int)
+	IncrementCounter(name string, delta int) int
 	SetString(name string, value string)
 }
 
 // InventoryMutator interface for modifying player inventory
 type InventoryMutator interface {
 	InventoryProvider
-	AddItem(itemName string, count int)
+	AddItem(itemName string, count int) int
 	RemoveItem(itemName string, count int) bool
 	ClearItem(itemName string)
 }
