@@ -591,6 +591,28 @@ func (g *Game) isPointInShadow(point shadows.Point, ignoreTileX, ignoreTileY int
 		return false // Player position is never in shadow
 	}
 
+	// Build ignore set: the target tile plus orthogonally adjacent wall tiles
+	// This prevents walls in a line from blocking each other (hallway effect)
+	ignoreSet := make(map[string]bool)
+	ignoreSet[fmt.Sprintf("%d,%d", ignoreTileX, ignoreTileY)] = true
+
+	// Check 4 orthogonal neighbors and add to ignore set if they're walls
+	checkAndIgnore := func(x, y int) {
+		tileName, err := g.gameMap.GetTileAt(x, y)
+		if err == nil && tileName != "" {
+			if tile, ok := g.gameMap.Atlas.GetTile(tileName); ok {
+				if blocksSight, ok := tile.Properties["blocks_sight"].(bool); ok && blocksSight {
+					ignoreSet[fmt.Sprintf("%d,%d", x, y)] = true
+				}
+			}
+		}
+	}
+
+	checkAndIgnore(ignoreTileX-1, ignoreTileY) // West
+	checkAndIgnore(ignoreTileX+1, ignoreTileY) // East
+	checkAndIgnore(ignoreTileX, ignoreTileY-1) // North
+	checkAndIgnore(ignoreTileX, ignoreTileY+1) // South
+
 	// Normalize direction
 	dirX := dx / distance
 	dirY := dy / distance
@@ -604,8 +626,10 @@ func (g *Game) isPointInShadow(point shadows.Point, ignoreTileX, ignoreTileY int
 		tileX := int(sampleX / float64(g.gameMap.Data.TileSize))
 		tileY := int(sampleY / float64(g.gameMap.Data.TileSize))
 
-		// Skip the tile we're checking visibility for (don't let it occlude itself)
-		if tileX == ignoreTileX && tileY == ignoreTileY {
+		tileKey := fmt.Sprintf("%d,%d", tileX, tileY)
+
+		// Skip tiles in our ignore set
+		if ignoreSet[tileKey] {
 			continue
 		}
 
