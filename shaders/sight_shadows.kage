@@ -8,8 +8,15 @@ var PlayerPos vec2
 // Maximum distance to check for occlusion
 var MaxDistance float
 
+// Tile size constant
+const TileSize = 16.0
+
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	pixelPos := position.xy
+
+	// Calculate which tile the current pixel belongs to
+	currentTileX := int(pixelPos.x / TileSize)
+	currentTileY := int(pixelPos.y / TileSize)
 
 	direction := pixelPos - PlayerPos
 	distance := length(direction)
@@ -22,23 +29,31 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	direction = direction / distance
 
 	// Raycast from player toward current pixel
-	// Check if anything blocks the path BEFORE we reach this pixel
+	// Only check for walls in DIFFERENT tiles than the current pixel
 	for i := 1; i < 2000; i++ {
 		t := float(i) * 1.0
 
-		// Stop just before reaching the current pixel
-		// Small buffer (2 pixels) to avoid sampling current pixel while keeping visibility straight
-		if t >= distance - 2.0 {
+		if t >= distance {
 			break
 		}
 
 		// Sample position along ray
 		samplePos := PlayerPos + direction * t
 
+		// Calculate which tile this sample is in
+		sampleTileX := int(samplePos.x / TileSize)
+		sampleTileY := int(samplePos.y / TileSize)
+
+		// Skip samples that are in the same tile as the current pixel
+		// This makes the current tile visible regardless of its contents
+		if sampleTileX == currentTileX && sampleTileY == currentTileY {
+			continue
+		}
+
 		// Sample wall texture
 		wall := imageSrc0At(samplePos)
 
-		// If we hit a wall before reaching current pixel, this pixel is in shadow
+		// If we hit a wall in a different tile, current pixel is in shadow
 		if wall.a > 0.1 {
 			return vec4(0, 0, 0, 0.8) // Dark shadow
 		}
