@@ -424,48 +424,86 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 				continue // Already drew this tile
 			}
 
-			// Check if ANY part of this wall tile is visible
-			// Sample multiple points across the tile to handle corners and edges
-			tileBaseX := float64(tileCoord.X * tileSize)
-			tileBaseY := float64(tileCoord.Y * tileSize)
-			tileSizeFloat := float64(tileSize)
+			// Special case: Check if this is a corner wall
+			// A corner has walls on two perpendicular adjacent sides
+			isCorner, adjacentWalls := g.isCornerWall(tileCoord.X, tileCoord.Y)
 
-			// Sample more points including edges and interior
-			// This is crucial for corner walls where center/corners might be blocked
-			samplePoints := []shadows.Point{
-				// Center
-				{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat/2},
+			var anyVisible bool
 
-				// 4 corners (inset 2px)
-				{tileBaseX + 2, tileBaseY + 2},
-				{tileBaseX + tileSizeFloat - 2, tileBaseY + 2},
-				{tileBaseX + 2, tileBaseY + tileSizeFloat - 2},
-				{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat - 2},
+			if isCorner {
+				// For corner walls: visible if ANY adjacent wall forming the corner is visible
+				// This prevents flickering as corners are stable when either wall is visible
+				anyVisible = false
+				for _, adjCoord := range adjacentWalls {
+					adjKey := fmt.Sprintf("%d,%d", adjCoord.X, adjCoord.Y)
+					if drawnTiles[adjKey] {
+						// Adjacent wall is already drawn, so it's visible
+						anyVisible = true
+						break
+					}
+				}
 
-				// Edge midpoints (inset 2px)
-				{tileBaseX + tileSizeFloat/2, tileBaseY + 2},           // Top edge
-				{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat - 2}, // Bottom edge
-				{tileBaseX + 2, tileBaseY + tileSizeFloat/2},           // Left edge
-				{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat/2}, // Right edge
+				// If adjacent walls haven't been checked yet, fall back to normal sampling
+				if !anyVisible {
+					// Check a few sample points on the corner tile itself
+					tileBaseX := float64(tileCoord.X * tileSize)
+					tileBaseY := float64(tileCoord.Y * tileSize)
+					tileSizeFloat := float64(tileSize)
 
-				// Quarter points for better coverage
-				{tileBaseX + tileSizeFloat/4, tileBaseY + tileSizeFloat/4},
-				{tileBaseX + 3*tileSizeFloat/4, tileBaseY + tileSizeFloat/4},
-				{tileBaseX + tileSizeFloat/4, tileBaseY + 3*tileSizeFloat/4},
-				{tileBaseX + 3*tileSizeFloat/4, tileBaseY + 3*tileSizeFloat/4},
-			}
+					cornerSamples := []shadows.Point{
+						{tileBaseX + 4, tileBaseY + 4},
+						{tileBaseX + tileSizeFloat - 4, tileBaseY + 4},
+						{tileBaseX + 4, tileBaseY + tileSizeFloat - 4},
+						{tileBaseX + tileSizeFloat - 4, tileBaseY + tileSizeFloat - 4},
+					}
 
-			// If ANY sample point is visible, draw the wall
-			anyVisible := false
-			for _, point := range samplePoints {
-				if !g.isPointInShadow(point, tileCoord.X, tileCoord.Y) {
-					anyVisible = true
-					break
+					for _, point := range cornerSamples {
+						if !g.isPointInShadow(point, tileCoord.X, tileCoord.Y) {
+							anyVisible = true
+							break
+						}
+					}
+				}
+			} else {
+				// Normal wall: sample multiple points
+				tileBaseX := float64(tileCoord.X * tileSize)
+				tileBaseY := float64(tileCoord.Y * tileSize)
+				tileSizeFloat := float64(tileSize)
+
+				samplePoints := []shadows.Point{
+					// Center
+					{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat/2},
+
+					// 4 corners (inset 2px)
+					{tileBaseX + 2, tileBaseY + 2},
+					{tileBaseX + tileSizeFloat - 2, tileBaseY + 2},
+					{tileBaseX + 2, tileBaseY + tileSizeFloat - 2},
+					{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat - 2},
+
+					// Edge midpoints (inset 2px)
+					{tileBaseX + tileSizeFloat/2, tileBaseY + 2},
+					{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat - 2},
+					{tileBaseX + 2, tileBaseY + tileSizeFloat/2},
+					{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat/2},
+
+					// Quarter points
+					{tileBaseX + tileSizeFloat/4, tileBaseY + tileSizeFloat/4},
+					{tileBaseX + 3*tileSizeFloat/4, tileBaseY + tileSizeFloat/4},
+					{tileBaseX + tileSizeFloat/4, tileBaseY + 3*tileSizeFloat/4},
+					{tileBaseX + 3*tileSizeFloat/4, tileBaseY + 3*tileSizeFloat/4},
+				}
+
+				anyVisible = false
+				for _, point := range samplePoints {
+					if !g.isPointInShadow(point, tileCoord.X, tileCoord.Y) {
+						anyVisible = true
+						break
+					}
 				}
 			}
 
 			if !anyVisible {
-				continue // All sample points are in shadow, don't draw this wall
+				continue // Not visible, don't draw
 			}
 
 			// Get the wall tile at this position
@@ -492,6 +530,52 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 			drawnTiles[tileKey] = true
 		}
 	}
+}
+
+func (g *Game) isCornerWall(tileX, tileY int) (bool, []shadows.Coord) {
+	// Check if this wall tile is a corner (has walls on 2 perpendicular adjacent sides)
+	// Returns true if corner, and the list of adjacent walls forming the corner
+
+	adjacentWalls := []shadows.Coord{}
+
+	// Check 4 cardinal directions
+	checkWall := func(x, y int) bool {
+		tileName, err := g.gameMap.GetTileAt(x, y)
+		if err != nil || tileName == "" {
+			return false
+		}
+		if tile, ok := g.gameMap.Atlas.GetTile(tileName); ok {
+			if blocksSight, ok := tile.Properties["blocks_sight"].(bool); ok && blocksSight {
+				return true
+			}
+		}
+		return false
+	}
+
+	hasNorth := checkWall(tileX, tileY-1)
+	hasSouth := checkWall(tileX, tileY+1)
+	hasEast := checkWall(tileX+1, tileY)
+	hasWest := checkWall(tileX-1, tileY)
+
+	// Check for perpendicular pairs (corners)
+	if (hasNorth && hasEast) || (hasNorth && hasWest) || (hasSouth && hasEast) || (hasSouth && hasWest) {
+		// This is a corner - collect the adjacent walls
+		if hasNorth {
+			adjacentWalls = append(adjacentWalls, shadows.Coord{X: tileX, Y: tileY - 1})
+		}
+		if hasSouth {
+			adjacentWalls = append(adjacentWalls, shadows.Coord{X: tileX, Y: tileY + 1})
+		}
+		if hasEast {
+			adjacentWalls = append(adjacentWalls, shadows.Coord{X: tileX + 1, Y: tileY})
+		}
+		if hasWest {
+			adjacentWalls = append(adjacentWalls, shadows.Coord{X: tileX - 1, Y: tileY})
+		}
+		return true, adjacentWalls
+	}
+
+	return false, nil
 }
 
 func (g *Game) isPointInShadow(point shadows.Point, ignoreTileX, ignoreTileY int) bool {
