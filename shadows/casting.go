@@ -2,184 +2,133 @@ package shadows
 
 import (
 	"math"
-
-	"chosenoffset.com/outpost9/maploader"
+	"sort"
 )
 
-// CastShadow projects a shadow from a wall segment based on viewer position
-// Returns a polygon representing the shadow volume
-func CastShadow(viewerPos Point, seg Segment, maxDistance float64, tileSize int, gameMap *maploader.Map, isCornerShadow bool) []Point {
-	// Get the shadow start edge based on player position relative to the tile
-	shadowStart := GetShadowStartEdge(seg, tileSize, gameMap, viewerPos, isCornerShadow)
+// ComputeVisibilityPolygon calculates what the viewer can see from their position
+// Returns a polygon representing the visible area (everything outside is in shadow)
+func ComputeVisibilityPolygon(viewerPos Point, segments []Segment, maxDistance float64) []Point {
+	// Collect all unique endpoints (vertices) from wall segments
+	vertices := collectVertices(segments)
 
-	// Calculate direction vectors from viewer to shadow start points
-	dirA := Point{
-		X: shadowStart.A.X - viewerPos.X,
-		Y: shadowStart.A.Y - viewerPos.Y,
-	}
-	dirB := Point{
-		X: shadowStart.B.X - viewerPos.X,
-		Y: shadowStart.B.Y - viewerPos.Y,
-	}
+	// Build list of angles to cast rays at - ONLY toward wall vertices
+	// This creates straight-edged, wall-aligned visibility (no curves)
+	var angles []float64
 
-	lenA := math.Sqrt(dirA.X*dirA.X + dirA.Y*dirA.Y)
-	lenB := math.Sqrt(dirB.X*dirB.X + dirB.Y*dirB.Y)
-
-	if lenA < 0.001 || lenB < 0.001 {
-		return nil
+	// Add angles for each wall vertex (with epsilon offsets for edge cases)
+	epsilon := 0.0001
+	for _, vertex := range vertices {
+		angle := math.Atan2(vertex.Y-viewerPos.Y, vertex.X-viewerPos.X)
+		angles = append(angles,
+			angle-epsilon,
+			angle,
+			angle+epsilon,
+		)
 	}
 
-	// Normalize direction vectors
-	dirA.X /= lenA
-	dirA.Y /= lenA
-	dirB.X /= lenB
-	dirB.Y /= lenB
-
-	// Extend shadow rays far
-	extendDist := maxDistance * 2
-
-	extendedA := Point{
-		X: shadowStart.A.X + dirA.X*extendDist,
-		Y: shadowStart.A.Y + dirA.Y*extendDist,
-	}
-	extendedB := Point{
-		X: shadowStart.B.X + dirB.X*extendDist,
-		Y: shadowStart.B.Y + dirB.Y*extendDist,
+	// Remove duplicate angles and sort
+	angleMap := make(map[float64]bool)
+	var uniqueAngles []float64
+	for _, angle := range angles {
+		// Normalize angle to [0, 2π)
+		normalized := math.Mod(angle, 2.0*math.Pi)
+		if normalized < 0 {
+			normalized += 2.0 * math.Pi
+		}
+		if !angleMap[normalized] {
+			angleMap[normalized] = true
+			uniqueAngles = append(uniqueAngles, normalized)
+		}
 	}
 
-	return []Point{shadowStart.A, shadowStart.B, extendedB, extendedA}
+	sort.Float64s(uniqueAngles)
+
+	// For each angle, cast a ray and find the closest intersection
+	var visiblePoints []Point
+	for _, angle := range uniqueAngles {
+		// Ray direction
+		dx := math.Cos(angle)
+		dy := math.Sin(angle)
+
+		// Find closest intersection
+		closestDist := maxDistance
+		closestPoint := Point{
+			X: viewerPos.X + dx*maxDistance,
+			Y: viewerPos.Y + dy*maxDistance,
+		}
+
+		// Check intersection with all segments
+		for _, seg := range segments {
+			if intersect, dist, point := raySegmentIntersection(viewerPos, dx, dy, seg); intersect {
+				if dist < closestDist {
+					closestDist = dist
+					closestPoint = point
+				}
+			}
+		}
+
+		visiblePoints = append(visiblePoints, closestPoint)
+	}
+
+	return visiblePoints
 }
 
-// GetShadowStartEdge determines where the shadow should start based on the viewer position
-// and whether this is a main shadow or corner shadow
-func GetShadowStartEdge(seg Segment, tileSize int, gameMap *maploader.Map, viewerPos Point, isCornerShadow bool) Segment {
-	tileX := float64(seg.TileX) * float64(tileSize)
-	tileY := float64(seg.TileY) * float64(tileSize)
-
-	adjusted := seg
-
-	if isCornerShadow {
-		// Corner shadow: start from the EXPOSED edge itself (the outside corner edge)
-		switch seg.EdgeType {
-		case "top":
-			// Top edge exposed - angled shadow starts FROM the top edge
-			adjusted.A = Point{X: tileX + float64(tileSize), Y: tileY}
-			adjusted.B = Point{X: tileX, Y: tileY}
-		case "bottom":
-			// Bottom edge exposed - angled shadow starts FROM the bottom edge
-			adjusted.A = Point{X: tileX, Y: tileY + float64(tileSize)}
-			adjusted.B = Point{X: tileX + float64(tileSize), Y: tileY + float64(tileSize)}
-		case "left":
-			// Left edge exposed - angled shadow starts FROM the left edge
-			adjusted.A = Point{X: tileX, Y: tileY}
-			adjusted.B = Point{X: tileX, Y: tileY + float64(tileSize)}
-		case "right":
-			// Right edge exposed - angled shadow starts FROM the right edge
-			adjusted.A = Point{X: tileX + float64(tileSize), Y: tileY + float64(tileSize)}
-			adjusted.B = Point{X: tileX + float64(tileSize), Y: tileY}
-		}
-	} else {
-		// Main shadow: start from the OPPOSITE edge (far side of tile)
-		switch seg.EdgeType {
-		case "top":
-			// Top edge is exposed - shadow starts from BOTTOM edge
-			adjusted.A = Point{X: tileX, Y: tileY + float64(tileSize)}
-			adjusted.B = Point{X: tileX + float64(tileSize), Y: tileY + float64(tileSize)}
-		case "bottom":
-			// Bottom edge is exposed - shadow starts from TOP edge
-			adjusted.A = Point{X: tileX + float64(tileSize), Y: tileY}
-			adjusted.B = Point{X: tileX, Y: tileY}
-		case "left":
-			// Left edge is exposed - shadow starts from RIGHT edge
-			adjusted.A = Point{X: tileX + float64(tileSize), Y: tileY}
-			adjusted.B = Point{X: tileX + float64(tileSize), Y: tileY + float64(tileSize)}
-		case "right":
-			// Right edge is exposed - shadow starts from LEFT edge
-			adjusted.A = Point{X: tileX, Y: tileY + float64(tileSize)}
-			adjusted.B = Point{X: tileX, Y: tileY}
-		}
-	}
-
-	return adjusted
+// ray represents a ray cast from the viewer at a specific angle
+type ray struct {
+	angle float64
 }
 
-// GetDefaultShadowOffset calculates a default shadow offset for a segment
-// This shifts the shadow start point away from the edge
-func GetDefaultShadowOffset(seg Segment, tileSize int) Segment {
-	adjusted := seg
-	offset := float64(tileSize) / 2.0
+// collectVertices extracts all unique endpoint vertices from segments
+func collectVertices(segments []Segment) []Point {
+	vertexMap := make(map[Point]bool)
 
-	switch seg.EdgeType {
-	case "top":
-		adjusted.A.Y += offset
-		adjusted.B.Y += offset
-	case "bottom":
-		adjusted.A.Y -= offset
-		adjusted.B.Y -= offset
-	case "left":
-		adjusted.A.X += offset
-		adjusted.B.X += offset
-	case "right":
-		adjusted.A.X -= offset
-		adjusted.B.X -= offset
+	for _, seg := range segments {
+		vertexMap[seg.A] = true
+		vertexMap[seg.B] = true
 	}
 
-	return adjusted
+	vertices := make([]Point, 0, len(vertexMap))
+	for vertex := range vertexMap {
+		vertices = append(vertices, vertex)
+	}
+
+	return vertices
 }
 
-// CalculateShadowOffset calculates shadow offset based on tile visual bounds properties
-// This is used to align shadows with the visual representation of walls
-func CalculateShadowOffset(seg Segment, tileSize int, gameMap *maploader.Map) float64 {
-	// Get the tile definition to check for visual_bounds
-	tileDef, err := gameMap.GetTileDefAt(seg.TileX, seg.TileY)
-	if err != nil {
-		return 2.0 // Default small offset
+// raySegmentIntersection checks if a ray intersects a line segment
+// Returns: (intersects bool, distance float64, intersection point Point)
+func raySegmentIntersection(origin Point, dx, dy float64, seg Segment) (bool, float64, Point) {
+	// Ray: P = origin + t * (dx, dy) for t >= 0
+	// Segment: Q = seg.A + u * (seg.B - seg.A) for 0 <= u <= 1
+
+	// Segment direction
+	segDX := seg.B.X - seg.A.X
+	segDY := seg.B.Y - seg.A.Y
+
+	// Solve: origin + t*(dx,dy) = seg.A + u*(segDX,segDY)
+	// This is a 2x2 linear system
+
+	denominator := dx*segDY - dy*segDX
+	if math.Abs(denominator) < 1e-10 {
+		// Ray and segment are parallel
+		return false, 0, Point{}
 	}
 
-	// Try to get visual_bounds from properties
-	visualBounds, ok := tileDef.GetTileProperty("visual_bounds")
-	if !ok {
-		// No visual bounds defined, use small default offset
-		return 2.0
+	// Calculate u and t
+	diffX := seg.A.X - origin.X
+	diffY := seg.A.Y - origin.Y
+
+	u := (dx*diffY - dy*diffX) / denominator
+	t := (segDX*diffY - segDY*diffX) / denominator
+
+	// Check if intersection is within segment and in ray direction
+	if u >= 0 && u <= 1 && t >= 0 {
+		intersectionPoint := Point{
+			X: origin.X + t*dx,
+			Y: origin.Y + t*dy,
+		}
+		return true, t, intersectionPoint
 	}
 
-	// Parse visual_bounds (should be a map with top, bottom, left, right)
-	bounds, ok := visualBounds.(map[string]interface{})
-	if !ok {
-		return 2.0
-	}
-
-	// Based on the edge type, calculate offset to the FAR side of the visual pixels
-	// (the side away from the viewer, where the shadow should begin)
-	switch seg.EdgeType {
-	case "top":
-		// For top edge: shadow starts at the BOTTOM of the visual wall
-		// visual_bounds.bottom tells us where the wall pixels end
-		if bottomVal, ok := bounds["bottom"].(float64); ok {
-			// Offset from the top edge to the bottom of the visual wall
-			return bottomVal + 1.0
-		}
-	case "bottom":
-		// For bottom edge: shadow starts at the TOP of the visual wall
-		// visual_bounds.top tells us where the wall pixels start
-		if topVal, ok := bounds["top"].(float64); ok {
-			// Calculate distance from bottom edge up to where wall starts
-			distanceFromBottom := float64(tileSize) - topVal
-			return distanceFromBottom + 1.0
-		}
-	case "left":
-		// For left edge: shadow starts at the RIGHT of the visual wall
-		if rightVal, ok := bounds["right"].(float64); ok {
-			return rightVal + 1.0
-		}
-	case "right":
-		// For right edge: shadow starts at the LEFT of the visual wall
-		if leftVal, ok := bounds["left"].(float64); ok {
-			distanceFromRight := float64(tileSize) - leftVal
-			return distanceFromRight + 1.0
-		}
-	}
-
-	// Default: small offset
-	return 2.0
+	return false, 0, Point{}
 }

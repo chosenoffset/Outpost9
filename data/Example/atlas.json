@@ -1,14 +1,14 @@
 {
   "name": "dungeon_tileset",
   "layer": "base",
-  "image_path": "data/Example/assets/simple_tiles.png",
+  "image_path": "data/Example/assets/base_tiles.png",
   "tile_width": 16,
   "tile_height": 16,
   "tiles": [
     {
-      "name": "f1x",
-      "atlas_x": 16,
-      "atlas_y": 32,
+      "name": "floor",
+      "atlas_x": 0,
+      "atlas_y": 0,
       "properties": {
         "blocks_sight": false,
         "walkable": true,
@@ -16,231 +16,33 @@
       }
     },
     {
-      "name": "wwx",
-      "atlas_x": 0,
-      "atlas_y": 32,
-      "properties": {
-        "blocks_sight": true,
-        "walkable": false,
-        "type": "wall",
-        "direction": "left",
-        "visual_bounds": {
-          "top": 8,
-          "bottom": 16,
-          "left": 0,
-          "right": 8
-        }
-      }
-    },
-    {
-      "name": "wex",
-      "atlas_x": 32,
-      "atlas_y": 32,
-      "properties": {
-        "blocks_sight": true,
-        "walkable": false,
-        "type": "wall",
-        "direction": "right",
-        "visual_bounds": {
-          "top": 8,
-          "bottom": 16,
-          "left": 8,
-          "right": 16
-        }
-      }
-    },
-    {
-      "name": "nwt",
-      "atlas_x": 0,
-      "atlas_y": 0,
-      "properties": {
-        "blocks_sight": false,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 11,
-          "bottom": 16,
-          "left": 0,
-          "right": 16
-        }
-      }
-    },
-    {
-      "name": "nwb",
+      "name": "wall",
       "atlas_x": 0,
       "atlas_y": 16,
       "properties": {
         "blocks_sight": true,
         "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 16,
-          "left": 0,
-          "right": 8
-        }
+        "type": "wall"
       }
     },
     {
-      "name": "ntx",
+      "name": "floor_alt1",
       "atlas_x": 16,
       "atlas_y": 0,
       "properties": {
         "blocks_sight": false,
-        "walkable": false,
-        "type": "wall",
-        "direction": "mid",
-        "visual_bounds": {
-          "top": 11,
-          "bottom": 16,
-          "left": 0,
-          "right": 16
-        }
+        "walkable": true,
+        "type": "floor"
       }
     },
     {
-      "name": "nbx",
-      "atlas_x": 16,
-      "atlas_y": 16,
-      "properties": {
-        "blocks_sight": true,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 16,
-          "left": 0,
-          "right": 16
-        }
-      }
-    },
-    {
-      "name": "net",
+      "name": "floor_alt2",
       "atlas_x": 32,
       "atlas_y": 0,
       "properties": {
         "blocks_sight": false,
-        "walkable": false,
-        "type": "wall",
-        "direction": "north",
-        "visual_bounds": {
-          "top": 11,
-          "bottom": 16,
-          "left": 0,
-          "right": 16
-        }
-      }
-    },
-    {
-      "name": "neb",
-      "atlas_x": 32,
-      "atlas_y": 16,
-      "properties": {
-        "blocks_sight": true,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 16,
-          "left": 8,
-          "right": 16
-        }
-      }
-    },
-    {
-      "name": "swt",
-      "atlas_x": 0,
-      "atlas_y": 48,
-      "properties": {
-        "blocks_sight": false,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 8,
-          "left": 0,
-          "right": 8
-        }
-      }
-    },
-    {
-      "name": "swb",
-      "atlas_x": 0,
-      "atlas_y": 64,
-      "properties": {
-        "blocks_sight": true,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 16,
-          "left": 0,
-          "right": 8
-        }
-      }
-    },
-    {
-      "name": "stx",
-      "atlas_x": 16,
-      "atlas_y": 48,
-      "properties": {
-        "blocks_sight": false,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 8,
-          "left": 0,
-          "right": 16
-        }
-      }
-    },
-    {
-      "name": "sbx",
-      "atlas_x": 16,
-      "atlas_y": 64,
-      "properties": {
-        "blocks_sight": true,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 16,
-          "left": 0,
-          "right": 16
-        }
-      }
-    },
-    {
-      "name": "set",
-      "atlas_x": 32,
-      "atlas_y": 48,
-      "properties": {
-        "blocks_sight": false,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 8,
-          "left": 8,
-          "right": 16
-        }
-      }
-    },
-    {
-      "name": "seb",
-      "atlas_x": 32,
-      "atlas_y": 64,
-      "properties": {
-        "blocks_sight": true,
-        "walkable": false,
-        "type": "wall",
-        "visual_bounds": {
-          "top": 0,
-          "bottom": 16,
-          "left": 8,
-          "right": 16
-        }
+        "walkable": true,
+        "type": "floor"
       }
     }
   ]

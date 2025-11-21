@@ -8,37 +8,25 @@ import (
 )
 
 // GenerateBaseTilesAtlas creates the base_tiles.png atlas
-// This matches the structure defined in Art/base_layer.json
+// This matches the simplified structure in atlas.json
 func GenerateBaseTilesAtlas() *image.RGBA {
-	// According to base_layer.json, we need these tiles:
-	// Row 0: floor_metal_01, floor_metal_02, floor_grating
-	// Row 1: wall_corner_nw, wall_n, wall_corner_ne
-	// Row 2: wall_w, wall_center, wall_e
-	// Row 3: wall_corner_sw, wall_s, wall_corner_se
+	// Simple structure:
+	// Row 0: floor (0,0), floor_alt1 (16,0), floor_alt2 (32,0)
+	// Row 1: wall (0,16), empty, empty
 
-	tiles := make([]*image.RGBA, 12)
+	tiles := make([]*image.RGBA, 6)
 
 	// Row 0: Floors (0-2)
 	tiles[0] = CreateSolidTile(ColorPalette.FloorMetal1)
 	tiles[1] = CreateSolidTile(ColorPalette.FloorMetal2)
 	tiles[2] = CreatePatternedTile(ColorPalette.FloorGrating, Darken(ColorPalette.FloorGrating, 0.7), "grid")
 
-	// Row 1: Top wall row (3-5)
-	tiles[3] = CreateWallCorner("nw")
-	tiles[4] = CreateWallSegment("n")
-	tiles[5] = CreateWallCorner("ne")
+	// Row 1: Wall (3)
+	tiles[3] = CreateBorderedTile(ColorPalette.WallMetal, Darken(ColorPalette.WallMetal, 0.3), 1)
+	tiles[4] = nil
+	tiles[5] = nil
 
-	// Row 2: Middle wall row (6-8)
-	tiles[6] = CreateWallSegment("w")
-	tiles[7] = CreateWallCenter()
-	tiles[8] = CreateWallSegment("e")
-
-	// Row 3: Bottom wall row (9-11)
-	tiles[9] = CreateWallCorner("sw")
-	tiles[10] = CreateWallSegment("s")
-	tiles[11] = CreateWallCorner("se")
-
-	return CreateAtlas(tiles, 3) // 3 columns, 4 rows
+	return CreateAtlas(tiles, 3) // 3 columns, 2 rows
 }
 
 // GenerateObjectTilesAtlas creates the object_tiles.png atlas

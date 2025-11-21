@@ -3,7 +3,7 @@
   "description": "A collection of rooms for procedural level generation",
   "atlas_path": "data/Example/atlas.json",
   "tile_size": 16,
-  "floor_tile": "f1x",
+  "floor_tile": "floor",
   "rooms": [
     {
       "name": "entrance_small",
@@ -38,11 +38,11 @@
         }
       ],
       "tiles": [
-        ["nwt", "ntx", "ntx", "ntx", "ntx", "ntx", "net"],
-        ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
-        ["wwx", "", "", "", "", "", ""],
-        ["swt", "stx", "stx", "stx", "stx", "stx", "set"],
-        ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall"]
       ]
     },
     {
@@ -70,9 +70,9 @@
         }
       ],
       "tiles": [
-        ["nwt", "ntx", "ntx", "ntx", "net"],
-        ["", "", "", "", ""],
-        ["swt", "stx", "stx", "stx", "set"]
+        ["wall", "wall", "wall", "wall", "wall"],
+        ["floor", "floor", "floor", "floor", "floor"],
+        ["wall", "wall", "wall", "wall", "wall"]
       ]
     },
     {
@@ -100,11 +100,11 @@
         }
       ],
       "tiles": [
-        ["nwt", "", "net"],
-        ["wwx", "", "wex"],
-        ["wwx", "", "wex"],
-        ["wwx", "", "wex"],
-        ["swt", "", "set"]
+        ["wall", "floor", "wall"],
+        ["wall", "floor", "wall"],
+        ["wall", "floor", "wall"],
+        ["wall", "floor", "wall"],
+        ["wall", "floor", "wall"]
       ]
     },
     {
@@ -164,12 +164,12 @@
         }
       ],
       "tiles": [
-        ["nwt", "ntx", "ntx", "ntx", "", "ntx", "ntx", "net"],
-        ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
-        ["wwx", "", "", "", "", "", "", "wex"],
-        ["", "", "", "", "", "", "", ""],
-        ["swt", "stx", "stx", "stx", "stx", "stx", "stx", "set"],
-        ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
+        ["wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
       ]
     },
     {
@@ -197,10 +197,10 @@
         }
       ],
       "tiles": [
-        ["nwt", "ntx", "ntx", "ntx", "net"],
-        ["nwb", "nbx", "nbx", "nbx", "neb"],
-        ["", "", "", "", ""],
-        ["swt", "stx", "stx", "stx", "set"]
+        ["wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor"],
+        ["wall", "wall", "wall", "wall", "wall"]
       ]
     },
     {
@@ -278,14 +278,14 @@
         }
       ],
       "tiles": [
-        ["nwt", "ntx", "ntx", "ntx", "ntx", "", "ntx", "ntx", "ntx", "net"],
-        ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
-        ["wwx", "", "", "", "", "", "", "", "", "wex"],
-        ["wwx", "", "", "", "", "", "", "", "", "wex"],
-        ["", "", "", "", "", "", "", "", "", ""],
-        ["wwx", "", "", "", "", "", "", "", "", "wex"],
-        ["swt", "stx", "stx", "stx", "stx", "", "stx", "stx", "stx", "set"],
-        ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
+        ["wall", "wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
       ]
     },
     {
@@ -339,14 +339,14 @@
         }
       ],
       "tiles": [
-        ["nwt", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "ntx", "net"],
-        ["nwb", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "nbx", "neb"],
-        ["wwx", "", "", "", "", "nwt", "ntx", "ntx", "net", "", "wex"],
-        ["wwx", "", "", "", "", "nwb", "nwb", "nwb", "neb", "", "wex"],
-        ["", "", "", "", "", "wwx", "", "", "wex", "", ""],
-        ["wwx", "", "", "", "", "wwx", "", "", "wex", "", "wex"],
-        ["swt", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "stx", "set"],
-        ["swb", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "sbx", "seb"]
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "wall", "wall", "wall", "wall", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "wall", "floor", "floor", "wall", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "wall", "floor", "floor", "wall", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "wall", "floor", "floor", "wall", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
       ]
     },
     {
@@ -386,11 +386,11 @@
         }
       ],
       "tiles": [
-        ["nwt", "ntx", "", "ntx", "net"],
-        ["nwb", "nbx", "", "nbx", "neb"],
-        ["", "", "", "", ""],
-        ["swt", "stx", "", "stx", "set"],
-        ["swb", "sbx", "", "sbx", "seb"]
+        ["wall", "wall", "floor", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "floor", "wall", "wall"]
       ]
     }
   ]

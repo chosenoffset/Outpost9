@@ -1,9 +1,11 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 
 	"chosenoffset.com/outpost9/atlas"
 	"chosenoffset.com/outpost9/gamescanner"
@@ -14,8 +16,12 @@ import (
 	"chosenoffset.com/outpost9/room"
 	"chosenoffset.com/outpost9/shadows"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
+
+//go:embed shaders/sight_shadows.kage
+var shadowShaderSrc []byte
 
 type Player struct {
 	Pos   shadows.Point
@@ -119,6 +125,15 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 		}
 	}
 
+	// Initialize shadow shader
+	shadowShader, err := ebiten.NewShader(shadowShaderSrc)
+	if err != nil {
+		return fmt.Errorf("failed to create shadow shader: %w", err)
+	}
+
+	// Create wall texture render target
+	wallTexture := ebiten.NewImage(gm.screenWidth, gm.screenHeight)
+
 	gm.game = &Game{
 		screenWidth:     gm.screenWidth,
 		screenHeight:    gm.screenHeight,
@@ -132,22 +147,26 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 		inputMgr:        gm.inputMgr,
 		entitiesAtlas:   entitiesAtlas,
 		playerSpriteImg: playerSprite,
+		shadowShader:    shadowShader,
+		wallTexture:     wallTexture,
 	}
 
 	return nil
 }
 
 type Game struct {
-	screenWidth    int
-	screenHeight   int
-	gameMap        *maploader.Map
-	walls          []shadows.Segment
-	player         Player
-	whiteImg       renderer.Image
-	renderer       renderer.Renderer
-	inputMgr       renderer.InputManager
-	entitiesAtlas  *atlas.Atlas
+	screenWidth     int
+	screenHeight    int
+	gameMap         *maploader.Map
+	walls           []shadows.Segment
+	player          Player
+	whiteImg        renderer.Image
+	renderer        renderer.Renderer
+	inputMgr        renderer.InputManager
+	entitiesAtlas   *atlas.Atlas
 	playerSpriteImg renderer.Image
+	shadowShader    *ebiten.Shader
+	wallTexture     *ebiten.Image // Render target containing just walls
 }
 
 func (g *Game) Update() error {
@@ -185,80 +204,38 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen renderer.Image) {
-	// Step 1: Draw all tiles (the world)
-	g.drawTiles(screen)
+	// MULTI-PASS RENDERING FOR PIXEL-PERFECT SHADOWS
 
-	// Step 2: Create a shadow mask
-	shadowMask := g.renderer.NewImage(g.screenWidth, g.screenHeight)
-	// Start transparent (no shadows)
-	shadowMask.Fill(color.RGBA{0, 0, 0, 0})
+	// Step 1: Draw ONLY floors to the screen
+	g.drawFloorsOnly(screen)
 
-	// Step 3: Draw shadow volumes onto the mask
-	maxDist := float64(g.screenWidth + g.screenHeight)
+	// Step 2: Render walls to wallTexture for shader input
+	g.wallTexture.Clear()
+	g.drawWallsToTexture(g.wallTexture)
 
-	for _, wall := range g.walls {
-		// Determine if this segment should cast a shadow based on player position
-		tileSize := float64(g.gameMap.Data.TileSize)
-		tileCenterX := float64(wall.TileX)*tileSize + tileSize/2.0
-		tileCenterY := float64(wall.TileY)*tileSize + tileSize/2.0
+	// Step 3: Apply shadow shader - darkens occluded areas
+	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
+		ebitenScreen := ebitenImg.GetEbitenImage()
 
-		// Determine player direction relative to tile
-		playerAbove := g.player.Pos.Y < tileCenterY
-		playerBelow := g.player.Pos.Y > tileCenterY
-		playerLeft := g.player.Pos.X < tileCenterX
-		playerRight := g.player.Pos.X > tileCenterX
-
-		// Determine if this is a main wall shadow or a corner shadow
-		isMainShadow := false
-		isCornerShadow := false
-
-		switch wall.EdgeType {
-		case "top":
-			// Top edge exposed
-			if playerAbove {
-				isMainShadow = true // Straight shadow going down
-			} else if playerLeft || playerRight {
-				isCornerShadow = true // Angled corner shadow
-			}
-		case "bottom":
-			// Bottom edge exposed
-			if playerBelow {
-				isMainShadow = true // Straight shadow going up
-			} else if playerLeft || playerRight {
-				isCornerShadow = true // Angled corner shadow
-			}
-		case "left":
-			// Left edge exposed
-			if playerLeft {
-				isMainShadow = true // Straight shadow going right
-			} else if playerAbove || playerBelow {
-				isCornerShadow = true // Angled corner shadow
-			}
-		case "right":
-			// Right edge exposed
-			if playerRight {
-				isMainShadow = true // Straight shadow going left
-			} else if playerAbove || playerBelow {
-				isCornerShadow = true // Angled corner shadow
-			}
+		// DEBUG: Log player position (throttle to ~1/sec to avoid spam)
+		if ebiten.IsKeyPressed(ebiten.KeySpace) {
+			log.Printf("DEBUG PlayerPos: X=%.2f Y=%.2f (screen: %dx%d)",
+				g.player.Pos.X, g.player.Pos.Y, g.screenWidth, g.screenHeight)
 		}
 
-		if isMainShadow || isCornerShadow {
-			shadowPoly := shadows.CastShadow(g.player.Pos, wall, maxDist, g.gameMap.Data.TileSize, g.gameMap, isCornerShadow)
-			if shadowPoly != nil {
-				// Draw solid black shadow
-				g.drawPolygon(shadowMask, shadowPoly, color.RGBA{0, 0, 0, 255})
-			}
+		opts := &ebiten.DrawRectShaderOptions{}
+		opts.Uniforms = map[string]interface{}{
+			"PlayerPos":   []float32{float32(g.player.Pos.X), float32(g.player.Pos.Y)},
+			"MaxDistance": float32(g.screenWidth + g.screenHeight),
 		}
+		opts.Images[0] = g.wallTexture
+		ebitenScreen.DrawRectShader(g.screenWidth, g.screenHeight, g.shadowShader, opts)
 	}
 
-	// Step 4: Draw the shadow mask on top of the world
-	screen.DrawImage(shadowMask, nil)
-
-	// Step 5: Redraw wall tiles that face the player (so they're visible above shadows)
+	// Step 4: Draw walls that have clear line of sight ON TOP of shadows
 	g.drawVisibleWalls(screen)
 
-	// Step 6: Draw player character on top of everything
+	// Step 5: Draw player character on top of everything
 	if g.playerSpriteImg != nil {
 		// Draw player sprite centered on player position
 		spriteSize := 16.0 // Tile size from atlas
@@ -280,6 +257,33 @@ func (g *Game) Draw(screen renderer.Image) {
 			8,
 			2,
 			color.RGBA{200, 200, 50, 255})
+	}
+}
+
+func (g *Game) drawFloorsOnly(screen renderer.Image) {
+	if g.gameMap == nil || g.gameMap.Atlas == nil {
+		return
+	}
+
+	tileSize := g.gameMap.Data.TileSize
+
+	// Draw floor layer only (fills entire map with floor tile)
+	if g.gameMap.Data.FloorTile != "" {
+		floorTile, ok := g.gameMap.Atlas.GetTile(g.gameMap.Data.FloorTile)
+		if ok {
+			floorImg := g.gameMap.Atlas.GetTileSubImage(floorTile)
+			for y := 0; y < g.gameMap.Data.Height; y++ {
+				for x := 0; x < g.gameMap.Data.Width; x++ {
+					screenX := float64(x * tileSize)
+					screenY := float64(y * tileSize)
+
+					opts := &renderer.DrawImageOptions{}
+					opts.GeoM = renderer.NewGeoM()
+					opts.GeoM.Translate(screenX, screenY)
+					screen.DrawImage(floorImg, opts)
+				}
+			}
+		}
 	}
 }
 
@@ -341,6 +345,60 @@ func (g *Game) drawTiles(screen renderer.Image) {
 	}
 }
 
+// drawWallsToTexture renders only wall tiles (sight-blocking) to a texture for shader input
+// The shader will sample this texture's alpha channel to detect walls during raycasting
+func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
+	if g.gameMap == nil || g.gameMap.Atlas == nil {
+		return
+	}
+
+	tileSize := g.gameMap.Data.TileSize
+	drawnTiles := make(map[string]bool) // Track which tiles we've drawn
+
+	// Use wall segments to identify all wall tiles
+	for _, wall := range g.walls {
+		// Get tiles covered by this segment
+		tilesToDraw := wall.TilesCovered
+		if len(tilesToDraw) == 0 {
+			// Fallback to single tile if TilesCovered is empty
+			tilesToDraw = []shadows.Coord{{X: wall.TileX, Y: wall.TileY}}
+		}
+
+		for _, tileCoord := range tilesToDraw {
+			tileKey := fmt.Sprintf("%d,%d", tileCoord.X, tileCoord.Y)
+			if drawnTiles[tileKey] {
+				continue // Already drew this tile
+			}
+			drawnTiles[tileKey] = true
+
+			// Get the wall tile at this position
+			tileName, err := g.gameMap.GetTileAt(tileCoord.X, tileCoord.Y)
+			if err != nil || tileName == "" {
+				continue
+			}
+
+			tile, ok := g.gameMap.Atlas.GetTile(tileName)
+			if !ok {
+				continue
+			}
+
+			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+
+			screenX := float64(tileCoord.X * tileSize)
+			screenY := float64(tileCoord.Y * tileSize)
+
+			// Extract underlying ebiten.Image to draw wall tiles
+			if ebitenImg, ok := subImg.(*ebitenrenderer.EbitenImage); ok {
+				ebitenSubImg := ebitenImg.GetEbitenImage()
+
+				opts := &ebiten.DrawImageOptions{}
+				opts.GeoM.Translate(screenX, screenY)
+				texture.DrawImage(ebitenSubImg, opts)
+			}
+		}
+	}
+}
+
 func (g *Game) drawVisibleWalls(screen renderer.Image) {
 	if g.gameMap == nil || g.gameMap.Atlas == nil {
 		return
@@ -353,22 +411,103 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 	drawnTiles := make(map[string]bool) // Track which tiles we've already drawn
 
 	for _, wall := range g.walls {
-		if shadows.IsFacingPoint(wall, g.player.Pos) {
-			tileKey := fmt.Sprintf("%d,%d", wall.TileX, wall.TileY)
+		// Iterate through all tiles covered by this segment (for merged segments)
+		tilesToDraw := wall.TilesCovered
+		if len(tilesToDraw) == 0 {
+			// Fallback to single tile if TilesCovered is empty (shouldn't happen with new code)
+			tilesToDraw = []shadows.Coord{{X: wall.TileX, Y: wall.TileY}}
+		}
+
+		for _, tileCoord := range tilesToDraw {
+			tileKey := fmt.Sprintf("%d,%d", tileCoord.X, tileCoord.Y)
 			if drawnTiles[tileKey] {
 				continue // Already drew this tile
 			}
 
-			// Check if this tile is in shadow by testing if the tile center is visible
-			tileCenterX := float64(wall.TileX)*float64(tileSize) + float64(tileSize)/2
-			tileCenterY := float64(wall.TileY)*float64(tileSize) + float64(tileSize)/2
+			// Special case: Check if this is a corner wall
+			// A corner has walls on two perpendicular adjacent sides
+			isCorner, adjacentWalls := g.isCornerWall(tileCoord.X, tileCoord.Y)
 
-			if g.isPointInShadow(shadows.Point{tileCenterX, tileCenterY}) {
-				continue // This wall is in shadow, don't redraw it
+			var anyVisible bool
+
+			if isCorner {
+				// For corner walls: visible if ANY adjacent wall forming the corner is visible
+				// This prevents flickering as corners are stable when either wall is visible
+				anyVisible = false
+				for _, adjCoord := range adjacentWalls {
+					adjKey := fmt.Sprintf("%d,%d", adjCoord.X, adjCoord.Y)
+					if drawnTiles[adjKey] {
+						// Adjacent wall is already drawn, so it's visible
+						anyVisible = true
+						break
+					}
+				}
+
+				// If adjacent walls haven't been checked yet, fall back to normal sampling
+				if !anyVisible {
+					// Check a few sample points on the corner tile itself
+					tileBaseX := float64(tileCoord.X * tileSize)
+					tileBaseY := float64(tileCoord.Y * tileSize)
+					tileSizeFloat := float64(tileSize)
+
+					cornerSamples := []shadows.Point{
+						{tileBaseX + 4, tileBaseY + 4},
+						{tileBaseX + tileSizeFloat - 4, tileBaseY + 4},
+						{tileBaseX + 4, tileBaseY + tileSizeFloat - 4},
+						{tileBaseX + tileSizeFloat - 4, tileBaseY + tileSizeFloat - 4},
+					}
+
+					for _, point := range cornerSamples {
+						if !g.isPointInShadow(point, tileCoord.X, tileCoord.Y) {
+							anyVisible = true
+							break
+						}
+					}
+				}
+			} else {
+				// Normal wall: sample multiple points
+				tileBaseX := float64(tileCoord.X * tileSize)
+				tileBaseY := float64(tileCoord.Y * tileSize)
+				tileSizeFloat := float64(tileSize)
+
+				samplePoints := []shadows.Point{
+					// Center
+					{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat/2},
+
+					// 4 corners (inset 2px)
+					{tileBaseX + 2, tileBaseY + 2},
+					{tileBaseX + tileSizeFloat - 2, tileBaseY + 2},
+					{tileBaseX + 2, tileBaseY + tileSizeFloat - 2},
+					{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat - 2},
+
+					// Edge midpoints (inset 2px)
+					{tileBaseX + tileSizeFloat/2, tileBaseY + 2},
+					{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat - 2},
+					{tileBaseX + 2, tileBaseY + tileSizeFloat/2},
+					{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat/2},
+
+					// Quarter points
+					{tileBaseX + tileSizeFloat/4, tileBaseY + tileSizeFloat/4},
+					{tileBaseX + 3*tileSizeFloat/4, tileBaseY + tileSizeFloat/4},
+					{tileBaseX + tileSizeFloat/4, tileBaseY + 3*tileSizeFloat/4},
+					{tileBaseX + 3*tileSizeFloat/4, tileBaseY + 3*tileSizeFloat/4},
+				}
+
+				anyVisible = false
+				for _, point := range samplePoints {
+					if !g.isPointInShadow(point, tileCoord.X, tileCoord.Y) {
+						anyVisible = true
+						break
+					}
+				}
 			}
 
-			// Get the wall tile at this segment's position
-			tileName, err := g.gameMap.GetTileAt(wall.TileX, wall.TileY)
+			if !anyVisible {
+				continue // Not visible, don't draw
+			}
+
+			// Get the wall tile at this position
+			tileName, err := g.gameMap.GetTileAt(tileCoord.X, tileCoord.Y)
 			if err != nil || tileName == "" {
 				continue
 			}
@@ -380,8 +519,8 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 
 			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
 
-			screenX := float64(wall.TileX * tileSize)
-			screenY := float64(wall.TileY * tileSize)
+			screenX := float64(tileCoord.X * tileSize)
+			screenY := float64(tileCoord.Y * tileSize)
 
 			opts := &renderer.DrawImageOptions{}
 			opts.GeoM = renderer.NewGeoM()
@@ -393,23 +532,143 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 	}
 }
 
-func (g *Game) isPointInShadow(point shadows.Point) bool {
-	// Check if a point is in shadow by testing against all shadow-casting walls
-	maxDist := float64(g.screenWidth + g.screenHeight)
+func (g *Game) isCornerWall(tileX, tileY int) (bool, []shadows.Coord) {
+	// Check if this wall tile is a corner (has walls on 2 perpendicular adjacent sides)
+	// Returns true if corner, and the list of adjacent walls forming the corner
 
-	for _, wall := range g.walls {
-		if !shadows.IsFacingPoint(wall, g.player.Pos) {
-			continue
+	adjacentWalls := []shadows.Coord{}
+
+	// Check 4 cardinal directions
+	checkWall := func(x, y int) bool {
+		tileName, err := g.gameMap.GetTileAt(x, y)
+		if err != nil || tileName == "" {
+			return false
 		}
+		if tile, ok := g.gameMap.Atlas.GetTile(tileName); ok {
+			if blocksSight, ok := tile.Properties["blocks_sight"].(bool); ok && blocksSight {
+				return true
+			}
+		}
+		return false
+	}
 
-		// Use false for isCornerShadow in point-in-shadow testing
-		shadowPoly := shadows.CastShadow(g.player.Pos, wall, maxDist, g.gameMap.Data.TileSize, g.gameMap, false)
-		if shadowPoly != nil && shadows.PointInPolygon(point, shadowPoly) {
-			return true
+	hasNorth := checkWall(tileX, tileY-1)
+	hasSouth := checkWall(tileX, tileY+1)
+	hasEast := checkWall(tileX+1, tileY)
+	hasWest := checkWall(tileX-1, tileY)
+
+	// Check for perpendicular pairs (corners)
+	if (hasNorth && hasEast) || (hasNorth && hasWest) || (hasSouth && hasEast) || (hasSouth && hasWest) {
+		// This is a corner - collect the adjacent walls
+		if hasNorth {
+			adjacentWalls = append(adjacentWalls, shadows.Coord{X: tileX, Y: tileY - 1})
+		}
+		if hasSouth {
+			adjacentWalls = append(adjacentWalls, shadows.Coord{X: tileX, Y: tileY + 1})
+		}
+		if hasEast {
+			adjacentWalls = append(adjacentWalls, shadows.Coord{X: tileX + 1, Y: tileY})
+		}
+		if hasWest {
+			adjacentWalls = append(adjacentWalls, shadows.Coord{X: tileX - 1, Y: tileY})
+		}
+		return true, adjacentWalls
+	}
+
+	return false, nil
+}
+
+func (g *Game) isPointInShadow(point shadows.Point, ignoreTileX, ignoreTileY int) bool {
+	// Pixel-perfect raycasting to match shader behavior
+	// Cast ray from player to point and check if it hits a wall
+	// ignoreTileX/Y: The tile we're checking visibility for (don't count it as an occluder)
+
+	dx := point.X - g.player.Pos.X
+	dy := point.Y - g.player.Pos.Y
+	distance := math.Sqrt(dx*dx + dy*dy)
+
+	if distance < 1.0 {
+		return false // Player position is never in shadow
+	}
+
+	// Build ignore set: the target tile plus orthogonally adjacent wall tiles
+	// This prevents walls in a line from blocking each other (hallway effect)
+	ignoreSet := make(map[string]bool)
+	ignoreSet[fmt.Sprintf("%d,%d", ignoreTileX, ignoreTileY)] = true
+
+	// Check 4 orthogonal neighbors and add to ignore set if they're walls
+	checkAndIgnore := func(x, y int) {
+		tileName, err := g.gameMap.GetTileAt(x, y)
+		if err == nil && tileName != "" {
+			if tile, ok := g.gameMap.Atlas.GetTile(tileName); ok {
+				if blocksSight, ok := tile.Properties["blocks_sight"].(bool); ok && blocksSight {
+					ignoreSet[fmt.Sprintf("%d,%d", x, y)] = true
+				}
+			}
 		}
 	}
 
-	return false
+	checkAndIgnore(ignoreTileX-1, ignoreTileY) // West
+	checkAndIgnore(ignoreTileX+1, ignoreTileY) // East
+	checkAndIgnore(ignoreTileX, ignoreTileY-1) // North
+	checkAndIgnore(ignoreTileX, ignoreTileY+1) // South
+
+	// Normalize direction
+	dirX := dx / distance
+	dirY := dy / distance
+
+	// Sample along the ray (matching shader logic)
+	for t := 1.0; t < distance-0.5; t += 1.0 {
+		sampleX := g.player.Pos.X + dirX*t
+		sampleY := g.player.Pos.Y + dirY*t
+
+		// Check if this sample point is inside any wall tile
+		tileX := int(sampleX / float64(g.gameMap.Data.TileSize))
+		tileY := int(sampleY / float64(g.gameMap.Data.TileSize))
+
+		tileKey := fmt.Sprintf("%d,%d", tileX, tileY)
+
+		// Skip tiles in our ignore set
+		if ignoreSet[tileKey] {
+			continue
+		}
+
+		// Check if this tile is a wall
+		tileName, err := g.gameMap.GetTileAt(tileX, tileY)
+		if err == nil && tileName != "" {
+			// Check if it's actually a wall (has blocks_sight property)
+			if tile, ok := g.gameMap.Atlas.GetTile(tileName); ok {
+				if blocksSight, ok := tile.Properties["blocks_sight"].(bool); ok && blocksSight {
+					return true // Hit a wall before reaching the point
+				}
+			}
+		}
+	}
+
+	return false // Clear line of sight
+}
+
+// extendToScreenEdge extends a ray from 'from' through 'to' until it hits a screen edge
+func (g *Game) extendToScreenEdge(from, to shadows.Point, maxDist float64) shadows.Point {
+	// Direction vector
+	dx := to.X - from.X
+	dy := to.Y - from.Y
+
+	// Normalize and extend
+	length := maxDist * 2.0
+	if dx != 0 || dy != 0 {
+		currentLen := (dx*dx + dy*dy)
+		if currentLen > 0.001 {
+			scale := length / currentLen
+			dx *= scale
+			dy *= scale
+		}
+	}
+
+	return shadows.Point{
+		X: from.X + dx,
+		Y: from.Y + dy,
+	}
 }
 
 func (g *Game) drawPolygon(dst renderer.Image, points []shadows.Point, c color.RGBA) {
