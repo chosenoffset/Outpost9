@@ -284,7 +284,7 @@ func (g *Game) Draw(screen renderer.Image) {
 	g.drawWallsToTexture(g.wallTexture)
 
 	// Step 3: Apply shadow shader - darkens occluded areas
-	if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
+	/**if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
 		ebitenScreen := ebitenImg.GetEbitenImage()
 
 		// DEBUG: Log player position (throttle to ~1/sec to avoid spam)
@@ -300,7 +300,7 @@ func (g *Game) Draw(screen renderer.Image) {
 		}
 		opts.Images[0] = g.wallTexture
 		ebitenScreen.DrawRectShader(g.screenWidth, g.screenHeight, g.shadowShader, opts)
-	}
+	}*/
 
 	// Step 4: Draw walls that have clear line of sight ON TOP of shadows
 	g.drawVisibleWalls(screen)
@@ -572,9 +572,9 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 				}
 			}
 
-			if !anyVisible {
+			/*if !anyVisible {
 				continue // Not visible, don't draw
-			}
+			}*/
 
 			// Get the wall tile at this position
 			tileName, err := g.gameMap.GetTileAt(tileCoord.X, tileCoord.Y)
