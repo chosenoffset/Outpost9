@@ -955,6 +955,9 @@ func (g *Generator) placeFurnishings(rooms []*PlacedRoom) []*furnishing.PlacedFu
 		return placed
 	}
 
+	// Track furnishing counts per type for unique ID generation
+	furnishingCounts := make(map[string]int)
+
 	for _, placedRoom := range rooms {
 		room := placedRoom.Room
 
@@ -971,18 +974,34 @@ func (g *Generator) placeFurnishings(rooms []*PlacedRoom) []*furnishing.PlacedFu
 			worldX := placedRoom.X + furnishingPlacement.X
 			worldY := placedRoom.Y + furnishingPlacement.Y
 
+			// Generate unique ID for this furnishing instance
+			furnishingID := furnishingPlacement.ID
+			if furnishingID == "" {
+				// Auto-generate ID: furnishing_name_index (e.g., "chest_0", "chest_1")
+				count := furnishingCounts[furnishingDef.Name]
+				furnishingID = fmt.Sprintf("%s_%d", furnishingDef.Name, count)
+				furnishingCounts[furnishingDef.Name] = count + 1
+			}
+
+			// Determine initial state
+			initialState := furnishingPlacement.State
+			if initialState == "" {
+				// Use default state from definition if available
+				if furnishingDef.DefaultState != "" {
+					initialState = furnishingDef.DefaultState
+				} else {
+					initialState = "default"
+				}
+			}
+
 			// Create placed furnishing instance
 			placedFurnishing := &furnishing.PlacedFurnishing{
 				Definition: furnishingDef,
+				ID:         furnishingID,
 				X:          worldX,
 				Y:          worldY,
 				RoomID:     placedRoom.ID,
-				State:      furnishingPlacement.State,
-			}
-
-			// If state is empty, use default
-			if placedFurnishing.State == "" {
-				placedFurnishing.State = "default"
+				State:      initialState,
 			}
 
 			placed = append(placed, placedFurnishing)

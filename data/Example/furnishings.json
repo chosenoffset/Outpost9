@@ -1,6 +1,6 @@
 {
-  "name": "Outpost 9 Furnishings",
-  "description": "Furnishings and objects for sci-fi space station environments",
+  "name": "Example Game Furnishings",
+  "description": "Furnishings and objects with interactive behaviors",
   "furnishings": [
     {
       "name": "supply_crate",
@@ -11,9 +11,22 @@
       "walkable": false,
       "tags": ["container", "storage"],
       "properties": {
-        "loot_table": "supplies",
-        "max_uses": "1"
-      }
+        "loot_table": "supplies"
+      },
+      "default_state": "closed",
+      "interactions": [
+        {
+          "id": "search_crate",
+          "trigger": "interact",
+          "description": "Search crate",
+          "single_use": true,
+          "conditions": [],
+          "effects": [
+            {"type": "give_item", "value": "supplies", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You found some supplies!"}
+          ]
+        }
+      ]
     },
     {
       "name": "storage_locker",
@@ -24,10 +37,36 @@
       "walkable": false,
       "tags": ["container", "storage", "lockable"],
       "properties": {
-        "loot_table": "equipment",
-        "requires_key": "false",
-        "max_uses": "1"
-      }
+        "loot_table": "equipment"
+      },
+      "default_state": "closed",
+      "states": {
+        "closed": {"tile_name": "locker_closed"},
+        "open": {"tile_name": "locker_open"}
+      },
+      "interactions": [
+        {
+          "id": "open_locker",
+          "trigger": "interact",
+          "description": "Open locker",
+          "conditions": [{"type": "state_equals", "value": "closed"}],
+          "effects": [
+            {"type": "set_state", "value": "open"},
+            {"type": "give_item", "value": "equipment", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You found some equipment in the locker!"}
+          ]
+        },
+        {
+          "id": "locker_empty",
+          "trigger": "interact",
+          "description": "Examine locker",
+          "priority": -1,
+          "conditions": [{"type": "state_equals", "value": "open"}],
+          "effects": [
+            {"type": "show_message", "value": "The locker is empty."}
+          ]
+        }
+      ]
     },
     {
       "name": "computer_terminal",
@@ -38,9 +77,35 @@
       "walkable": false,
       "tags": ["electronics", "computer", "hackable"],
       "properties": {
-        "access_level": "standard",
-        "has_data": "true"
-      }
+        "access_level": "standard"
+      },
+      "default_state": "active",
+      "interactions": [
+        {
+          "id": "access_terminal",
+          "trigger": "interact",
+          "description": "Access terminal",
+          "conditions": [
+            {"type": "state_equals", "value": "active"},
+            {"type": "flag_not_set", "value": "terminal_accessed"}
+          ],
+          "effects": [
+            {"type": "set_flag", "value": "terminal_accessed"},
+            {"type": "show_message", "value": "You access the terminal and download valuable data."},
+            {"type": "give_item", "value": "data_chip", "args": {"amount": 1}}
+          ]
+        },
+        {
+          "id": "terminal_already_accessed",
+          "trigger": "interact",
+          "description": "Access terminal",
+          "priority": -1,
+          "conditions": [{"type": "flag_set", "value": "terminal_accessed"}],
+          "effects": [
+            {"type": "show_message", "value": "The terminal has already been accessed. No new data available."}
+          ]
+        }
+      ]
     },
     {
       "name": "power_generator",
@@ -51,9 +116,31 @@
       "walkable": false,
       "tags": ["machinery", "power", "critical"],
       "properties": {
-        "power_output": "500",
-        "status": "online"
-      }
+        "power_output": "500"
+      },
+      "default_state": "online",
+      "interactions": [
+        {
+          "id": "check_generator",
+          "trigger": "interact",
+          "description": "Check status",
+          "conditions": [{"type": "state_equals", "value": "online"}],
+          "effects": [
+            {"type": "show_message", "value": "Power output: OPTIMAL. All systems nominal."}
+          ]
+        },
+        {
+          "id": "repair_generator",
+          "trigger": "interact",
+          "description": "Repair generator",
+          "conditions": [{"type": "state_equals", "value": "offline"}],
+          "effects": [
+            {"type": "set_state", "value": "online"},
+            {"type": "set_flag", "value": "power_restored"},
+            {"type": "show_message", "value": "You repair the generator. Power restored!"}
+          ]
+        }
+      ]
     },
     {
       "name": "control_console",
@@ -65,7 +152,18 @@
       "tags": ["electronics", "control"],
       "properties": {
         "access_level": "standard"
-      }
+      },
+      "interactions": [
+        {
+          "id": "use_console",
+          "trigger": "interact",
+          "description": "Use console",
+          "conditions": [],
+          "effects": [
+            {"type": "show_message", "value": "Station status: All systems operational."}
+          ]
+        }
+      ]
     },
     {
       "name": "workstation_desk",
@@ -95,10 +193,34 @@
       "interactable": true,
       "walkable": false,
       "tags": ["door", "passage"],
-      "properties": {
-        "state": "closed",
-        "locked": "false"
-      }
+      "properties": {},
+      "default_state": "closed",
+      "states": {
+        "closed": {"tile_name": "door_closed", "walkable": false},
+        "open": {"tile_name": "door_open", "walkable": true}
+      },
+      "interactions": [
+        {
+          "id": "open_door",
+          "trigger": "interact",
+          "description": "Open door",
+          "conditions": [{"type": "state_equals", "value": "closed"}],
+          "effects": [
+            {"type": "set_state", "value": "open"},
+            {"type": "show_message", "value": "The door slides open."}
+          ]
+        },
+        {
+          "id": "close_door",
+          "trigger": "interact",
+          "description": "Close door",
+          "conditions": [{"type": "state_equals", "value": "open"}],
+          "effects": [
+            {"type": "set_state", "value": "closed"},
+            {"type": "show_message", "value": "The door slides closed."}
+          ]
+        }
+      ]
     },
     {
       "name": "storage_chest",
@@ -109,9 +231,126 @@
       "walkable": false,
       "tags": ["container", "storage", "valuable"],
       "properties": {
-        "loot_table": "treasure",
-        "max_uses": "1"
-      }
+        "loot_table": "treasure"
+      },
+      "default_state": "closed",
+      "states": {
+        "closed": {"tile_name": "chest_closed"},
+        "open": {"tile_name": "chest_open"}
+      },
+      "interactions": [
+        {
+          "id": "open_chest",
+          "trigger": "interact",
+          "description": "Open chest",
+          "conditions": [{"type": "state_equals", "value": "closed"}],
+          "effects": [
+            {"type": "set_state", "value": "open"},
+            {"type": "give_item", "value": "gold", "args": {"amount": 50}},
+            {"type": "show_message", "value": "You found 50 gold!"}
+          ]
+        },
+        {
+          "id": "chest_empty",
+          "trigger": "interact",
+          "description": "Search chest",
+          "priority": -1,
+          "conditions": [{"type": "state_equals", "value": "open"}],
+          "effects": [
+            {"type": "show_message", "value": "The chest is empty."}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "locked_chest",
+      "display_name": "Locked Chest",
+      "description": "A sturdy locked chest. Requires a key.",
+      "tile_name": "chest_closed",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["container", "storage", "locked"],
+      "properties": {},
+      "default_state": "locked",
+      "states": {
+        "locked": {"tile_name": "chest_closed"},
+        "unlocked": {"tile_name": "chest_closed"},
+        "open": {"tile_name": "chest_open"}
+      },
+      "interactions": [
+        {
+          "id": "unlock_chest",
+          "trigger": "interact",
+          "description": "Unlock chest",
+          "conditions": [
+            {"type": "state_equals", "value": "locked"},
+            {"type": "has_item", "value": "key"}
+          ],
+          "effects": [
+            {"type": "remove_item", "value": "key"},
+            {"type": "set_state", "value": "unlocked"},
+            {"type": "show_message", "value": "You unlock the chest with your key."}
+          ]
+        },
+        {
+          "id": "chest_locked_no_key",
+          "trigger": "interact",
+          "description": "Open chest",
+          "priority": -1,
+          "conditions": [
+            {"type": "state_equals", "value": "locked"},
+            {"type": "has_item", "value": "key", "not": true}
+          ],
+          "effects": [
+            {"type": "show_message", "value": "The chest is locked. You need a key."}
+          ]
+        },
+        {
+          "id": "open_unlocked_chest",
+          "trigger": "interact",
+          "description": "Open chest",
+          "conditions": [{"type": "state_equals", "value": "unlocked"}],
+          "effects": [
+            {"type": "set_state", "value": "open"},
+            {"type": "give_item", "value": "gold", "args": {"amount": 100}},
+            {"type": "give_item", "value": "rare_gem", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You found 100 gold and a rare gem!"}
+          ]
+        },
+        {
+          "id": "locked_chest_empty",
+          "trigger": "interact",
+          "description": "Search chest",
+          "priority": -2,
+          "conditions": [{"type": "state_equals", "value": "open"}],
+          "effects": [
+            {"type": "show_message", "value": "The chest is empty."}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "key_item",
+      "display_name": "Key",
+      "description": "A small key that might open something.",
+      "tile_name": "crate",
+      "interactable": true,
+      "walkable": true,
+      "tags": ["item", "key", "pickup"],
+      "properties": {},
+      "interactions": [
+        {
+          "id": "pickup_key",
+          "trigger": "interact",
+          "description": "Pick up key",
+          "single_use": true,
+          "conditions": [],
+          "effects": [
+            {"type": "give_item", "value": "key", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You picked up a key."}
+          ]
+        }
+      ]
     },
     {
       "name": "console_left_panel",
@@ -121,7 +360,18 @@
       "interactable": true,
       "walkable": false,
       "tags": ["electronics", "control"],
-      "properties": {}
+      "properties": {},
+      "interactions": [
+        {
+          "id": "use_left_console",
+          "trigger": "interact",
+          "description": "Check readings",
+          "conditions": [],
+          "effects": [
+            {"type": "show_message", "value": "Environmental readings: Normal."}
+          ]
+        }
+      ]
     },
     {
       "name": "console_right_panel",
@@ -131,7 +381,18 @@
       "interactable": true,
       "walkable": false,
       "tags": ["electronics", "control"],
-      "properties": {}
+      "properties": {},
+      "interactions": [
+        {
+          "id": "use_right_console",
+          "trigger": "interact",
+          "description": "Check security",
+          "conditions": [],
+          "effects": [
+            {"type": "show_message", "value": "Security status: All clear."}
+          ]
+        }
+      ]
     }
   ]
 }

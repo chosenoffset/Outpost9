@@ -208,6 +208,8 @@ func keyToEbitenKey(key renderer.Key) ebiten.Key {
 		return ebiten.KeyS
 	case renderer.KeyD:
 		return ebiten.KeyD
+	case renderer.KeyE:
+		return ebiten.KeyE
 	case renderer.KeyUp:
 		return ebiten.KeyArrowUp
 	case renderer.KeyDown:
