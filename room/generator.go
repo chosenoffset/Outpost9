@@ -362,7 +362,7 @@ func (g *Generator) canPlaceRoom(roomDef *RoomDefinition, x, y int, occupied map
 	return true
 }
 
-// tryPlaceRoom attempts to place a room connected to an existing room
+// tryPlaceRoom attempts to place a room connected to an existing room via corridor
 func (g *Generator) tryPlaceRoom(roomDef *RoomDefinition, id int, placed []*PlacedRoom, occupied map[string]bool) (*PlacedRoom, *Corridor) {
 	// Shuffle placed rooms to get variety
 	shuffledPlaced := make([]*PlacedRoom, len(placed))
@@ -393,26 +393,22 @@ func (g *Generator) tryPlaceRoom(roomDef *RoomDefinition, id int, placed []*Plac
 					continue
 				}
 
-				// Calculate where to place the new room so connections align
-				// The new room's connection point should be adjacent to the existing room's connection
+				// Place room with a small corridor gap (2 tiles) to avoid double walls
+				corridorLength := 2
 				var newRoomX, newRoomY int
 				switch connDir {
 				case "east":
-					// Existing room has east connection, new room placed to the east with west connection
-					newRoomX = connX + 1 - newConn.X
+					newRoomX = connX + 1 + corridorLength - newConn.X
 					newRoomY = connY - newConn.Y
 				case "west":
-					// Existing room has west connection, new room placed to the west with east connection
-					newRoomX = connX - 1 - newConn.X
+					newRoomX = connX - 1 - corridorLength - newConn.X
 					newRoomY = connY - newConn.Y
 				case "south":
-					// Existing room has south connection, new room placed below with north connection
 					newRoomX = connX - newConn.X
-					newRoomY = connY + 1 - newConn.Y
+					newRoomY = connY + 1 + corridorLength - newConn.Y
 				case "north":
-					// Existing room has north connection, new room placed above with south connection
 					newRoomX = connX - newConn.X
-					newRoomY = connY - 1 - newConn.Y
+					newRoomY = connY - 1 - corridorLength - newConn.Y
 				}
 
 				// Check if we can place the room here
@@ -427,13 +423,18 @@ func (g *Generator) tryPlaceRoom(roomDef *RoomDefinition, id int, placed []*Plac
 					}
 					existingRoom.UsedConnections = append(existingRoom.UsedConnections, connIdx)
 
+					// Generate corridor between the two doors
+					newConnX := newRoomX + newConn.X
+					newConnY := newRoomY + newConn.Y
+					corridor := g.generateCorridor(connX, connY, connDir, newConnX, newConnY, oppositeDir, occupied)
+
 					// Debug: Log the connection
-					fmt.Printf("DEBUG: Placing %s at (%d,%d) connected to %s via %s door\n",
+					fmt.Printf("DEBUG: Placing %s at (%d,%d) connected to %s via %s door with corridor\n",
 						roomDef.Name, newRoomX, newRoomY, existingRoom.Room.Name, connDir)
 					fmt.Printf("DEBUG:   Existing door at world (%d,%d), new door at world (%d,%d)\n",
-						connX, connY, newRoomX+newConn.X, newRoomY+newConn.Y)
+						connX, connY, newConnX, newConnY)
 
-					return newRoom, nil
+					return newRoom, corridor
 				}
 			}
 		}
@@ -870,7 +871,49 @@ func (g *Generator) createTileGridWithCorridors(width, height int, rooms []*Plac
 		}
 	}
 
+	// Third pass: close off unused doors (floor tiles adjacent to void)
+	g.closeUnusedDoors(tiles, width, height)
+
 	return tiles
+}
+
+// closeUnusedDoors finds floor tiles that are adjacent to void and converts them to walls
+func (g *Generator) closeUnusedDoors(tiles [][]string, width, height int) {
+	// Find all floor tiles that are on the edge of rooms (adjacent to void)
+	// and don't have a corridor connecting them
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			if tiles[y][x] != "floor" {
+				continue
+			}
+
+			// Check if this floor tile is adjacent to void in any cardinal direction
+			adjacentToVoid := false
+			var voidDir string
+			if x > 0 && tiles[y][x-1] == "" {
+				adjacentToVoid = true
+				voidDir = "west"
+			}
+			if x < width-1 && tiles[y][x+1] == "" {
+				adjacentToVoid = true
+				voidDir = "east"
+			}
+			if y > 0 && tiles[y-1][x] == "" {
+				adjacentToVoid = true
+				voidDir = "north"
+			}
+			if y < height-1 && tiles[y+1][x] == "" {
+				adjacentToVoid = true
+				voidDir = "south"
+			}
+
+			if adjacentToVoid {
+				// This is an unused door - convert to wall
+				tiles[y][x] = "wall"
+				fmt.Printf("DEBUG: Closing unused door at (%d,%d) facing %s\n", x, y, voidDir)
+			}
+		}
+	}
 }
 
 // findPlayerSpawn finds the player spawn point (in entrance room)
