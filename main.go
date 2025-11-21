@@ -135,10 +135,10 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	wallTexture := ebiten.NewImage(gm.screenWidth, gm.screenHeight)
 
 	gm.game = &Game{
-		screenWidth:     gm.screenWidth,
-		screenHeight:    gm.screenHeight,
-		gameMap:         gameMap,
-		walls:           walls,
+		screenWidth:  gm.screenWidth,
+		screenHeight: gm.screenHeight,
+		gameMap:      gameMap,
+		walls:        walls,
 		player: Player{
 			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
@@ -170,37 +170,107 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	// WASD movement
+	// WASD movement with collision detection
 	moveSpeed := g.player.Speed
 
+	// Player hitbox radius (half of sprite size, slightly smaller for better feel)
+	playerRadius := 6.0
+
+	// Calculate intended movement
+	var dx, dy float64
 	if g.inputMgr.IsKeyPressed(renderer.KeyW) {
-		g.player.Pos.Y -= moveSpeed
+		dy -= moveSpeed
 	}
 	if g.inputMgr.IsKeyPressed(renderer.KeyS) {
-		g.player.Pos.Y += moveSpeed
+		dy += moveSpeed
 	}
 	if g.inputMgr.IsKeyPressed(renderer.KeyA) {
-		g.player.Pos.X -= moveSpeed
+		dx -= moveSpeed
 	}
 	if g.inputMgr.IsKeyPressed(renderer.KeyD) {
-		g.player.Pos.X += moveSpeed
+		dx += moveSpeed
 	}
 
-	// Keep player in bounds
-	if g.player.Pos.X < 0 {
-		g.player.Pos.X = 0
+	// Try to move horizontally first (allows wall sliding)
+	if dx != 0 {
+		newX := g.player.Pos.X + dx
+		if g.canMoveTo(newX, g.player.Pos.Y, playerRadius) {
+			g.player.Pos.X = newX
+		}
 	}
-	if g.player.Pos.X > float64(g.screenWidth) {
-		g.player.Pos.X = float64(g.screenWidth)
+
+	// Then try to move vertically
+	if dy != 0 {
+		newY := g.player.Pos.Y + dy
+		if g.canMoveTo(g.player.Pos.X, newY, playerRadius) {
+			g.player.Pos.Y = newY
+		}
 	}
-	if g.player.Pos.Y < 0 {
-		g.player.Pos.Y = 0
+
+	// Keep player in level bounds
+	tileSize := float64(g.gameMap.Data.TileSize)
+	maxX := float64(g.gameMap.Data.Width) * tileSize
+	maxY := float64(g.gameMap.Data.Height) * tileSize
+
+	if g.player.Pos.X < playerRadius {
+		g.player.Pos.X = playerRadius
 	}
-	if g.player.Pos.Y > float64(g.screenHeight) {
-		g.player.Pos.Y = float64(g.screenHeight)
+	if g.player.Pos.X > maxX-playerRadius {
+		g.player.Pos.X = maxX - playerRadius
+	}
+	if g.player.Pos.Y < playerRadius {
+		g.player.Pos.Y = playerRadius
+	}
+	if g.player.Pos.Y > maxY-playerRadius {
+		g.player.Pos.Y = maxY - playerRadius
 	}
 
 	return nil
+}
+
+// canMoveTo checks if the player can move to the specified position
+func (g *Game) canMoveTo(x, y, radius float64) bool {
+	if g.gameMap == nil {
+		return true
+	}
+
+	tileSize := float64(g.gameMap.Data.TileSize)
+
+	// Check multiple points around the player's hitbox
+	// This ensures we can't clip through walls at any angle
+	checkPoints := []struct{ dx, dy float64 }{
+		{0, 0},                         // Center
+		{radius, 0},                    // Right
+		{-radius, 0},                   // Left
+		{0, radius},                    // Bottom
+		{0, -radius},                   // Top
+		{radius * 0.7, radius * 0.7},   // Bottom-right
+		{-radius * 0.7, radius * 0.7},  // Bottom-left
+		{radius * 0.7, -radius * 0.7},  // Top-right
+		{-radius * 0.7, -radius * 0.7}, // Top-left
+	}
+
+	for _, offset := range checkPoints {
+		checkX := x + offset.dx
+		checkY := y + offset.dy
+
+		// Convert to tile coordinates
+		tileX := int(checkX / tileSize)
+		tileY := int(checkY / tileSize)
+
+		// Check bounds
+		if tileX < 0 || tileX >= g.gameMap.Data.Width ||
+			tileY < 0 || tileY >= g.gameMap.Data.Height {
+			return false
+		}
+
+		// Check if tile is walkable
+		if !g.gameMap.IsWalkable(tileX, tileY) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (g *Game) Draw(screen renderer.Image) {
