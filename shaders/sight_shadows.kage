@@ -8,15 +8,8 @@ var PlayerPos vec2
 // Maximum distance to check for occlusion
 var MaxDistance float
 
-// Tile size constant
-const TileSize = 16.0
-
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	pixelPos := position.xy
-
-	// Calculate which tile the current pixel belongs to
-	currentTileX := int(pixelPos.x / TileSize)
-	currentTileY := int(pixelPos.y / TileSize)
 
 	direction := pixelPos - PlayerPos
 	distance := length(direction)
@@ -29,30 +22,22 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	direction = direction / distance
 
 	// Raycast from player toward current pixel
-	// Stop when entering the current pixel's tile
+	// Pure pixel-based raycasting - no tile logic
 	for i := 1; i < 2000; i++ {
 		t := float(i) * 1.0
 
-		if t >= distance {
+		// Stop just before reaching the current pixel itself
+		if t >= distance - 0.5 {
 			break
 		}
 
 		// Sample position along ray
 		samplePos := PlayerPos + direction * t
 
-		// Calculate which tile this sample is in
-		sampleTileX := int(samplePos.x / TileSize)
-		sampleTileY := int(samplePos.y / TileSize)
-
-		// Stop checking once we enter the current pixel's tile
-		if sampleTileX == currentTileX && sampleTileY == currentTileY {
-			break
-		}
-
 		// Sample wall texture
 		wall := imageSrc0At(samplePos)
 
-		// If we hit a wall before reaching current tile, this pixel is in shadow
+		// If we hit a wall before reaching current pixel, this pixel is in shadow
 		if wall.a > 0.1 {
 			return vec4(0, 0, 0, 0.8) // Dark shadow
 		}
