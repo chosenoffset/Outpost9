@@ -424,12 +424,31 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 				continue // Already drew this tile
 			}
 
-			// Check if this tile is in shadow by testing if the tile center is visible
-			tileCenterX := float64(tileCoord.X)*float64(tileSize) + float64(tileSize)/2
-			tileCenterY := float64(tileCoord.Y)*float64(tileSize) + float64(tileSize)/2
+			// Check if ANY part of this wall tile is visible
+			// Sample multiple points: center and 4 corners
+			tileBaseX := float64(tileCoord.X * tileSize)
+			tileBaseY := float64(tileCoord.Y * tileSize)
+			tileSizeFloat := float64(tileSize)
 
-			if g.isPointInShadow(shadows.Point{tileCenterX, tileCenterY}, tileCoord.X, tileCoord.Y) {
-				continue // This wall is in shadow, don't redraw it
+			samplePoints := []shadows.Point{
+				{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat/2}, // Center
+				{tileBaseX + 2, tileBaseY + 2},                              // Top-left (inset 2px)
+				{tileBaseX + tileSizeFloat - 2, tileBaseY + 2},             // Top-right (inset 2px)
+				{tileBaseX + 2, tileBaseY + tileSizeFloat - 2},             // Bottom-left (inset 2px)
+				{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat - 2}, // Bottom-right (inset 2px)
+			}
+
+			// If ANY sample point is visible, draw the wall
+			anyVisible := false
+			for _, point := range samplePoints {
+				if !g.isPointInShadow(point, tileCoord.X, tileCoord.Y) {
+					anyVisible = true
+					break
+				}
+			}
+
+			if !anyVisible {
+				continue // All sample points are in shadow, don't draw this wall
 			}
 
 			// Get the wall tile at this position
