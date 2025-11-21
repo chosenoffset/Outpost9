@@ -291,6 +291,14 @@ func (g *Generator) placeRoomsConnected(rooms []*RoomDefinition) ([]*PlacedRoom,
 	placed = append(placed, firstRoom)
 	g.markOccupied(occupied, firstRoom)
 
+	fmt.Printf("DEBUG: Placed entrance %s at (%d,%d), size %dx%d\n",
+		rooms[0].Name, 2, 2, rooms[0].Width, rooms[0].Height)
+	if len(rooms[0].Connections) > 0 {
+		conn := rooms[0].Connections[0]
+		fmt.Printf("DEBUG:   East door at local (%d,%d) = world (%d,%d)\n",
+			conn.X, conn.Y, 2+conn.X, 2+conn.Y)
+	}
+
 	// Place remaining rooms by connecting to existing rooms
 	for i := 1; i < len(rooms); i++ {
 		roomDef := rooms[i]
@@ -415,6 +423,13 @@ func (g *Generator) tryPlaceRoom(roomDef *RoomDefinition, id int, placed []*Plac
 						UsedConnections: []int{newConnIdx},
 					}
 					existingRoom.UsedConnections = append(existingRoom.UsedConnections, connIdx)
+
+					// Debug: Log the connection
+					fmt.Printf("DEBUG: Placing %s at (%d,%d) connected to %s via %s door\n",
+						roomDef.Name, newRoomX, newRoomY, existingRoom.Room.Name, connDir)
+					fmt.Printf("DEBUG:   Existing door at world (%d,%d), new door at world (%d,%d)\n",
+						connX, connY, newRoomX+newConn.X, newRoomY+newConn.Y)
+
 					return newRoom, nil
 				}
 			}
@@ -780,6 +795,7 @@ func (g *Generator) createTileGridWithCorridors(width, height int, rooms []*Plac
 	// Place room tiles (rooms already have their walls defined in the tile data)
 	for _, placedRoom := range rooms {
 		room := placedRoom.Room
+		fmt.Printf("DEBUG: Writing tiles for %s at (%d,%d)\n", room.Name, placedRoom.X, placedRoom.Y)
 		for ry := 0; ry < room.Height; ry++ {
 			for rx := 0; rx < room.Width; rx++ {
 				worldX := placedRoom.X + rx
@@ -789,6 +805,15 @@ func (g *Generator) createTileGridWithCorridors(width, height int, rooms []*Plac
 				if worldX >= 0 && worldX < width && worldY >= 0 && worldY < height {
 					tiles[worldY][worldX] = room.Tiles[ry][rx]
 				}
+			}
+		}
+		// Debug: Log door tiles
+		for i, conn := range room.Connections {
+			doorWorldX := placedRoom.X + conn.X
+			doorWorldY := placedRoom.Y + conn.Y
+			if doorWorldY >= 0 && doorWorldY < height && doorWorldX >= 0 && doorWorldX < width {
+				fmt.Printf("DEBUG:   Connection %d (%s) at world (%d,%d) = tile '%s'\n",
+					i, conn.Direction, doorWorldX, doorWorldY, tiles[doorWorldY][doorWorldX])
 			}
 		}
 	}
