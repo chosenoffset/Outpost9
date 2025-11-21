@@ -411,51 +411,49 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 	drawnTiles := make(map[string]bool) // Track which tiles we've already drawn
 
 	for _, wall := range g.walls {
-		if shadows.IsFacingPoint(wall, g.player.Pos) {
-			// Iterate through all tiles covered by this segment (for merged segments)
-			tilesToDraw := wall.TilesCovered
-			if len(tilesToDraw) == 0 {
-				// Fallback to single tile if TilesCovered is empty (shouldn't happen with new code)
-				tilesToDraw = []shadows.Coord{{X: wall.TileX, Y: wall.TileY}}
+		// Iterate through all tiles covered by this segment (for merged segments)
+		tilesToDraw := wall.TilesCovered
+		if len(tilesToDraw) == 0 {
+			// Fallback to single tile if TilesCovered is empty (shouldn't happen with new code)
+			tilesToDraw = []shadows.Coord{{X: wall.TileX, Y: wall.TileY}}
+		}
+
+		for _, tileCoord := range tilesToDraw {
+			tileKey := fmt.Sprintf("%d,%d", tileCoord.X, tileCoord.Y)
+			if drawnTiles[tileKey] {
+				continue // Already drew this tile
 			}
 
-			for _, tileCoord := range tilesToDraw {
-				tileKey := fmt.Sprintf("%d,%d", tileCoord.X, tileCoord.Y)
-				if drawnTiles[tileKey] {
-					continue // Already drew this tile
-				}
+			// Check if this tile is in shadow by testing if the tile center is visible
+			tileCenterX := float64(tileCoord.X)*float64(tileSize) + float64(tileSize)/2
+			tileCenterY := float64(tileCoord.Y)*float64(tileSize) + float64(tileSize)/2
 
-				// Check if this tile is in shadow by testing if the tile center is visible
-				tileCenterX := float64(tileCoord.X)*float64(tileSize) + float64(tileSize)/2
-				tileCenterY := float64(tileCoord.Y)*float64(tileSize) + float64(tileSize)/2
-
-				if g.isPointInShadow(shadows.Point{tileCenterX, tileCenterY}, tileCoord.X, tileCoord.Y) {
-					continue // This wall is in shadow, don't redraw it
-				}
-
-				// Get the wall tile at this position
-				tileName, err := g.gameMap.GetTileAt(tileCoord.X, tileCoord.Y)
-				if err != nil || tileName == "" {
-					continue
-				}
-
-				tile, ok := g.gameMap.Atlas.GetTile(tileName)
-				if !ok {
-					continue
-				}
-
-				subImg := g.gameMap.Atlas.GetTileSubImage(tile)
-
-				screenX := float64(tileCoord.X * tileSize)
-				screenY := float64(tileCoord.Y * tileSize)
-
-				opts := &renderer.DrawImageOptions{}
-				opts.GeoM = renderer.NewGeoM()
-				opts.GeoM.Translate(screenX, screenY)
-				screen.DrawImage(subImg, opts)
-
-				drawnTiles[tileKey] = true
+			if g.isPointInShadow(shadows.Point{tileCenterX, tileCenterY}, tileCoord.X, tileCoord.Y) {
+				continue // This wall is in shadow, don't redraw it
 			}
+
+			// Get the wall tile at this position
+			tileName, err := g.gameMap.GetTileAt(tileCoord.X, tileCoord.Y)
+			if err != nil || tileName == "" {
+				continue
+			}
+
+			tile, ok := g.gameMap.Atlas.GetTile(tileName)
+			if !ok {
+				continue
+			}
+
+			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+
+			screenX := float64(tileCoord.X * tileSize)
+			screenY := float64(tileCoord.Y * tileSize)
+
+			opts := &renderer.DrawImageOptions{}
+			opts.GeoM = renderer.NewGeoM()
+			opts.GeoM.Translate(screenX, screenY)
+			screen.DrawImage(subImg, opts)
+
+			drawnTiles[tileKey] = true
 		}
 	}
 }
