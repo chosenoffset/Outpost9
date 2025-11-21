@@ -7,7 +7,7 @@
   "rooms": [
     {
       "name": "entrance_small",
-      "description": "Small entrance room with single doorway",
+      "description": "Small entrance room with single doorway on east",
       "type": "entrance",
       "tags": ["start", "small"],
       "width": 7,
@@ -23,162 +23,22 @@
           "type": "door"
         }
       ],
-      "furnishings": [
-        {
-          "furnishing_name": "wall_torch",
-          "x": 1,
-          "y": 1,
-          "state": "lit"
-        },
-        {
-          "furnishing_name": "wall_torch",
-          "x": 5,
-          "y": 1,
-          "state": "lit"
-        }
-      ],
+      "furnishings": [],
       "tiles": [
         ["wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
         ["wall", "floor", "floor", "floor", "floor", "floor", "floor"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
         ["wall", "wall", "wall", "wall", "wall", "wall", "wall"]
       ]
     },
     {
-      "name": "corridor_horizontal",
-      "description": "Horizontal corridor connecting rooms",
-      "type": "corridor",
-      "tags": ["connector", "horizontal"],
-      "width": 5,
-      "height": 3,
-      "spawn_weight": 15,
-      "min_count": 0,
-      "max_count": 0,
-      "connections": [
-        {
-          "x": 0,
-          "y": 1,
-          "direction": "west",
-          "type": "corridor"
-        },
-        {
-          "x": 4,
-          "y": 1,
-          "direction": "east",
-          "type": "corridor"
-        }
-      ],
-      "tiles": [
-        ["wall", "wall", "wall", "wall", "wall"],
-        ["floor", "floor", "floor", "floor", "floor"],
-        ["wall", "wall", "wall", "wall", "wall"]
-      ]
-    },
-    {
-      "name": "corridor_vertical",
-      "description": "Vertical corridor connecting rooms",
-      "type": "corridor",
-      "tags": ["connector", "vertical"],
-      "width": 3,
-      "height": 5,
-      "spawn_weight": 15,
-      "min_count": 0,
-      "max_count": 0,
-      "connections": [
-        {
-          "x": 1,
-          "y": 0,
-          "direction": "north",
-          "type": "corridor"
-        },
-        {
-          "x": 1,
-          "y": 4,
-          "direction": "south",
-          "type": "corridor"
-        }
-      ],
-      "tiles": [
-        ["wall", "floor", "wall"],
-        ["wall", "floor", "wall"],
-        ["wall", "floor", "wall"],
-        ["wall", "floor", "wall"],
-        ["wall", "floor", "wall"]
-      ]
-    },
-    {
-      "name": "chamber_medium",
-      "description": "Medium sized chamber with multiple connections",
-      "type": "chamber",
-      "tags": ["room", "medium"],
-      "width": 8,
-      "height": 6,
-      "spawn_weight": 20,
-      "min_count": 0,
-      "max_count": 0,
-      "connections": [
-        {
-          "x": 0,
-          "y": 3,
-          "direction": "west",
-          "type": "door"
-        },
-        {
-          "x": 7,
-          "y": 3,
-          "direction": "east",
-          "type": "door"
-        },
-        {
-          "x": 4,
-          "y": 0,
-          "direction": "north",
-          "type": "door"
-        }
-      ],
-      "furnishings": [
-        {
-          "furnishing_name": "wooden_crate",
-          "x": 2,
-          "y": 2,
-          "state": "closed"
-        },
-        {
-          "furnishing_name": "barrel",
-          "x": 5,
-          "y": 2,
-          "state": "default"
-        },
-        {
-          "furnishing_name": "wall_torch",
-          "x": 1,
-          "y": 1,
-          "state": "lit"
-        },
-        {
-          "furnishing_name": "wall_torch",
-          "x": 6,
-          "y": 1,
-          "state": "lit"
-        }
-      ],
-      "tiles": [
-        ["wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
-      ]
-    },
-    {
       "name": "chamber_small",
-      "description": "Small chamber room",
+      "description": "Small chamber room with east-west doors",
       "type": "chamber",
       "tags": ["room", "small"],
-      "width": 5,
-      "height": 4,
+      "width": 7,
+      "height": 5,
       "spawn_weight": 25,
       "min_count": 0,
       "max_count": 0,
@@ -190,207 +50,65 @@
           "type": "door"
         },
         {
-          "x": 4,
-          "y": 2,
-          "direction": "east",
-          "type": "door"
-        }
-      ],
-      "tiles": [
-        ["wall", "wall", "wall", "wall", "wall"],
-        ["wall", "floor", "floor", "floor", "wall"],
-        ["floor", "floor", "floor", "floor", "floor"],
-        ["wall", "wall", "wall", "wall", "wall"]
-      ]
-    },
-    {
-      "name": "chamber_large",
-      "description": "Large open chamber",
-      "type": "chamber",
-      "tags": ["room", "large"],
-      "width": 10,
-      "height": 8,
-      "spawn_weight": 10,
-      "min_count": 0,
-      "max_count": 2,
-      "connections": [
-        {
-          "x": 0,
-          "y": 4,
-          "direction": "west",
-          "type": "door"
-        },
-        {
-          "x": 9,
-          "y": 4,
-          "direction": "east",
-          "type": "door"
-        },
-        {
-          "x": 5,
-          "y": 0,
-          "direction": "north",
-          "type": "door"
-        },
-        {
-          "x": 5,
-          "y": 7,
-          "direction": "south",
-          "type": "door"
-        }
-      ],
-      "furnishings": [
-        {
-          "furnishing_name": "treasure_chest",
-          "x": 5,
-          "y": 4,
-          "state": "locked"
-        },
-        {
-          "furnishing_name": "stone_pillar",
-          "x": 2,
-          "y": 3,
-          "state": "default"
-        },
-        {
-          "furnishing_name": "stone_pillar",
-          "x": 7,
-          "y": 3,
-          "state": "default"
-        },
-        {
-          "furnishing_name": "wall_torch",
-          "x": 1,
-          "y": 1,
-          "state": "lit"
-        },
-        {
-          "furnishing_name": "wall_torch",
-          "x": 8,
-          "y": 1,
-          "state": "lit"
-        },
-        {
-          "furnishing_name": "skeleton_remains",
-          "x": 3,
-          "y": 5,
-          "state": "default"
-        }
-      ],
-      "tiles": [
-        ["wall", "wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
-      ]
-    },
-    {
-      "name": "room_with_interior",
-      "description": "Chamber with interior room structure",
-      "type": "chamber",
-      "tags": ["room", "complex"],
-      "width": 11,
-      "height": 8,
-      "spawn_weight": 8,
-      "min_count": 0,
-      "max_count": 1,
-      "connections": [
-        {
-          "x": 0,
-          "y": 4,
-          "direction": "west",
-          "type": "door"
-        },
-        {
-          "x": 10,
-          "y": 4,
-          "direction": "east",
-          "type": "door"
-        }
-      ],
-      "furnishings": [
-        {
-          "furnishing_name": "bookshelf",
           "x": 6,
-          "y": 4,
-          "state": "default"
-        },
-        {
-          "furnishing_name": "wooden_table",
-          "x": 2,
-          "y": 3,
-          "state": "default"
-        },
-        {
-          "furnishing_name": "altar",
-          "x": 7,
           "y": 2,
-          "state": "active"
-        },
-        {
-          "furnishing_name": "campfire",
-          "x": 2,
-          "y": 5,
-          "state": "burning"
+          "direction": "east",
+          "type": "door"
         }
       ],
       "tiles": [
-        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "wall", "wall", "wall", "wall", "floor", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "wall", "floor", "floor", "wall", "floor", "wall"],
-        ["floor", "floor", "floor", "floor", "floor", "wall", "floor", "floor", "wall", "floor", "floor"],
-        ["wall", "floor", "floor", "floor", "floor", "wall", "floor", "floor", "wall", "floor", "wall"],
-        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall"]
       ]
     },
     {
-      "name": "junction_cross",
-      "description": "Four-way junction room",
-      "type": "junction",
-      "tags": ["connector", "cross"],
-      "width": 5,
-      "height": 5,
-      "spawn_weight": 12,
+      "name": "chamber_medium",
+      "description": "Medium chamber with doors on all sides",
+      "type": "chamber",
+      "tags": ["room", "medium"],
+      "width": 9,
+      "height": 7,
+      "spawn_weight": 20,
       "min_count": 0,
       "max_count": 0,
       "connections": [
         {
           "x": 0,
-          "y": 2,
+          "y": 3,
           "direction": "west",
-          "type": "corridor"
+          "type": "door"
+        },
+        {
+          "x": 8,
+          "y": 3,
+          "direction": "east",
+          "type": "door"
         },
         {
           "x": 4,
-          "y": 2,
-          "direction": "east",
-          "type": "corridor"
-        },
-        {
-          "x": 2,
           "y": 0,
           "direction": "north",
-          "type": "corridor"
+          "type": "door"
         },
         {
-          "x": 2,
-          "y": 4,
+          "x": 4,
+          "y": 6,
           "direction": "south",
-          "type": "corridor"
+          "type": "door"
         }
       ],
+      "furnishings": [],
       "tiles": [
-        ["wall", "wall", "floor", "wall", "wall"],
-        ["wall", "floor", "floor", "floor", "wall"],
-        ["floor", "floor", "floor", "floor", "floor"],
-        ["wall", "floor", "floor", "floor", "wall"],
-        ["wall", "wall", "floor", "wall", "wall"]
+        ["wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "floor", "wall", "wall", "wall", "wall"]
       ]
     }
   ]
