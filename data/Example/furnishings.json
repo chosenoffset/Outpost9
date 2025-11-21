@@ -1,188 +1,136 @@
 {
-  "name": "Example Dungeon Furnishings",
-  "description": "Furnishings and objects for dungeon-style environments",
+  "name": "Outpost 9 Furnishings",
+  "description": "Furnishings and objects for sci-fi space station environments",
   "furnishings": [
     {
-      "name": "wooden_crate",
-      "display_name": "Wooden Crate",
-      "description": "A sturdy wooden crate. It might contain supplies.",
+      "name": "supply_crate",
+      "display_name": "Supply Crate",
+      "description": "A sturdy supply crate. It might contain useful supplies.",
       "tile_name": "crate",
       "interactable": true,
       "walkable": false,
-      "tags": ["container", "furniture"],
-      "properties": {
-        "loot_table": "common",
-        "max_uses": "1"
-      }
-    },
-    {
-      "name": "treasure_chest",
-      "display_name": "Treasure Chest",
-      "description": "A locked treasure chest. The contents are unknown.",
-      "tile_name": "chest",
-      "interactable": true,
-      "walkable": false,
-      "tags": ["container", "valuable", "lockable"],
-      "properties": {
-        "loot_table": "treasure",
-        "requires_key": "true",
-        "max_uses": "1"
-      }
-    },
-    {
-      "name": "wall_torch",
-      "display_name": "Wall Torch",
-      "description": "A flickering torch mounted on the wall.",
-      "tile_name": "torch",
-      "interactable": false,
-      "walkable": true,
-      "tags": ["light_source", "decoration"],
-      "properties": {
-        "light_radius": "5"
-      }
-    },
-    {
-      "name": "stone_pillar",
-      "display_name": "Stone Pillar",
-      "description": "A decorative stone pillar supporting the ceiling.",
-      "tile_name": "pillar",
-      "interactable": false,
-      "walkable": false,
-      "tags": ["decoration", "obstacle"],
-      "properties": {}
-    },
-    {
-      "name": "skeleton_remains",
-      "display_name": "Skeletal Remains",
-      "description": "The bones of an unfortunate adventurer.",
-      "tile_name": "skeleton",
-      "interactable": true,
-      "walkable": true,
-      "tags": ["decoration", "searchable"],
-      "properties": {
-        "loot_table": "bones",
-        "max_uses": "1"
-      }
-    },
-    {
-      "name": "wooden_table",
-      "display_name": "Wooden Table",
-      "description": "A simple wooden table.",
-      "tile_name": "table",
-      "interactable": false,
-      "walkable": false,
-      "tags": ["furniture", "decoration"],
-      "properties": {}
-    },
-    {
-      "name": "bookshelf",
-      "display_name": "Bookshelf",
-      "description": "A dusty bookshelf filled with ancient tomes.",
-      "tile_name": "bookshelf",
-      "interactable": true,
-      "walkable": false,
-      "tags": ["furniture", "knowledge"],
-      "properties": {
-        "loot_table": "books",
-        "max_uses": "3"
-      }
-    },
-    {
-      "name": "weapon_rack",
-      "display_name": "Weapon Rack",
-      "description": "A rack for storing weapons. Most of the weapons are rusted.",
-      "tile_name": "weapon_rack",
-      "interactable": true,
-      "walkable": false,
-      "tags": ["furniture", "equipment"],
-      "properties": {
-        "loot_table": "weapons",
-        "max_uses": "1"
-      }
-    },
-    {
-      "name": "altar",
-      "display_name": "Ancient Altar",
-      "description": "A mysterious altar emanating strange energy.",
-      "tile_name": "altar",
-      "interactable": true,
-      "walkable": false,
-      "tags": ["special", "religious"],
-      "properties": {
-        "effect": "blessing",
-        "max_uses": "1"
-      }
-    },
-    {
-      "name": "barrel",
-      "display_name": "Barrel",
-      "description": "A wooden barrel. It smells of ale.",
-      "tile_name": "barrel",
-      "interactable": true,
-      "walkable": false,
-      "tags": ["container", "furniture"],
+      "tags": ["container", "storage"],
       "properties": {
         "loot_table": "supplies",
         "max_uses": "1"
       }
     },
     {
-      "name": "campfire",
-      "display_name": "Campfire",
-      "description": "A small campfire. The embers are still warm.",
-      "tile_name": "campfire",
+      "name": "storage_locker",
+      "display_name": "Storage Locker",
+      "description": "A metal storage locker. The lock appears damaged.",
+      "tile_name": "locker_closed",
       "interactable": true,
       "walkable": false,
-      "tags": ["light_source", "utility"],
+      "tags": ["container", "storage", "lockable"],
       "properties": {
-        "light_radius": "6",
-        "can_rest": "true"
+        "loot_table": "equipment",
+        "requires_key": "false",
+        "max_uses": "1"
       }
     },
     {
-      "name": "statue",
-      "display_name": "Stone Statue",
-      "description": "A weathered statue of a forgotten hero.",
-      "tile_name": "statue",
+      "name": "computer_terminal",
+      "display_name": "Computer Terminal",
+      "description": "A functional computer terminal with access to station systems.",
+      "tile_name": "computer_terminal",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["electronics", "computer", "hackable"],
+      "properties": {
+        "access_level": "standard",
+        "has_data": "true"
+      }
+    },
+    {
+      "name": "power_generator",
+      "display_name": "Power Generator",
+      "description": "A humming power generator. Critical for station operations.",
+      "tile_name": "generator",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["machinery", "power", "critical"],
+      "properties": {
+        "power_output": "500",
+        "status": "online"
+      }
+    },
+    {
+      "name": "control_console",
+      "display_name": "Control Console",
+      "description": "A station control console with multiple displays.",
+      "tile_name": "console_center",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["electronics", "control"],
+      "properties": {
+        "access_level": "standard"
+      }
+    },
+    {
+      "name": "workstation_desk",
+      "display_name": "Workstation",
+      "description": "A standard workstation desk with various tools and equipment.",
+      "tile_name": "desk_west",
       "interactable": false,
       "walkable": false,
-      "tags": ["decoration", "obstacle"],
+      "tags": ["furniture", "workstation"],
       "properties": {}
     },
     {
-      "name": "iron_maiden",
-      "display_name": "Iron Maiden",
-      "description": "A sinister torture device. Best left alone.",
-      "tile_name": "iron_maiden",
-      "interactable": true,
-      "walkable": false,
-      "tags": ["trap", "dangerous"],
-      "properties": {
-        "trap_type": "damage",
-        "damage": "2d6"
-      }
-    },
-    {
-      "name": "crystal_orb",
-      "display_name": "Crystal Orb",
-      "description": "A mystical crystal orb on a pedestal.",
-      "tile_name": "orb",
-      "interactable": true,
-      "walkable": false,
-      "tags": ["magical", "special"],
-      "properties": {
-        "effect": "vision",
-        "max_uses": "unlimited"
-      }
-    },
-    {
-      "name": "rubble",
-      "display_name": "Rubble",
-      "description": "Scattered debris and broken stones.",
-      "tile_name": "rubble",
+      "name": "office_chair",
+      "display_name": "Office Chair",
+      "description": "A standard issue office chair.",
+      "tile_name": "chair_south",
       "interactable": false,
-      "walkable": true,
-      "tags": ["decoration", "debris"],
+      "walkable": false,
+      "tags": ["furniture", "seating"],
+      "properties": {}
+    },
+    {
+      "name": "door",
+      "display_name": "Door",
+      "description": "An automatic sliding door.",
+      "tile_name": "door_closed",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["door", "passage"],
+      "properties": {
+        "state": "closed",
+        "locked": "false"
+      }
+    },
+    {
+      "name": "storage_chest",
+      "display_name": "Storage Chest",
+      "description": "A sealed storage container. Contents unknown.",
+      "tile_name": "chest_closed",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["container", "storage", "valuable"],
+      "properties": {
+        "loot_table": "treasure",
+        "max_uses": "1"
+      }
+    },
+    {
+      "name": "console_left_panel",
+      "display_name": "Console Panel (Left)",
+      "description": "Left section of a multi-panel console.",
+      "tile_name": "console_left",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["electronics", "control"],
+      "properties": {}
+    },
+    {
+      "name": "console_right_panel",
+      "display_name": "Console Panel (Right)",
+      "description": "Right section of a multi-panel console.",
+      "tile_name": "console_right",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["electronics", "control"],
       "properties": {}
     }
   ]
