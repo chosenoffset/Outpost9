@@ -764,16 +764,16 @@ func (g *Generator) createTileGrid(width, height int, rooms []*PlacedRoom) [][]s
 
 // createTileGridWithCorridors generates the tile grid including corridors and border walls
 func (g *Generator) createTileGridWithCorridors(width, height int, rooms []*PlacedRoom, corridors []*Corridor) [][]string {
-	// Initialize grid with wall tiles (everything is a wall by default)
+	// Initialize grid with empty tiles (void - will be black/not rendered)
 	tiles := make([][]string, height)
 	for y := 0; y < height; y++ {
 		tiles[y] = make([]string, width)
 		for x := 0; x < width; x++ {
-			tiles[y][x] = "wall" // Default to wall
+			tiles[y][x] = "" // Empty = void (black, not rendered)
 		}
 	}
 
-	// Place room tiles
+	// Place room tiles (rooms already have their walls defined in the tile data)
 	for _, placedRoom := range rooms {
 		room := placedRoom.Room
 		for ry := 0; ry < room.Height; ry++ {
@@ -789,18 +789,32 @@ func (g *Generator) createTileGridWithCorridors(width, height int, rooms []*Plac
 		}
 	}
 
-	// Place corridor floor tiles
+	// Place corridor floor tiles and add walls around them
+	corridorFloors := make(map[string]bool)
+	for _, corridor := range corridors {
+		for _, tile := range corridor.Tiles {
+			if tile.IsFloor {
+				key := fmt.Sprintf("%d,%d", tile.X, tile.Y)
+				corridorFloors[key] = true
+			}
+		}
+	}
+
+	// First pass: place corridor floors
 	for _, corridor := range corridors {
 		for _, tile := range corridor.Tiles {
 			if tile.X >= 0 && tile.X < width && tile.Y >= 0 && tile.Y < height {
 				if tile.IsFloor {
-					tiles[tile.Y][tile.X] = "floor"
+					// Only place floor if the tile is currently empty (don't overwrite room tiles)
+					if tiles[tile.Y][tile.X] == "" {
+						tiles[tile.Y][tile.X] = "floor"
+					}
 				}
 			}
 		}
 	}
 
-	// Add walls around corridor floors where needed
+	// Second pass: add walls around corridor floors
 	for _, corridor := range corridors {
 		for _, tile := range corridor.Tiles {
 			if !tile.IsFloor {
@@ -814,10 +828,9 @@ func (g *Generator) createTileGridWithCorridors(width, height int, rooms []*Plac
 					}
 					nx, ny := tile.X+dx, tile.Y+dy
 					if nx >= 0 && nx < width && ny >= 0 && ny < height {
-						// Only add wall if current tile is empty/wall and not already a floor
-						if tiles[ny][nx] == "wall" {
-							// Check if this is adjacent to a floor - if so, keep it as wall
-							// This ensures corridors have walls around them
+						// Add wall if the neighbor is empty void
+						if tiles[ny][nx] == "" {
+							tiles[ny][nx] = "wall"
 						}
 					}
 				}

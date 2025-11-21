@@ -86,8 +86,8 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	log.Printf("Loading room library: %s", libraryPath)
 
 	config := room.GeneratorConfig{
-		MinRooms:     5,
-		MaxRooms:     10,
+		MinRooms:     3,
+		MaxRooms:     4,
 		Seed:         0, // Use random seed each time
 		ConnectAll:   true,
 		AllowOverlap: false,
@@ -337,22 +337,34 @@ func (g *Game) drawFloorsOnly(screen renderer.Image) {
 
 	tileSize := g.gameMap.Data.TileSize
 
-	// Draw floor layer only (fills entire map with floor tile)
-	if g.gameMap.Data.FloorTile != "" {
-		floorTile, ok := g.gameMap.Atlas.GetTile(g.gameMap.Data.FloorTile)
-		if ok {
-			floorImg := g.gameMap.Atlas.GetTileSubImage(floorTile)
-			for y := 0; y < g.gameMap.Data.Height; y++ {
-				for x := 0; x < g.gameMap.Data.Width; x++ {
-					screenX := float64(x * tileSize)
-					screenY := float64(y * tileSize)
-
-					opts := &renderer.DrawImageOptions{}
-					opts.GeoM = renderer.NewGeoM()
-					opts.GeoM.Translate(screenX, screenY)
-					screen.DrawImage(floorImg, opts)
-				}
+	// Only draw floor tiles where the tile data specifies a floor
+	// Empty/void tiles are not rendered (stay black)
+	for y := 0; y < g.gameMap.Data.Height; y++ {
+		for x := 0; x < g.gameMap.Data.Width; x++ {
+			tileName, err := g.gameMap.GetTileAt(x, y)
+			if err != nil || tileName == "" {
+				continue // Skip void/empty tiles
 			}
+
+			// Get tile definition to check if it's a floor type
+			tile, ok := g.gameMap.Atlas.GetTile(tileName)
+			if !ok {
+				continue
+			}
+
+			// Only draw if this is a walkable/floor tile (not a wall)
+			if blocksSight, ok := tile.Properties["blocks_sight"].(bool); ok && blocksSight {
+				continue // Skip walls - they'll be drawn separately
+			}
+
+			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+			screenX := float64(x * tileSize)
+			screenY := float64(y * tileSize)
+
+			opts := &renderer.DrawImageOptions{}
+			opts.GeoM = renderer.NewGeoM()
+			opts.GeoM.Translate(screenX, screenY)
+			screen.DrawImage(subImg, opts)
 		}
 	}
 }
