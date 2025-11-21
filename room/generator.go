@@ -387,17 +387,21 @@ func (g *Generator) tryPlaceRoom(roomDef *RoomDefinition, id int, placed []*Plac
 				var newRoomX, newRoomY int
 				switch connDir {
 				case "east":
+					// Existing room has east connection, new room placed to the east with west connection
 					newRoomX = connX + 1 - newConn.X
 					newRoomY = connY - newConn.Y
 				case "west":
-					newRoomX = connX - 1 - newConn.X + 1 - roomDef.Width + newConn.X
+					// Existing room has west connection, new room placed to the west with east connection
+					newRoomX = connX - 1 - newConn.X
 					newRoomY = connY - newConn.Y
 				case "south":
+					// Existing room has south connection, new room placed below with north connection
 					newRoomX = connX - newConn.X
 					newRoomY = connY + 1 - newConn.Y
 				case "north":
+					// Existing room has north connection, new room placed above with south connection
 					newRoomX = connX - newConn.X
-					newRoomY = connY - 1 - newConn.Y + 1 - roomDef.Height + newConn.Y
+					newRoomY = connY - 1 - newConn.Y
 				}
 
 				// Check if we can place the room here
@@ -447,14 +451,14 @@ func (g *Generator) forcePlace(roomDef *RoomDefinition, id int, placed []*Placed
 						newRoomX = connX + dist - newConn.X
 						newRoomY = connY - newConn.Y
 					case "west":
-						newRoomX = connX - dist - roomDef.Width + 1 + newConn.X - newConn.X
+						newRoomX = connX - dist - newConn.X
 						newRoomY = connY - newConn.Y
 					case "south":
 						newRoomX = connX - newConn.X
 						newRoomY = connY + dist - newConn.Y
 					case "north":
 						newRoomX = connX - newConn.X
-						newRoomY = connY - dist - roomDef.Height + 1 + newConn.Y - newConn.Y
+						newRoomY = connY - dist - newConn.Y
 					}
 
 					if newRoomX < 1 || newRoomY < 1 {
