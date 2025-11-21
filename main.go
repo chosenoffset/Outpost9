@@ -425,17 +425,34 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 			}
 
 			// Check if ANY part of this wall tile is visible
-			// Sample multiple points: center and 4 corners
+			// Sample multiple points across the tile to handle corners and edges
 			tileBaseX := float64(tileCoord.X * tileSize)
 			tileBaseY := float64(tileCoord.Y * tileSize)
 			tileSizeFloat := float64(tileSize)
 
+			// Sample more points including edges and interior
+			// This is crucial for corner walls where center/corners might be blocked
 			samplePoints := []shadows.Point{
-				{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat/2}, // Center
-				{tileBaseX + 2, tileBaseY + 2},                              // Top-left (inset 2px)
-				{tileBaseX + tileSizeFloat - 2, tileBaseY + 2},             // Top-right (inset 2px)
-				{tileBaseX + 2, tileBaseY + tileSizeFloat - 2},             // Bottom-left (inset 2px)
-				{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat - 2}, // Bottom-right (inset 2px)
+				// Center
+				{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat/2},
+
+				// 4 corners (inset 2px)
+				{tileBaseX + 2, tileBaseY + 2},
+				{tileBaseX + tileSizeFloat - 2, tileBaseY + 2},
+				{tileBaseX + 2, tileBaseY + tileSizeFloat - 2},
+				{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat - 2},
+
+				// Edge midpoints (inset 2px)
+				{tileBaseX + tileSizeFloat/2, tileBaseY + 2},           // Top edge
+				{tileBaseX + tileSizeFloat/2, tileBaseY + tileSizeFloat - 2}, // Bottom edge
+				{tileBaseX + 2, tileBaseY + tileSizeFloat/2},           // Left edge
+				{tileBaseX + tileSizeFloat - 2, tileBaseY + tileSizeFloat/2}, // Right edge
+
+				// Quarter points for better coverage
+				{tileBaseX + tileSizeFloat/4, tileBaseY + tileSizeFloat/4},
+				{tileBaseX + 3*tileSizeFloat/4, tileBaseY + tileSizeFloat/4},
+				{tileBaseX + tileSizeFloat/4, tileBaseY + 3*tileSizeFloat/4},
+				{tileBaseX + 3*tileSizeFloat/4, tileBaseY + 3*tileSizeFloat/4},
 			}
 
 			// If ANY sample point is visible, draw the wall
