@@ -429,7 +429,7 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 				tileCenterX := float64(tileCoord.X)*float64(tileSize) + float64(tileSize)/2
 				tileCenterY := float64(tileCoord.Y)*float64(tileSize) + float64(tileSize)/2
 
-				if g.isPointInShadow(shadows.Point{tileCenterX, tileCenterY}) {
+				if g.isPointInShadow(shadows.Point{tileCenterX, tileCenterY}, tileCoord.X, tileCoord.Y) {
 					continue // This wall is in shadow, don't redraw it
 				}
 
@@ -460,9 +460,10 @@ func (g *Game) drawVisibleWalls(screen renderer.Image) {
 	}
 }
 
-func (g *Game) isPointInShadow(point shadows.Point) bool {
+func (g *Game) isPointInShadow(point shadows.Point, ignoreTileX, ignoreTileY int) bool {
 	// Pixel-perfect raycasting to match shader behavior
 	// Cast ray from player to point and check if it hits a wall
+	// ignoreTileX/Y: The tile we're checking visibility for (don't count it as an occluder)
 
 	dx := point.X - g.player.Pos.X
 	dy := point.Y - g.player.Pos.Y
@@ -484,6 +485,11 @@ func (g *Game) isPointInShadow(point shadows.Point) bool {
 		// Check if this sample point is inside any wall tile
 		tileX := int(sampleX / float64(g.gameMap.Data.TileSize))
 		tileY := int(sampleY / float64(g.gameMap.Data.TileSize))
+
+		// Skip the tile we're checking visibility for (don't let it occlude itself)
+		if tileX == ignoreTileX && tileY == ignoreTileY {
+			continue
+		}
 
 		// Check if this tile is a wall
 		tileName, err := g.gameMap.GetTileAt(tileX, tileY)
