@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"io/fs"
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -118,9 +119,9 @@ func LoadScreenFlow(path string) (*ScreenFlow, error) {
 	return &flow, nil
 }
 
-// LoadScreenFlowFromFS loads a screen flow using an ebiten file system
-func LoadScreenFlowFromFS(fs ebiten.FileSystem, path string) (*ScreenFlow, error) {
-	file, err := fs.Open(path)
+// LoadScreenFlowFromFS loads a screen flow using a file system interface
+func LoadScreenFlowFromFS(fsys fs.FS, path string) (*ScreenFlow, error) {
+	file, err := fsys.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open screen flow: %w", err)
 	}

@@ -6,9 +6,8 @@ package character
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
-
-	"github.com/hajimehoshi/ebiten/v2"
 
 	"chosenoffset.com/outpost9/dice"
 )
@@ -89,9 +88,9 @@ func LoadCharacterTemplate(path string) (*CharacterTemplate, error) {
 	return &template, nil
 }
 
-// LoadCharacterTemplateFromFS loads a character template using an ebiten file system
-func LoadCharacterTemplateFromFS(fs ebiten.FileSystem, path string) (*CharacterTemplate, error) {
-	file, err := fs.Open(path)
+// LoadCharacterTemplateFromFS loads a character template using a file system interface
+func LoadCharacterTemplateFromFS(fsys fs.FS, path string) (*CharacterTemplate, error) {
+	file, err := fsys.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open character template: %w", err)
 	}
