@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"chosenoffset.com/outpost9/atlas"
+	"chosenoffset.com/outpost9/character"
 	"chosenoffset.com/outpost9/furnishing"
 	"chosenoffset.com/outpost9/gamescanner"
 	"chosenoffset.com/outpost9/gamestate"
@@ -48,6 +49,11 @@ type GameManager struct {
 	renderer     renderer.Renderer
 	inputMgr     renderer.InputManager
 	loader       renderer.ResourceLoader
+
+	// Character creation
+	charCreation     *character.CreationManager
+	charTemplate     *character.CharacterTemplate
+	pendingSelection menu.Selection // Store selection while character is being created
 }
 
 func (gm *GameManager) Update() error {
@@ -55,12 +61,43 @@ func (gm *GameManager) Update() error {
 	case menu.StateMainMenu:
 		selected, selection := gm.mainMenu.Update()
 		if selected {
-			// Load the selected game
-			if err := gm.loadGame(selection); err != nil {
-				log.Printf("Failed to load game: %v", err)
-				return err
+			// Store selection and start character creation
+			gm.pendingSelection = selection
+
+			// Load character template for this game
+			charTemplatePath := fmt.Sprintf("data/%s/character.json", selection.GameDir)
+			template, err := character.LoadCharacterTemplate(charTemplatePath)
+			if err != nil {
+				log.Printf("No character template found (%v), skipping character creation", err)
+				// No character template - go straight to game
+				if err := gm.loadGame(selection, nil); err != nil {
+					log.Printf("Failed to load game: %v", err)
+					return err
+				}
+				gm.state = menu.StatePlaying
+			} else {
+				// Start character creation
+				gm.charTemplate = template
+				gm.charCreation = character.NewCreationManager(template, gm.screenWidth, gm.screenHeight)
+				gm.charCreation.SetOnComplete(func(char *character.Character) {
+					// Character created, now load the game
+					if err := gm.loadGame(gm.pendingSelection, char); err != nil {
+						log.Printf("Failed to load game: %v", err)
+						return
+					}
+					gm.state = menu.StatePlaying
+				})
+				gm.state = menu.StateCharacterCreation
 			}
-			gm.state = menu.StatePlaying
+		}
+	case menu.StateCharacterCreation:
+		if gm.charCreation != nil {
+			// Check for ESC to return to menu
+			if gm.inputMgr.IsKeyPressed(renderer.KeyEscape) {
+				gm.state = menu.StateMainMenu
+				gm.charCreation = nil
+			}
+			return gm.charCreation.Update()
 		}
 	case menu.StatePlaying:
 		if gm.game != nil {
@@ -78,6 +115,13 @@ func (gm *GameManager) Draw(screen renderer.Image) {
 	switch gm.state {
 	case menu.StateMainMenu:
 		gm.mainMenu.Draw(screen)
+	case menu.StateCharacterCreation:
+		if gm.charCreation != nil {
+			// Character creation uses ebiten.Image directly
+			if ebitenScreen, ok := screen.(*ebitenrenderer.EbitenImage); ok {
+				gm.charCreation.Draw(ebitenScreen.GetEbitenImage())
+			}
+		}
 	case menu.StatePlaying:
 		if gm.game != nil {
 			gm.game.Draw(screen)
@@ -105,7 +149,7 @@ func (gm *GameManager) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return outsideWidth, outsideHeight
 }
 
-func (gm *GameManager) loadGame(selection menu.Selection) error {
+func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.Character) error {
 	libraryPath := fmt.Sprintf("data/%s/%s", selection.GameDir, selection.RoomLibraryFile)
 
 	// Load procedurally generated level from room library
@@ -196,6 +240,7 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 		interactionEngine: interactionEng,
 		gameState:         gs,
 		inventory:         inv,
+		playerChar:        playerChar,
 	}
 
 	// Wire up interaction engine callbacks
@@ -205,14 +250,22 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	log.Printf("Interaction system initialized with %d furnishings",
 		len(gameMap.Data.PlacedFurnishings))
 
+	// Log character info if we have one
+	if playerChar != nil {
+		log.Printf("Player character: %s", playerChar.Name)
+		for statID, statVal := range playerChar.Stats {
+			log.Printf("  %s: %d", statID, statVal.Value)
+		}
+	}
+
 	return nil
 }
 
 // Message represents an on-screen message that fades over time
 type Message struct {
-	Text      string
-	TimeLeft  float64 // Seconds remaining
-	MaxTime   float64 // Initial duration
+	Text     string
+	TimeLeft float64 // Seconds remaining
+	MaxTime  float64 // Initial duration
 }
 
 type Game struct {
@@ -235,6 +288,9 @@ type Game struct {
 	interactionEngine *interaction.Engine
 	gameState         *gamestate.GameState
 	inventory         *inventory.Inventory
+
+	// Player character
+	playerChar *character.Character
 
 	// UI state
 	messages         []Message
@@ -636,8 +692,8 @@ func (g *Game) drawFloorsOnly(screen renderer.Image) {
 	// Calculate visible tile range for culling
 	startTileX := int(g.camera.X) / tileSize
 	startTileY := int(g.camera.Y) / tileSize
-	endTileX := (int(g.camera.X) + g.screenWidth) / tileSize + 1
-	endTileY := (int(g.camera.Y) + g.screenHeight) / tileSize + 1
+	endTileX := (int(g.camera.X)+g.screenWidth)/tileSize + 1
+	endTileY := (int(g.camera.Y)+g.screenHeight)/tileSize + 1
 
 	// Clamp to level bounds
 	if startTileX < 0 {

@@ -1,0 +1,216 @@
+{
+  "name": "Dungeon Crawl Character",
+  "description": "A classic fantasy dungeon crawl character with D&D-style attributes",
+
+  "categories": [
+    {
+      "id": "attributes",
+      "name": "Attributes",
+      "description": "The six core ability scores",
+      "order": 1
+    },
+    {
+      "id": "derived",
+      "name": "Derived Stats",
+      "description": "Stats calculated from attributes",
+      "order": 2
+    },
+    {
+      "id": "combat",
+      "name": "Combat Stats",
+      "description": "Stats used in combat",
+      "order": 3
+    }
+  ],
+
+  "stats": [
+    {
+      "id": "strength",
+      "name": "Strength",
+      "abbreviation": "STR",
+      "description": "Measures physical power. Affects melee damage and carrying capacity.",
+      "category": "attributes",
+      "min_value": 3,
+      "max_value": 18,
+      "order": 1
+    },
+    {
+      "id": "dexterity",
+      "name": "Dexterity",
+      "abbreviation": "DEX",
+      "description": "Measures agility and reflexes. Affects armor class and ranged attacks.",
+      "category": "attributes",
+      "min_value": 3,
+      "max_value": 18,
+      "order": 2
+    },
+    {
+      "id": "constitution",
+      "name": "Constitution",
+      "abbreviation": "CON",
+      "description": "Measures endurance and health. Affects hit points.",
+      "category": "attributes",
+      "min_value": 3,
+      "max_value": 18,
+      "order": 3
+    },
+    {
+      "id": "intelligence",
+      "name": "Intelligence",
+      "abbreviation": "INT",
+      "description": "Measures reasoning and memory. Affects magic power for wizards.",
+      "category": "attributes",
+      "min_value": 3,
+      "max_value": 18,
+      "order": 4
+    },
+    {
+      "id": "wisdom",
+      "name": "Wisdom",
+      "abbreviation": "WIS",
+      "description": "Measures perception and insight. Affects divine magic for clerics.",
+      "category": "attributes",
+      "min_value": 3,
+      "max_value": 18,
+      "order": 5
+    },
+    {
+      "id": "charisma",
+      "name": "Charisma",
+      "abbreviation": "CHA",
+      "description": "Measures force of personality. Affects social interactions.",
+      "category": "attributes",
+      "min_value": 3,
+      "max_value": 18,
+      "order": 6
+    },
+    {
+      "id": "str_mod",
+      "name": "STR Modifier",
+      "abbreviation": "STR+",
+      "description": "Modifier derived from Strength",
+      "category": "derived",
+      "formula": "(strength - 10) / 2",
+      "hidden": true,
+      "order": 1
+    },
+    {
+      "id": "dex_mod",
+      "name": "DEX Modifier",
+      "abbreviation": "DEX+",
+      "description": "Modifier derived from Dexterity",
+      "category": "derived",
+      "formula": "(dexterity - 10) / 2",
+      "hidden": true,
+      "order": 2
+    },
+    {
+      "id": "con_mod",
+      "name": "CON Modifier",
+      "abbreviation": "CON+",
+      "description": "Modifier derived from Constitution",
+      "category": "derived",
+      "formula": "(constitution - 10) / 2",
+      "hidden": true,
+      "order": 3
+    },
+    {
+      "id": "hit_points",
+      "name": "Hit Points",
+      "abbreviation": "HP",
+      "description": "Maximum health",
+      "category": "combat",
+      "base_value": 10,
+      "formula": "10 + con_mod",
+      "order": 1
+    },
+    {
+      "id": "armor_class",
+      "name": "Armor Class",
+      "abbreviation": "AC",
+      "description": "Defense rating",
+      "category": "combat",
+      "base_value": 10,
+      "formula": "10 + dex_mod",
+      "order": 2
+    }
+  ],
+
+  "derived_stats": [
+    {
+      "stat_id": "str_mod",
+      "formula": "(strength - 10) / 2"
+    },
+    {
+      "stat_id": "dex_mod",
+      "formula": "(dexterity - 10) / 2"
+    },
+    {
+      "stat_id": "con_mod",
+      "formula": "(constitution - 10) / 2"
+    },
+    {
+      "stat_id": "hit_points",
+      "formula": "10 + con_mod"
+    },
+    {
+      "stat_id": "armor_class",
+      "formula": "10 + dex_mod"
+    }
+  ],
+
+  "generation_methods": [
+    {
+      "id": "roll_3d6",
+      "name": "Classic (3d6)",
+      "description": "Roll 3d6 for each stat in order. Old school and brutal!",
+      "default": {
+        "type": "roll",
+        "expression": "3d6"
+      }
+    },
+    {
+      "id": "roll_4d6_drop",
+      "name": "Standard (4d6 drop lowest)",
+      "description": "Roll 4d6, drop the lowest die. The most common method.",
+      "default": {
+        "type": "roll",
+        "expression": "4d6dl1"
+      }
+    },
+    {
+      "id": "roll_best_of_3",
+      "name": "Heroic (Best of 3)",
+      "description": "Roll 3d6 three times, keep the best. For heroes!",
+      "default": {
+        "type": "best",
+        "expression": "3d6",
+        "count": 3
+      }
+    },
+    {
+      "id": "standard_array",
+      "name": "Standard Array",
+      "description": "Use the standard array: 15, 14, 13, 12, 10, 8. Balanced and fair.",
+      "array": [15, 14, 13, 12, 10, 8]
+    },
+    {
+      "id": "point_buy",
+      "name": "Point Buy",
+      "description": "Start with 8s and spend 27 points to increase stats.",
+      "default": {
+        "type": "pointbuy",
+        "value": 8
+      },
+      "point_pool": 27
+    },
+    {
+      "id": "elite_array",
+      "name": "Elite Array",
+      "description": "Use the elite array: 16, 15, 14, 13, 12, 10. For powerful characters.",
+      "array": [16, 15, 14, 13, 12, 10]
+    }
+  ],
+
+  "default_method": "roll_4d6_drop"
+}

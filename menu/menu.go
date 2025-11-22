@@ -13,6 +13,7 @@ type GameState int
 
 const (
 	StateMainMenu GameState = iota
+	StateCharacterCreation
 	StatePlaying
 )
 
