@@ -350,7 +350,14 @@ func (g *Generator) markCorridorOccupied(occupied map[string]bool, corridor *Cor
 }
 
 // canPlaceRoom checks if a room can be placed at the given position without overlap
+// Also ensures the room is within valid coordinate bounds (no negative positions)
 func (g *Generator) canPlaceRoom(roomDef *RoomDefinition, x, y int, occupied map[string]bool) bool {
+	// Check for negative coordinates - rooms must be fully within valid bounds
+	// This prevents tiles from being clipped when the level is generated
+	if x < 0 || y < 0 {
+		return false
+	}
+
 	for dy := 0; dy < roomDef.Height; dy++ {
 		for dx := 0; dx < roomDef.Width; dx++ {
 			key := fmt.Sprintf("%d,%d", x+dx, y+dy)
@@ -874,7 +881,58 @@ func (g *Generator) createTileGridWithCorridors(width, height int, rooms []*Plac
 	// Third pass: close off unused doors (floor tiles adjacent to void)
 	g.closeUnusedDoors(tiles, width, height)
 
+	// Debug: Validate room north walls
+	g.validateRoomWalls(tiles, rooms, width, height)
+
 	return tiles
+}
+
+// validateRoomWalls checks if room walls were written correctly to the tile grid
+func (g *Generator) validateRoomWalls(tiles [][]string, rooms []*PlacedRoom, width, height int) {
+	for _, placedRoom := range rooms {
+		room := placedRoom.Room
+
+		// Check north wall (row 0)
+		northWallMissing := true
+		for rx := 0; rx < room.Width; rx++ {
+			worldX := placedRoom.X + rx
+			worldY := placedRoom.Y // Row 0 = north wall
+
+			if worldY < 0 || worldY >= height || worldX < 0 || worldX >= width {
+				continue
+			}
+
+			expectedTile := room.Tiles[0][rx]
+			actualTile := tiles[worldY][worldX]
+
+			if expectedTile == "wall" && actualTile == "wall" {
+				northWallMissing = false
+			}
+
+			if expectedTile != actualTile {
+				fmt.Printf("DEBUG MISMATCH: Room %s at (%d,%d): tile[%d][%d] expected '%s' but found '%s'\n",
+					room.Name, placedRoom.X, placedRoom.Y, worldY, worldX, expectedTile, actualTile)
+			}
+		}
+
+		if northWallMissing && room.Height > 2 {
+			fmt.Printf("DEBUG WARNING: Room %s at (%d,%d) has NO walls in its north row!\n",
+				room.Name, placedRoom.X, placedRoom.Y)
+			// Print the north row for debugging
+			fmt.Printf("  Expected north row: %v\n", room.Tiles[0])
+			row := make([]string, room.Width)
+			for rx := 0; rx < room.Width; rx++ {
+				worldX := placedRoom.X + rx
+				worldY := placedRoom.Y
+				if worldY >= 0 && worldY < height && worldX >= 0 && worldX < width {
+					row[rx] = tiles[worldY][worldX]
+				} else {
+					row[rx] = "OOB"
+				}
+			}
+			fmt.Printf("  Actual north row:   %v\n", row)
+		}
+	}
 }
 
 // closeUnusedDoors finds floor tiles that are adjacent to void and converts them to walls
