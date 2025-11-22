@@ -15,6 +15,7 @@ import (
 	"chosenoffset.com/outpost9/furnishing"
 	"chosenoffset.com/outpost9/gamescanner"
 	"chosenoffset.com/outpost9/gamestate"
+	"chosenoffset.com/outpost9/hud"
 	"chosenoffset.com/outpost9/interaction"
 	"chosenoffset.com/outpost9/inventory"
 	"chosenoffset.com/outpost9/maploader"
@@ -286,12 +287,24 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	turnMgr.OnMessage = gm.game.showMessage
 	turnMgr.IsWalkable = gm.game.isTileWalkable
 	turnMgr.GetEntityAt = turnMgr.GetEntityAtPosition
+	turnMgr.OnTurnStart = func(turnNum int) {
+		if gm.game.gameHUD != nil {
+			gm.game.gameHUD.SetTurnNumber(turnNum)
+		}
+	}
 
 	// Spawn some enemies
 	gm.game.spawnEnemies()
 
 	// Start the first turn
 	turnMgr.StartNewTurn()
+
+	// Initialize HUD
+	hudConfig := hud.DefaultConfig()
+	hudConfig.StatCategories = []string{"attributes"} // Only show main attributes
+	gm.game.gameHUD = hud.New(hudConfig, gm.screenWidth, gm.screenHeight)
+	gm.game.gameHUD.SetPlayer(playerEntity, playerChar)
+	gm.game.gameHUD.SetTurnNumber(1)
 
 	log.Printf("Interaction system initialized with %d furnishings",
 		len(gameMap.Data.PlacedFurnishings))
@@ -342,6 +355,9 @@ type Game struct {
 	turnManager   *turn.Manager
 	playerEntity  *entity.Entity
 	entityLibrary *entity.EntityLibrary
+
+	// HUD
+	gameHUD *hud.HUD
 
 	// UI state
 	messages         []Message
@@ -772,6 +788,24 @@ func (g *Game) Draw(screen renderer.Image) {
 
 	// Step 7: Draw UI elements (interaction hints, messages)
 	g.drawUI(screen)
+
+	// Step 8: Draw HUD
+	g.drawHUD(screen)
+}
+
+// drawHUD renders the heads-up display
+func (g *Game) drawHUD(screen renderer.Image) {
+	if g.gameHUD == nil {
+		return
+	}
+
+	// Get ebiten image from renderer
+	ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage)
+	if !ok {
+		return
+	}
+
+	g.gameHUD.Draw(ebitenImg.GetEbitenImage())
 }
 
 // drawEntities renders all non-player entities (enemies, NPCs)
