@@ -1,13 +1,13 @@
 {
-  "name": "Example Room Library",
-  "description": "A collection of rooms for procedural level generation",
+  "name": "Dungeon Room Library",
+  "description": "A collection of dungeon rooms for procedural level generation",
   "atlas_path": "data/Example/atlas.json",
   "tile_size": 32,
   "floor_tile": "floor",
   "rooms": [
     {
       "name": "entrance_small",
-      "description": "Small entrance room with single doorway on east",
+      "description": "The dungeon entrance - a small antechamber with supplies left by previous adventurers",
       "type": "entrance",
       "tags": ["start", "small"],
       "width": 7,
@@ -25,12 +25,12 @@
       ],
       "furnishings": [
         {
-          "furnishing_name": "storage_locker",
+          "furnishing_name": "weapon_rack",
           "x": 1,
           "y": 1
         },
         {
-          "furnishing_name": "supply_crate",
+          "furnishing_name": "wooden_barrel",
           "x": 2,
           "y": 3
         }
@@ -45,9 +45,9 @@
     },
     {
       "name": "chamber_small",
-      "description": "Small chamber room with east-west doors",
+      "description": "A small dungeon chamber with an ancient tome on a pedestal",
       "type": "chamber",
-      "tags": ["room", "small"],
+      "tags": ["room", "small", "knowledge"],
       "width": 7,
       "height": 5,
       "spawn_weight": 25,
@@ -69,7 +69,7 @@
       ],
       "furnishings": [
         {
-          "furnishing_name": "computer_terminal",
+          "furnishing_name": "ancient_tome",
           "x": 3,
           "y": 1
         }
@@ -84,9 +84,9 @@
     },
     {
       "name": "chamber_medium",
-      "description": "Medium chamber with doors on all sides",
+      "description": "A medium ritual chamber with an altar and magical braziers",
       "type": "chamber",
-      "tags": ["room", "medium"],
+      "tags": ["room", "medium", "ritual"],
       "width": 9,
       "height": 7,
       "spawn_weight": 20,
@@ -120,27 +120,27 @@
       ],
       "furnishings": [
         {
-          "furnishing_name": "workstation_desk",
+          "furnishing_name": "stone_table",
           "x": 1,
           "y": 1
         },
         {
-          "furnishing_name": "office_chair",
+          "furnishing_name": "wooden_stool",
           "x": 2,
           "y": 1
         },
         {
-          "furnishing_name": "control_console",
+          "furnishing_name": "stone_altar",
           "x": 7,
           "y": 2
         },
         {
-          "furnishing_name": "power_generator",
+          "furnishing_name": "magical_brazier",
           "x": 1,
           "y": 5
         },
         {
-          "furnishing_name": "storage_chest",
+          "furnishing_name": "treasure_chest",
           "x": 7,
           "y": 5
         }
@@ -157,7 +157,7 @@
     },
     {
       "name": "chamber_large",
-      "description": "Large chamber with doors on all sides - great for boss encounters",
+      "description": "A grand hall - perfect for boss encounters or treasure hoards",
       "type": "chamber",
       "tags": ["room", "large", "boss"],
       "width": 13,
@@ -193,27 +193,27 @@
       ],
       "furnishings": [
         {
-          "furnishing_name": "control_console",
+          "furnishing_name": "stone_altar",
           "x": 6,
           "y": 2
         },
         {
-          "furnishing_name": "power_generator",
+          "furnishing_name": "magical_brazier",
           "x": 2,
           "y": 2
         },
         {
-          "furnishing_name": "power_generator",
+          "furnishing_name": "magical_brazier",
           "x": 10,
           "y": 2
         },
         {
-          "furnishing_name": "storage_chest",
+          "furnishing_name": "treasure_chest",
           "x": 2,
           "y": 8
         },
         {
-          "furnishing_name": "storage_chest",
+          "furnishing_name": "treasure_chest",
           "x": 10,
           "y": 8
         }
@@ -234,7 +234,7 @@
     },
     {
       "name": "corridor_horizontal",
-      "description": "Horizontal corridor segment",
+      "description": "A dark dungeon corridor",
       "type": "corridor",
       "tags": ["corridor", "horizontal"],
       "width": 9,
@@ -264,10 +264,10 @@
       ]
     },
     {
-      "name": "storage_room",
-      "description": "Storage room with crates and lockers",
+      "name": "treasure_room",
+      "description": "A treasure vault with barrels and weapon racks",
       "type": "storage",
-      "tags": ["room", "loot", "small"],
+      "tags": ["room", "loot", "small", "treasure"],
       "width": 6,
       "height": 6,
       "spawn_weight": 20,
@@ -283,22 +283,22 @@
       ],
       "furnishings": [
         {
-          "furnishing_name": "supply_crate",
+          "furnishing_name": "wooden_barrel",
           "x": 1,
           "y": 1
         },
         {
-          "furnishing_name": "supply_crate",
+          "furnishing_name": "wooden_barrel",
           "x": 4,
           "y": 1
         },
         {
-          "furnishing_name": "storage_locker",
+          "furnishing_name": "weapon_rack",
           "x": 1,
           "y": 4
         },
         {
-          "furnishing_name": "storage_locker",
+          "furnishing_name": "weapon_rack",
           "x": 4,
           "y": 4
         }
@@ -310,6 +310,237 @@
         ["floor", "floor", "floor", "floor", "floor", "wall"],
         ["wall", "floor", "floor", "floor", "floor", "wall"],
         ["wall", "wall", "wall", "wall", "wall", "wall"]
+      ]
+    },
+    {
+      "name": "crypt_chamber",
+      "description": "An ancient crypt with skeletal remains and forgotten treasures",
+      "type": "chamber",
+      "tags": ["room", "medium", "undead", "loot"],
+      "width": 8,
+      "height": 6,
+      "spawn_weight": 15,
+      "min_count": 0,
+      "max_count": 2,
+      "connections": [
+        {
+          "x": 0,
+          "y": 3,
+          "direction": "west",
+          "type": "door"
+        },
+        {
+          "x": 7,
+          "y": 3,
+          "direction": "east",
+          "type": "door"
+        }
+      ],
+      "furnishings": [
+        {
+          "furnishing_name": "skeleton_remains",
+          "x": 2,
+          "y": 1
+        },
+        {
+          "furnishing_name": "skeleton_remains",
+          "x": 5,
+          "y": 1
+        },
+        {
+          "furnishing_name": "locked_treasure_chest",
+          "x": 3,
+          "y": 4
+        },
+        {
+          "furnishing_name": "torch_sconce_left",
+          "x": 1,
+          "y": 2
+        },
+        {
+          "furnishing_name": "torch_sconce_right",
+          "x": 6,
+          "y": 2
+        }
+      ],
+      "tiles": [
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+      ]
+    },
+    {
+      "name": "alchemy_lab",
+      "description": "An abandoned alchemy laboratory with potions and supplies",
+      "type": "chamber",
+      "tags": ["room", "small", "alchemy", "loot"],
+      "width": 7,
+      "height": 6,
+      "spawn_weight": 12,
+      "min_count": 0,
+      "max_count": 2,
+      "connections": [
+        {
+          "x": 0,
+          "y": 3,
+          "direction": "west",
+          "type": "door"
+        }
+      ],
+      "furnishings": [
+        {
+          "furnishing_name": "stone_table",
+          "x": 3,
+          "y": 1
+        },
+        {
+          "furnishing_name": "potion_shelf",
+          "x": 5,
+          "y": 1
+        },
+        {
+          "furnishing_name": "wooden_barrel",
+          "x": 1,
+          "y": 4
+        },
+        {
+          "furnishing_name": "healing_fountain",
+          "x": 5,
+          "y": 4
+        }
+      ],
+      "tiles": [
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+      ]
+    },
+    {
+      "name": "armory",
+      "description": "An old armory with weapons and armor for brave adventurers",
+      "type": "chamber",
+      "tags": ["room", "medium", "equipment", "loot"],
+      "width": 8,
+      "height": 7,
+      "spawn_weight": 15,
+      "min_count": 0,
+      "max_count": 2,
+      "connections": [
+        {
+          "x": 0,
+          "y": 3,
+          "direction": "west",
+          "type": "door"
+        },
+        {
+          "x": 7,
+          "y": 3,
+          "direction": "east",
+          "type": "door"
+        }
+      ],
+      "furnishings": [
+        {
+          "furnishing_name": "weapon_rack",
+          "x": 1,
+          "y": 1
+        },
+        {
+          "furnishing_name": "weapon_rack",
+          "x": 6,
+          "y": 1
+        },
+        {
+          "furnishing_name": "armor_stand",
+          "x": 3,
+          "y": 3
+        },
+        {
+          "furnishing_name": "armor_stand",
+          "x": 4,
+          "y": 3
+        },
+        {
+          "furnishing_name": "wooden_barrel",
+          "x": 1,
+          "y": 5
+        },
+        {
+          "furnishing_name": "treasure_chest",
+          "x": 6,
+          "y": 5
+        }
+      ],
+      "tiles": [
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+      ]
+    },
+    {
+      "name": "shrine_room",
+      "description": "A sacred shrine where adventurers may seek divine favor",
+      "type": "chamber",
+      "tags": ["room", "small", "sacred", "healing"],
+      "width": 7,
+      "height": 7,
+      "spawn_weight": 10,
+      "min_count": 0,
+      "max_count": 1,
+      "connections": [
+        {
+          "x": 3,
+          "y": 0,
+          "direction": "north",
+          "type": "door"
+        },
+        {
+          "x": 3,
+          "y": 6,
+          "direction": "south",
+          "type": "door"
+        }
+      ],
+      "furnishings": [
+        {
+          "furnishing_name": "stone_altar",
+          "x": 3,
+          "y": 2
+        },
+        {
+          "furnishing_name": "magical_brazier",
+          "x": 1,
+          "y": 1
+        },
+        {
+          "furnishing_name": "magical_brazier",
+          "x": 5,
+          "y": 1
+        },
+        {
+          "furnishing_name": "healing_fountain",
+          "x": 3,
+          "y": 5
+        }
+      ],
+      "tiles": [
+        ["wall", "wall", "wall", "floor", "wall", "wall", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "floor", "floor", "floor", "floor", "floor", "wall"],
+        ["wall", "wall", "wall", "floor", "wall", "wall", "wall"]
       ]
     }
   ]

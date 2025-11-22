@@ -11,23 +11,23 @@ import (
 // TileSize is the standard size for placeholder tiles
 const TileSize = 32
 
-// ColorPalette defines colors for different tile types
+// ColorPalette defines colors for different tile types (dungeon theme)
 var ColorPalette = struct {
 	// Base tiles
-	FloorMetal1  color.RGBA
-	FloorMetal2  color.RGBA
-	FloorGrating color.RGBA
-	WallMetal    color.RGBA
-	WallPanel    color.RGBA
+	FloorStone1  color.RGBA
+	FloorStone2  color.RGBA
+	FloorCobble  color.RGBA
+	WallStone    color.RGBA
+	WallBrick    color.RGBA
 
-	// Objects
-	DeskWood   color.RGBA
-	ChairMetal color.RGBA
-	Terminal   color.RGBA
-	Console    color.RGBA
-	Locker     color.RGBA
-	Crate      color.RGBA
-	Generator  color.RGBA
+	// Objects (dungeon themed)
+	TableWood    color.RGBA // Stone table
+	StoolWood    color.RGBA // Wooden stool / skeleton remains
+	Tome         color.RGBA // Ancient tome (magic blue)
+	TorchSconce  color.RGBA // Wall torch (orange flame)
+	WeaponRack   color.RGBA // Weapon rack / potion shelf
+	Barrel       color.RGBA // Wooden barrel
+	Brazier      color.RGBA // Magical brazier (fire orange)
 
 	// Entities
 	Player     color.RGBA
@@ -40,21 +40,21 @@ var ColorPalette = struct {
 	Border     color.RGBA
 	Background color.RGBA
 }{
-	// Base tiles - various grays and metals
-	FloorMetal1:  color.RGBA{80, 85, 95, 255},   // Medium gray-blue
-	FloorMetal2:  color.RGBA{70, 75, 85, 255},   // Darker gray-blue
-	FloorGrating: color.RGBA{60, 65, 75, 255},   // Dark gray with slight blue
-	WallMetal:    color.RGBA{140, 145, 155, 255}, // Much lighter gray-blue for walls
-	WallPanel:    color.RGBA{120, 130, 140, 255}, // Steel blue-gray
+	// Base tiles - stone dungeon floors and walls
+	FloorStone1: color.RGBA{70, 65, 60, 255},   // Dark stone gray
+	FloorStone2: color.RGBA{60, 55, 50, 255},   // Darker stone
+	FloorCobble: color.RGBA{55, 50, 45, 255},   // Cobblestone dark
+	WallStone:   color.RGBA{130, 125, 115, 255}, // Lighter stone for walls
+	WallBrick:   color.RGBA{110, 100, 90, 255},  // Brick accent
 
-	// Objects - distinct colors for easy identification
-	DeskWood:   color.RGBA{139, 90, 60, 255},   // Brown
-	ChairMetal: color.RGBA{180, 180, 190, 255}, // Light gray
-	Terminal:   color.RGBA{0, 150, 200, 255},   // Cyan/blue
-	Console:    color.RGBA{50, 120, 180, 255},  // Blue
-	Locker:     color.RGBA{140, 140, 150, 255}, // Gray
-	Crate:      color.RGBA{160, 120, 80, 255},  // Tan/brown
-	Generator:  color.RGBA{200, 150, 0, 255},   // Gold/yellow
+	// Objects - dungeon themed colors
+	TableWood:   color.RGBA{100, 80, 60, 255},   // Dark wood/stone table
+	StoolWood:   color.RGBA{180, 175, 165, 255}, // Bone/light wood color
+	Tome:        color.RGBA{80, 60, 140, 255},   // Mystic purple
+	TorchSconce: color.RGBA{220, 140, 50, 255},  // Torch flame orange
+	WeaponRack:  color.RGBA{120, 100, 80, 255},  // Dark wood
+	Barrel:      color.RGBA{140, 100, 60, 255},  // Wood barrel brown
+	Brazier:     color.RGBA{255, 120, 30, 255},  // Bright fire orange
 
 	// Entities - bright, easily visible colors
 	Player:     color.RGBA{0, 255, 100, 255}, // Bright green
@@ -65,7 +65,7 @@ var ColorPalette = struct {
 
 	// UI
 	Border:     color.RGBA{200, 200, 200, 255}, // Light gray
-	Background: color.RGBA{40, 40, 45, 255},    // Very dark gray
+	Background: color.RGBA{30, 28, 25, 255},    // Very dark brown
 }
 
 // CreateSolidTile creates a simple solid-colored tile

@@ -11,7 +11,8 @@
       "atlas_y": 0,
       "properties": {
         "walkable": false,
-        "type": "furniture"
+        "type": "furniture",
+        "theme": "dungeon"
       }
     },
     {
@@ -20,7 +21,8 @@
       "atlas_y": 0,
       "properties": {
         "walkable": false,
-        "type": "furniture"
+        "type": "fountain",
+        "theme": "dungeon"
       }
     },
     {
@@ -29,7 +31,8 @@
       "atlas_y": 0,
       "properties": {
         "walkable": false,
-        "type": "furniture"
+        "type": "remains",
+        "theme": "dungeon"
       }
     },
     {
@@ -38,7 +41,8 @@
       "atlas_y": 0,
       "properties": {
         "walkable": false,
-        "type": "furniture"
+        "type": "furniture",
+        "theme": "dungeon"
       }
     },
     {
@@ -47,8 +51,9 @@
       "atlas_y": 32,
       "properties": {
         "walkable": false,
-        "type": "electronics",
-        "interactive": true
+        "type": "magic",
+        "interactive": true,
+        "theme": "dungeon"
       }
     },
     {
@@ -57,7 +62,8 @@
       "atlas_y": 32,
       "properties": {
         "walkable": false,
-        "type": "electronics"
+        "type": "light",
+        "theme": "dungeon"
       }
     },
     {
@@ -66,7 +72,8 @@
       "atlas_y": 32,
       "properties": {
         "walkable": false,
-        "type": "electronics"
+        "type": "altar",
+        "theme": "dungeon"
       }
     },
     {
@@ -75,7 +82,8 @@
       "atlas_y": 32,
       "properties": {
         "walkable": false,
-        "type": "electronics"
+        "type": "light",
+        "theme": "dungeon"
       }
     },
     {
@@ -84,8 +92,9 @@
       "atlas_y": 64,
       "properties": {
         "walkable": false,
-        "type": "storage",
-        "interactive": true
+        "type": "container",
+        "interactive": true,
+        "theme": "dungeon"
       }
     },
     {
@@ -94,7 +103,8 @@
       "atlas_y": 64,
       "properties": {
         "walkable": false,
-        "type": "storage"
+        "type": "container",
+        "theme": "dungeon"
       }
     },
     {
@@ -103,7 +113,8 @@
       "atlas_y": 64,
       "properties": {
         "walkable": false,
-        "type": "storage"
+        "type": "container",
+        "theme": "dungeon"
       }
     },
     {
@@ -112,7 +123,8 @@
       "atlas_y": 64,
       "properties": {
         "walkable": false,
-        "type": "machinery"
+        "type": "magic",
+        "theme": "dungeon"
       }
     },
     {
@@ -123,7 +135,8 @@
         "walkable": false,
         "type": "door",
         "interactive": true,
-        "blocks_sight": true
+        "blocks_sight": true,
+        "theme": "dungeon"
       }
     },
     {
@@ -134,7 +147,8 @@
         "walkable": true,
         "type": "door",
         "interactive": true,
-        "blocks_sight": false
+        "blocks_sight": false,
+        "theme": "dungeon"
       }
     },
     {
@@ -143,8 +157,9 @@
       "atlas_y": 96,
       "properties": {
         "walkable": false,
-        "type": "container",
-        "interactive": true
+        "type": "treasure",
+        "interactive": true,
+        "theme": "dungeon"
       }
     },
     {
@@ -153,7 +168,8 @@
       "atlas_y": 96,
       "properties": {
         "walkable": false,
-        "type": "container"
+        "type": "treasure",
+        "theme": "dungeon"
       }
     }
   ]
