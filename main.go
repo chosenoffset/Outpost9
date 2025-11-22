@@ -6,9 +6,12 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"math/rand"
+	"time"
 
 	"chosenoffset.com/outpost9/atlas"
 	"chosenoffset.com/outpost9/character"
+	"chosenoffset.com/outpost9/entity"
 	"chosenoffset.com/outpost9/furnishing"
 	"chosenoffset.com/outpost9/gamescanner"
 	"chosenoffset.com/outpost9/gamestate"
@@ -20,9 +23,11 @@ import (
 	ebitenrenderer "chosenoffset.com/outpost9/renderer/ebiten"
 	"chosenoffset.com/outpost9/room"
 	"chosenoffset.com/outpost9/shadows"
+	"chosenoffset.com/outpost9/turn"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -32,6 +37,8 @@ var shadowShaderSrc []byte
 type Player struct {
 	Pos   shadows.Point
 	Speed float64
+	// Grid position for turn-based movement
+	GridX, GridY int
 }
 
 // Camera tracks the viewport position for scrolling large levels
@@ -221,6 +228,11 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	interactionEng.GameState = gs
 	interactionEng.Inventory = inv
 
+	// Calculate grid position from pixel spawn position
+	tileSize := gameMap.Data.TileSize
+	spawnGridX := int(gameMap.Data.PlayerSpawn.X) / tileSize
+	spawnGridY := int(gameMap.Data.PlayerSpawn.Y) / tileSize
+
 	gm.game = &Game{
 		screenWidth:  gm.screenWidth,
 		screenHeight: gm.screenHeight,
@@ -229,6 +241,8 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 		player: Player{
 			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
+			GridX: spawnGridX,
+			GridY: spawnGridY,
 		},
 		renderer:          gm.renderer,
 		inputMgr:          gm.inputMgr,
@@ -246,6 +260,38 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	// Wire up interaction engine callbacks
 	gm.game.interactionEngine.OnMessage = gm.game.showMessage
 	gm.game.interactionEngine.ObjectLookup = gm.game.lookupFurnishing
+
+	// Load enemy library
+	enemiesPath := fmt.Sprintf("data/%s/enemies.json", selection.GameDir)
+	enemyLib, err := entity.LoadEntityLibrary(enemiesPath)
+	if err != nil {
+		log.Printf("Warning: Failed to load enemy library: %v", err)
+		// Continue without enemies
+	} else {
+		gm.game.entityLibrary = enemyLib
+		log.Printf("Loaded enemy library with %d enemy types", len(enemyLib.Enemies))
+	}
+
+	// Initialize turn manager
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	turnMgr := turn.NewManager(rng)
+
+	// Create player entity
+	playerEntity := entity.NewPlayerEntity(playerChar, spawnGridX, spawnGridY)
+	turnMgr.SetPlayer(playerEntity)
+	gm.game.playerEntity = playerEntity
+	gm.game.turnManager = turnMgr
+
+	// Wire up turn manager callbacks
+	turnMgr.OnMessage = gm.game.showMessage
+	turnMgr.IsWalkable = gm.game.isTileWalkable
+	turnMgr.GetEntityAt = turnMgr.GetEntityAtPosition
+
+	// Spawn some enemies
+	gm.game.spawnEnemies()
+
+	// Start the first turn
+	turnMgr.StartNewTurn()
 
 	log.Printf("Interaction system initialized with %d furnishings",
 		len(gameMap.Data.PlacedFurnishings))
@@ -292,6 +338,11 @@ type Game struct {
 	// Player character
 	playerChar *character.Character
 
+	// Turn-based system
+	turnManager   *turn.Manager
+	playerEntity  *entity.Entity
+	entityLibrary *entity.EntityLibrary
+
 	// UI state
 	messages         []Message
 	interactHint     string  // Current interaction hint to display
@@ -310,69 +361,64 @@ func (g *Game) Update() error {
 		g.interactCooldown -= dt
 	}
 
-	// WASD movement with collision detection
-	moveSpeed := g.player.Speed
+	// Turn-based input handling
+	if g.turnManager != nil && g.turnManager.IsPlayerTurn() {
+		var dir entity.Direction
 
-	// Player hitbox radius (half of sprite size, slightly smaller for better feel)
-	// With 32x32 sprites, use a larger radius
-	playerRadius := 12.0
+		// WASD or arrow keys for movement
+		if inpututil.IsKeyJustPressed(ebiten.KeyW) || inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+			dir = entity.DirNorth
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyS) || inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+			dir = entity.DirSouth
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyA) || inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+			dir = entity.DirWest
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyD) || inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+			dir = entity.DirEast
+		}
 
-	// Calculate intended movement
-	var dx, dy float64
-	if g.inputMgr.IsKeyPressed(renderer.KeyW) {
-		dy -= moveSpeed
-	}
-	if g.inputMgr.IsKeyPressed(renderer.KeyS) {
-		dy += moveSpeed
-	}
-	if g.inputMgr.IsKeyPressed(renderer.KeyA) {
-		dx -= moveSpeed
-	}
-	if g.inputMgr.IsKeyPressed(renderer.KeyD) {
-		dx += moveSpeed
-	}
+		// Process movement/attack
+		if dir != entity.DirNone && g.playerEntity != nil {
+			action := turn.Action{
+				Type:      turn.ActionMove,
+				Actor:     g.playerEntity,
+				Direction: dir,
+			}
+			g.turnManager.ProcessPlayerAction(action)
 
-	// Try to move horizontally first (allows wall sliding)
-	if dx != 0 {
-		newX := g.player.Pos.X + dx
-		if g.canMoveTo(newX, g.player.Pos.Y, playerRadius) {
-			g.player.Pos.X = newX
+			// Update pixel position from grid position
+			g.syncPlayerPosition()
+		}
+
+		// Wait action (space or period)
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) || inpututil.IsKeyJustPressed(ebiten.KeyPeriod) {
+			action := turn.Action{
+				Type:  turn.ActionWait,
+				Actor: g.playerEntity,
+			}
+			g.turnManager.ProcessPlayerAction(action)
 		}
 	}
 
-	// Then try to move vertically
-	if dy != 0 {
-		newY := g.player.Pos.Y + dy
-		if g.canMoveTo(g.player.Pos.X, newY, playerRadius) {
-			g.player.Pos.Y = newY
-		}
-	}
-
-	// Keep player in level bounds
-	tileSize := float64(g.gameMap.Data.TileSize)
-	maxX := float64(g.gameMap.Data.Width) * tileSize
-	maxY := float64(g.gameMap.Data.Height) * tileSize
-
-	if g.player.Pos.X < playerRadius {
-		g.player.Pos.X = playerRadius
-	}
-	if g.player.Pos.X > maxX-playerRadius {
-		g.player.Pos.X = maxX - playerRadius
-	}
-	if g.player.Pos.Y < playerRadius {
-		g.player.Pos.Y = playerRadius
-	}
-	if g.player.Pos.Y > maxY-playerRadius {
-		g.player.Pos.Y = maxY - playerRadius
-	}
-
-	// Update camera to follow player (center player on screen)
+	// Update camera to follow player
 	g.updateCamera()
 
-	// Handle interactions
+	// Handle interactions (E key)
 	g.updateInteractions()
 
 	return nil
+}
+
+// syncPlayerPosition updates the pixel position from grid position
+func (g *Game) syncPlayerPosition() {
+	if g.playerEntity == nil {
+		return
+	}
+	tileSize := float64(g.gameMap.Data.TileSize)
+	g.player.GridX = g.playerEntity.X
+	g.player.GridY = g.playerEntity.Y
+	// Center the player in the tile
+	g.player.Pos.X = float64(g.playerEntity.X)*tileSize + tileSize/2
+	g.player.Pos.Y = float64(g.playerEntity.Y)*tileSize + tileSize/2
 }
 
 // updateMessages updates message timers and removes expired messages
@@ -559,6 +605,105 @@ func (g *Game) canMoveTo(x, y, radius float64) bool {
 	return true
 }
 
+// isTileWalkable checks if a tile is walkable for turn-based movement
+func (g *Game) isTileWalkable(x, y int) bool {
+	if g.gameMap == nil {
+		return true
+	}
+
+	// Check bounds
+	if x < 0 || x >= g.gameMap.Data.Width || y < 0 || y >= g.gameMap.Data.Height {
+		return false
+	}
+
+	return g.gameMap.IsWalkable(x, y)
+}
+
+// spawnEnemies places enemies in the dungeon
+func (g *Game) spawnEnemies() {
+	if g.entityLibrary == nil || g.turnManager == nil {
+		return
+	}
+
+	enemies := g.entityLibrary.GetEnemiesForLevel(1) // Start at level 1
+	if len(enemies) == 0 {
+		log.Printf("No enemies available for level 1")
+		return
+	}
+
+	// Use a local random source for spawning
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// Spawn a few enemies in walkable tiles away from player
+	numEnemies := 3 + rng.Intn(5) // 3-7 enemies
+	spawned := 0
+	attempts := 0
+	maxAttempts := numEnemies * 50
+
+	for spawned < numEnemies && attempts < maxAttempts {
+		attempts++
+
+		// Pick random position
+		x := rng.Intn(g.gameMap.Data.Width)
+		y := rng.Intn(g.gameMap.Data.Height)
+
+		// Check if walkable
+		if !g.isTileWalkable(x, y) {
+			continue
+		}
+
+		// Check distance from player (at least 5 tiles)
+		dx := x - g.player.GridX
+		dy := y - g.player.GridY
+		if dx < 0 {
+			dx = -dx
+		}
+		if dy < 0 {
+			dy = -dy
+		}
+		dist := dx + dy
+		if dist < 5 {
+			continue
+		}
+
+		// Check no entity already there
+		if g.turnManager.GetEntityAtPosition(x, y) != nil {
+			continue
+		}
+
+		// Pick random enemy type (weighted)
+		totalWeight := 0
+		for _, e := range enemies {
+			totalWeight += e.SpawnWeight
+		}
+
+		roll := rng.Intn(totalWeight)
+		var selectedDef *entity.EntityDefinition
+		cumWeight := 0
+		for _, e := range enemies {
+			cumWeight += e.SpawnWeight
+			if roll < cumWeight {
+				selectedDef = e
+				break
+			}
+		}
+
+		if selectedDef == nil {
+			selectedDef = enemies[0]
+		}
+
+		// Spawn the enemy
+		enemyID := fmt.Sprintf("%s_%d", selectedDef.ID, spawned)
+		enemy := selectedDef.SpawnEntity(enemyID, x, y)
+		g.turnManager.AddEntity(enemy)
+
+		log.Printf("Spawned %s at (%d, %d)", enemy.Name, x, y)
+		spawned++
+	}
+
+	log.Printf("Spawned %d enemies", spawned)
+}
+
 func (g *Game) Draw(screen renderer.Image) {
 	// MULTI-PASS RENDERING FOR PIXEL-PERFECT SHADOWS
 
@@ -594,7 +739,10 @@ func (g *Game) Draw(screen renderer.Image) {
 	// Step 4: Draw walls that have clear line of sight ON TOP of shadows
 	g.drawVisibleWalls(screen)
 
-	// Step 5: Draw player character on top of everything
+	// Step 5: Draw enemies
+	g.drawEntities(screen)
+
+	// Step 6: Draw player character on top of everything
 	// Calculate player screen position with camera offset
 	playerScreenX := g.player.Pos.X - g.camera.X
 	playerScreenY := g.player.Pos.Y - g.camera.Y
@@ -622,8 +770,90 @@ func (g *Game) Draw(screen renderer.Image) {
 			color.RGBA{200, 200, 50, 255})
 	}
 
-	// Step 6: Draw UI elements (interaction hints, messages)
+	// Step 7: Draw UI elements (interaction hints, messages)
 	g.drawUI(screen)
+}
+
+// drawEntities renders all non-player entities (enemies, NPCs)
+func (g *Game) drawEntities(screen renderer.Image) {
+	if g.turnManager == nil {
+		return
+	}
+
+	tileSize := float64(g.gameMap.Data.TileSize)
+
+	for _, e := range g.turnManager.GetEntities() {
+		// Skip the player (drawn separately)
+		if e.Type == entity.TypePlayer {
+			continue
+		}
+
+		// Skip dead entities
+		if !e.IsAlive() {
+			continue
+		}
+
+		// Calculate screen position
+		worldX := float64(e.X)*tileSize + tileSize/2
+		worldY := float64(e.Y)*tileSize + tileSize/2
+		screenX := worldX - g.camera.X
+		screenY := worldY - g.camera.Y
+
+		// Skip if off screen
+		if screenX < -tileSize || screenX > float64(g.screenWidth)+tileSize ||
+			screenY < -tileSize || screenY > float64(g.screenHeight)+tileSize {
+			continue
+		}
+
+		// Try to get sprite from atlas
+		var sprite renderer.Image
+		if g.entitiesAtlas != nil && e.SpriteName != "" {
+			sprite, _ = g.entitiesAtlas.GetTileSubImageByName(e.SpriteName)
+		}
+
+		if sprite != nil {
+			// Draw sprite
+			opts := &renderer.DrawImageOptions{}
+			opts.GeoM = renderer.NewGeoM()
+			opts.GeoM.Translate(screenX-tileSize/2, screenY-tileSize/2)
+			screen.DrawImage(sprite, opts)
+		} else {
+			// Fallback: draw colored circle based on faction
+			var clr color.RGBA
+			switch e.Faction {
+			case entity.FactionEnemy:
+				clr = color.RGBA{255, 80, 80, 255} // Red for enemies
+			case entity.FactionNeutral:
+				clr = color.RGBA{100, 200, 100, 255} // Green for NPCs
+			default:
+				clr = color.RGBA{150, 150, 150, 255} // Gray for unknown
+			}
+
+			g.renderer.FillCircle(screen,
+				float32(screenX),
+				float32(screenY),
+				12,
+				clr)
+		}
+
+		// Draw HP bar above entity if damaged
+		if e.CurrentHP < e.MaxHP {
+			barWidth := 24.0
+			barHeight := 4.0
+			barX := screenX - barWidth/2
+			barY := screenY - tileSize/2 - 8
+
+			// Background (red)
+			g.renderer.FillCircle(screen, float32(barX+barWidth/2), float32(barY+barHeight/2), float32(barWidth/2), color.RGBA{100, 0, 0, 255})
+
+			// Health (green)
+			healthPct := float64(e.CurrentHP) / float64(e.MaxHP)
+			healthWidth := barWidth * healthPct
+			if healthWidth > 0 {
+				g.renderer.FillCircle(screen, float32(barX+healthWidth/2), float32(barY+barHeight/2), float32(healthWidth/2), color.RGBA{0, 200, 0, 255})
+			}
+		}
+	}
 }
 
 // drawUI renders interaction hints and messages
