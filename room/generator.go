@@ -149,14 +149,17 @@ func (g *Generator) Generate() (*GeneratedLevel, error) {
 	// Create tile grid with rooms, corridors, and border walls
 	tiles := g.createTileGridWithCorridors(levelWidth, levelHeight, placedRooms, corridors)
 
+	// Validate connectivity and remove unreachable rooms
+	placedRooms = g.removeUnreachableRooms(tiles, placedRooms, levelWidth, levelHeight)
+
 	// Find player spawn
 	playerSpawn := g.findPlayerSpawn(placedRooms)
 
-	// Place furnishings
+	// Place furnishings (only for reachable rooms)
 	placedFurnishings := g.placeFurnishings(placedRooms)
 
 	level := &GeneratedLevel{
-		Name:              "Procedurally Generated Outpost",
+		Name:              "Procedurally Generated Dungeon",
 		Width:             levelWidth,
 		Height:            levelHeight,
 		TileSize:          g.library.TileSize,
@@ -1002,6 +1005,122 @@ func (g *Generator) findPlayerSpawn(rooms []*PlacedRoom) PlayerSpawn {
 
 	// Ultimate fallback
 	return PlayerSpawn{X: 100, Y: 100}
+}
+
+// removeUnreachableRooms uses flood fill to find rooms not connected to the entrance
+// and removes them from the level (converts their tiles to void)
+func (g *Generator) removeUnreachableRooms(tiles [][]string, rooms []*PlacedRoom, width, height int) []*PlacedRoom {
+	// Find the entrance room to start flood fill
+	var startX, startY int
+	var entranceRoom *PlacedRoom
+	for _, room := range rooms {
+		if room.Room.Type == "entrance" {
+			// Start from center of entrance room
+			startX = room.X + room.Room.Width/2
+			startY = room.Y + room.Room.Height/2
+			entranceRoom = room
+			break
+		}
+	}
+
+	if entranceRoom == nil && len(rooms) > 0 {
+		// Fallback to first room
+		startX = rooms[0].X + rooms[0].Room.Width/2
+		startY = rooms[0].Y + rooms[0].Room.Height/2
+	}
+
+	// Flood fill to find all reachable floor tiles
+	reachable := make(map[string]bool)
+	g.floodFill(tiles, startX, startY, width, height, reachable)
+
+	fmt.Printf("DEBUG: Flood fill found %d reachable tiles starting from (%d,%d)\n", len(reachable), startX, startY)
+
+	// Check each room for reachability
+	var reachableRooms []*PlacedRoom
+	for _, room := range rooms {
+		// A room is reachable if any of its floor tiles are in the reachable set
+		isReachable := false
+		for ry := 0; ry < room.Room.Height && !isReachable; ry++ {
+			for rx := 0; rx < room.Room.Width && !isReachable; rx++ {
+				worldX := room.X + rx
+				worldY := room.Y + ry
+
+				// Check if this is a floor tile
+				if worldY >= 0 && worldY < height && worldX >= 0 && worldX < width {
+					if tiles[worldY][worldX] == "floor" {
+						key := fmt.Sprintf("%d,%d", worldX, worldY)
+						if reachable[key] {
+							isReachable = true
+						}
+					}
+				}
+			}
+		}
+
+		if isReachable {
+			reachableRooms = append(reachableRooms, room)
+		} else {
+			// Remove unreachable room tiles from the grid
+			fmt.Printf("DEBUG: Removing unreachable room %s at (%d,%d)\n", room.Room.Name, room.X, room.Y)
+			for ry := 0; ry < room.Room.Height; ry++ {
+				for rx := 0; rx < room.Room.Width; rx++ {
+					worldX := room.X + rx
+					worldY := room.Y + ry
+					if worldY >= 0 && worldY < height && worldX >= 0 && worldX < width {
+						tiles[worldY][worldX] = "" // Convert to void
+					}
+				}
+			}
+		}
+	}
+
+	fmt.Printf("DEBUG: %d/%d rooms are reachable\n", len(reachableRooms), len(rooms))
+	return reachableRooms
+}
+
+// floodFill performs a flood fill from the starting position to find all reachable floor tiles
+func (g *Generator) floodFill(tiles [][]string, startX, startY, width, height int, reachable map[string]bool) {
+	// Use BFS for flood fill
+	type point struct{ x, y int }
+	queue := []point{{startX, startY}}
+
+	// Directions: up, down, left, right
+	dirs := []point{{0, -1}, {0, 1}, {-1, 0}, {1, 0}}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		// Skip if out of bounds
+		if current.x < 0 || current.x >= width || current.y < 0 || current.y >= height {
+			continue
+		}
+
+		key := fmt.Sprintf("%d,%d", current.x, current.y)
+
+		// Skip if already visited
+		if reachable[key] {
+			continue
+		}
+
+		// Skip if not a walkable tile (only floor tiles are walkable)
+		tile := tiles[current.y][current.x]
+		if tile != "floor" {
+			continue
+		}
+
+		// Mark as reachable
+		reachable[key] = true
+
+		// Add neighbors to queue
+		for _, dir := range dirs {
+			next := point{current.x + dir.x, current.y + dir.y}
+			nextKey := fmt.Sprintf("%d,%d", next.x, next.y)
+			if !reachable[nextKey] {
+				queue = append(queue, next)
+			}
+		}
+	}
 }
 
 // placeFurnishings places all furnishings defined in placed rooms

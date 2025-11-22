@@ -21,7 +21,7 @@
       "atlas_y": 0,
       "properties": {
         "walkable": false,
-        "type": "furniture",
+        "type": "fountain",
         "theme": "dungeon"
       }
     },

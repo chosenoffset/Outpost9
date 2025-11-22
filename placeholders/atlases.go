@@ -16,13 +16,13 @@ func GenerateBaseTilesAtlas() *image.RGBA {
 
 	tiles := make([]*image.RGBA, 6)
 
-	// Row 0: Floors (0-2)
-	tiles[0] = CreateSolidTile(ColorPalette.FloorMetal1)
-	tiles[1] = CreateSolidTile(ColorPalette.FloorMetal2)
-	tiles[2] = CreatePatternedTile(ColorPalette.FloorGrating, Darken(ColorPalette.FloorGrating, 0.7), "grid")
+	// Row 0: Stone dungeon floors (0-2)
+	tiles[0] = CreateSolidTile(ColorPalette.FloorStone1)
+	tiles[1] = CreateSolidTile(ColorPalette.FloorStone2)
+	tiles[2] = CreatePatternedTile(ColorPalette.FloorCobble, Darken(ColorPalette.FloorCobble, 0.7), "grid")
 
-	// Row 1: Wall (3)
-	tiles[3] = CreateBorderedTile(ColorPalette.WallMetal, Darken(ColorPalette.WallMetal, 0.3), 1)
+	// Row 1: Stone wall (3)
+	tiles[3] = CreateBorderedTile(ColorPalette.WallStone, Darken(ColorPalette.WallStone, 0.3), 1)
 	tiles[4] = nil
 	tiles[5] = nil
 
@@ -32,38 +32,45 @@ func GenerateBaseTilesAtlas() *image.RGBA {
 // GenerateObjectTilesAtlas creates the object_tiles.png atlas
 // This matches the structure defined in Art/objects_layer.json
 func GenerateObjectTilesAtlas() *image.RGBA {
-	// According to objects_layer.json, we need these tiles:
-	// Row 0: desk_west, desk_east, chair_north, chair_south
-	// Row 1: computer_terminal, console_left, console_center, console_right
-	// Row 2: locker_closed, locker_open, crate, generator
+	// Dungeon themed objects:
+	// Row 0: stone_table (west), healing_fountain (east), skeleton_remains (north), wooden_stool (south)
+	// Row 1: ancient_tome, torch_sconce_left, stone_altar, torch_sconce_right
+	// Row 2: weapon_rack_closed, weapon_rack_open (potion_shelf), wooden_barrel, magical_brazier
+	// Row 3: door_closed, door_open, treasure_chest_closed, treasure_chest_open
 
-	tiles := make([]*image.RGBA, 12)
+	tiles := make([]*image.RGBA, 16)
 
-	// Row 0: Furniture (0-3)
-	tiles[0] = CreateDesk("west")
-	tiles[1] = CreateDesk("east")
-	tiles[2] = CreateChair("north")
-	tiles[3] = CreateChair("south")
+	// Row 0: Dungeon furniture (0-3)
+	tiles[0] = CreateStoneTable("west")
+	tiles[1] = CreateHealingFountain()
+	tiles[2] = CreateSkeletonRemains()
+	tiles[3] = CreateWoodenStool()
 
-	// Row 1: Electronics (4-7)
-	tiles[4] = CreateTerminal()
-	tiles[5] = CreateConsole("left")
-	tiles[6] = CreateConsole("center")
-	tiles[7] = CreateConsole("right")
+	// Row 1: Magic objects (4-7)
+	tiles[4] = CreateAncientTome()
+	tiles[5] = CreateTorchSconce("left")
+	tiles[6] = CreateStoneAltar()
+	tiles[7] = CreateTorchSconce("right")
 
-	// Row 2: Storage and machinery (8-11)
-	tiles[8] = CreateLocker(false)
-	tiles[9] = CreateLocker(true)
-	tiles[10] = CreateCrate()
-	tiles[11] = CreateGenerator()
+	// Row 2: Storage (8-11)
+	tiles[8] = CreateWeaponRack(false)
+	tiles[9] = CreateWeaponRack(true)
+	tiles[10] = CreateWoodenBarrel()
+	tiles[11] = CreateMagicalBrazier()
 
-	return CreateAtlas(tiles, 4) // 4 columns, 3 rows
+	// Row 3: Doors and chests (12-15)
+	tiles[12] = CreateDungeonDoor(false)
+	tiles[13] = CreateDungeonDoor(true)
+	tiles[14] = CreateTreasureChest(false)
+	tiles[15] = CreateTreasureChest(true)
+
+	return CreateAtlas(tiles, 4) // 4 columns, 4 rows
 }
 
 // Wall creation helpers
 func CreateWallCorner(direction string) *image.RGBA {
-	img := CreateSolidTile(ColorPalette.WallMetal)
-	borderColor := Lighten(ColorPalette.WallMetal, 0.3)
+	img := CreateSolidTile(ColorPalette.WallStone)
+	borderColor := Lighten(ColorPalette.WallStone, 0.3)
 
 	// Add corner highlighting
 	switch direction {
@@ -97,9 +104,9 @@ func CreateWallCorner(direction string) *image.RGBA {
 }
 
 func CreateWallSegment(direction string) *image.RGBA {
-	img := CreateSolidTile(ColorPalette.WallMetal)
-	borderColor := Lighten(ColorPalette.WallMetal, 0.3)
-	panelColor := ColorPalette.WallPanel
+	img := CreateSolidTile(ColorPalette.WallStone)
+	borderColor := Lighten(ColorPalette.WallStone, 0.3)
+	panelColor := ColorPalette.WallBrick
 
 	// Add directional panels
 	switch direction {
@@ -139,8 +146,8 @@ func CreateWallSegment(direction string) *image.RGBA {
 }
 
 func CreateWallCenter() *image.RGBA {
-	img := CreateSolidTile(ColorPalette.WallMetal)
-	panelColor := ColorPalette.WallPanel
+	img := CreateSolidTile(ColorPalette.WallStone)
+	panelColor := ColorPalette.WallBrick
 
 	// Add a centered panel
 	for y := 4; y < 12; y++ {
@@ -152,26 +159,45 @@ func CreateWallCenter() *image.RGBA {
 	return img
 }
 
-// Object creation helpers
-func CreateDesk(direction string) *image.RGBA {
-	img := CreateBorderedTile(ColorPalette.DeskWood, Darken(ColorPalette.DeskWood, 0.7), 2)
+// Dungeon object creation helpers
 
-	// Add a small screen/object on desk (scaled for tile size)
-	screenColor := color.RGBA{100, 150, 200, 255}
+// CreateStoneTable creates a stone table sprite
+func CreateStoneTable(direction string) *image.RGBA {
+	img := CreateBorderedTile(ColorPalette.TableWood, Darken(ColorPalette.TableWood, 0.5), 2)
+
+	// Add some scratches/texture on the table
+	scratchColor := Darken(ColorPalette.TableWood, 0.3)
 	quarter := TileSize / 4
 	half := TileSize / 2
 	threeQuarter := 3 * TileSize / 4
 
-	if direction == "west" {
-		for y := quarter; y < half+quarter/2; y++ {
-			for x := half; x < threeQuarter; x++ {
-				img.Set(x, y, screenColor)
-			}
+	// Draw some scratches
+	for i := quarter; i < threeQuarter; i++ {
+		if i%3 == 0 {
+			img.Set(i, half, scratchColor)
+			img.Set(half, i, scratchColor)
 		}
-	} else {
-		for y := quarter; y < half+quarter/2; y++ {
-			for x := quarter; x < half; x++ {
-				img.Set(x, y, screenColor)
+	}
+
+	return img
+}
+
+// CreateHealingFountain creates a healing fountain sprite
+func CreateHealingFountain() *image.RGBA {
+	img := CreateBorderedTile(ColorPalette.TableWood, Darken(ColorPalette.TableWood, 0.5), 3)
+
+	// Add glowing water in center
+	waterColor := color.RGBA{100, 200, 255, 255}
+	glowColor := color.RGBA{150, 230, 255, 255}
+	quarter := TileSize / 4
+	threeQuarter := 3 * TileSize / 4
+
+	for y := quarter; y < threeQuarter; y++ {
+		for x := quarter; x < threeQuarter; x++ {
+			if (x+y)%2 == 0 {
+				img.Set(x, y, waterColor)
+			} else {
+				img.Set(x, y, glowColor)
 			}
 		}
 	}
@@ -179,7 +205,8 @@ func CreateDesk(direction string) *image.RGBA {
 	return img
 }
 
-func CreateChair(direction string) *image.RGBA {
+// CreateSkeletonRemains creates a skeleton sprite
+func CreateSkeletonRemains() *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, TileSize, TileSize))
 
 	// Transparent background
@@ -189,59 +216,96 @@ func CreateChair(direction string) *image.RGBA {
 		}
 	}
 
-	chairColor := ColorPalette.ChairMetal
+	boneColor := ColorPalette.StoolWood
+	darkBone := Darken(boneColor, 0.7)
 
-	// Scaled positions for chair
-	eighth := TileSize / 8
+	// Draw skull (circle at top)
+	center := TileSize / 2
+	skullRadius := TileSize / 6
+	skullY := TileSize / 4
+
+	for y := 0; y < TileSize; y++ {
+		for x := 0; x < TileSize; x++ {
+			dx := x - center
+			dy := y - skullY
+			if dx*dx+dy*dy <= skullRadius*skullRadius {
+				img.Set(x, y, boneColor)
+			}
+		}
+	}
+
+	// Draw ribcage (lines below skull)
+	ribStart := TileSize / 3
+	ribEnd := 2 * TileSize / 3
+	for y := ribStart + 4; y < ribEnd; y += 3 {
+		for x := center - 4; x < center+4; x++ {
+			img.Set(x, y, boneColor)
+		}
+	}
+
+	// Eye sockets
+	for dx := -2; dx <= 2; dx++ {
+		img.Set(center-3+dx, skullY, darkBone)
+		img.Set(center+3+dx, skullY, darkBone)
+	}
+
+	return img
+}
+
+// CreateWoodenStool creates a wooden stool sprite
+func CreateWoodenStool() *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, TileSize, TileSize))
+
+	// Transparent background
+	for y := 0; y < TileSize; y++ {
+		for x := 0; x < TileSize; x++ {
+			img.Set(x, y, color.RGBA{0, 0, 0, 0})
+		}
+	}
+
+	woodColor := ColorPalette.Barrel
+	darkWood := Darken(woodColor, 0.6)
+
+	// Seat (top portion)
 	quarter := TileSize / 4
-	threeEighths := 3 * TileSize / 8
-	fiveEighths := 5 * TileSize / 8
 	threeQuarter := 3 * TileSize / 4
-	sevenEighths := 7 * TileSize / 8
+	seatTop := TileSize / 3
+	seatBottom := seatTop + TileSize/8
 
-	// Simple chair shape - seat and back
-	switch direction {
-	case "north":
-		// Back at top
-		for y := eighth; y < quarter; y++ {
-			for x := quarter; x < threeQuarter; x++ {
-				img.Set(x, y, chairColor)
-			}
+	for y := seatTop; y < seatBottom; y++ {
+		for x := quarter; x < threeQuarter; x++ {
+			img.Set(x, y, woodColor)
 		}
-		// Seat
-		for y := threeEighths; y < fiveEighths; y++ {
-			for x := threeEighths; x < fiveEighths+eighth; x++ {
-				img.Set(x, y, chairColor)
-			}
+	}
+
+	// Legs
+	legWidth := TileSize / 10
+	for y := seatBottom; y < 3*TileSize/4; y++ {
+		// Left leg
+		for x := quarter + 2; x < quarter+2+legWidth; x++ {
+			img.Set(x, y, darkWood)
 		}
-	case "south":
-		// Seat
-		for y := threeEighths; y < fiveEighths; y++ {
-			for x := threeEighths; x < fiveEighths+eighth; x++ {
-				img.Set(x, y, chairColor)
-			}
-		}
-		// Back at bottom
-		for y := threeQuarter-eighth; y < sevenEighths; y++ {
-			for x := quarter; x < threeQuarter; x++ {
-				img.Set(x, y, chairColor)
-			}
+		// Right leg
+		for x := threeQuarter - 2 - legWidth; x < threeQuarter-2; x++ {
+			img.Set(x, y, darkWood)
 		}
 	}
 
 	return img
 }
 
-func CreateTerminal() *image.RGBA {
-	img := CreateBorderedTile(ColorPalette.Terminal, Lighten(ColorPalette.Terminal, 0.3), 2)
+// CreateAncientTome creates a glowing magical tome sprite
+func CreateAncientTome() *image.RGBA {
+	img := CreateBorderedTile(ColorPalette.Tome, Lighten(ColorPalette.Tome, 0.3), 2)
 
-	// Add a screen effect (scaled)
-	screenColor := Lighten(ColorPalette.Terminal, 0.5)
-	margin := TileSize / 8
+	// Add glowing runes
+	runeColor := color.RGBA{180, 150, 255, 255}
+	margin := TileSize / 6
 	for y := margin; y < TileSize-margin; y++ {
 		for x := margin; x < TileSize-margin; x++ {
-			if y%2 == 0 { // Scanline effect
-				img.Set(x, y, screenColor)
+			// Create a mystical pattern
+			if (x+y)%4 == 0 || (x-y+TileSize)%4 == 0 {
+				img.Set(x, y, runeColor)
 			}
 		}
 	}
@@ -249,110 +313,224 @@ func CreateTerminal() *image.RGBA {
 	return img
 }
 
-func CreateConsole(position string) *image.RGBA {
-	img := CreateSolidTile(ColorPalette.Console)
-	buttonColor := Lighten(ColorPalette.Console, 0.4)
+// CreateTorchSconce creates a wall torch sprite
+func CreateTorchSconce(position string) *image.RGBA {
+	img := CreateSolidTile(ColorPalette.WallBrick)
+	flameColor := ColorPalette.TorchSconce
+	brightFlame := Lighten(flameColor, 0.4)
 
-	// Scaled button positions
-	third := TileSize / 3
-	twoThirds := 2 * TileSize / 3
-	quarter := TileSize / 4
-	half := TileSize / 2
-	threeQuarter := 3 * TileSize / 4
-	buttonSize := TileSize / 8
-
-	// Add buttons/lights based on position
-	buttons := []image.Point{}
-	switch position {
-	case "left":
-		buttons = []image.Point{{twoThirds, third}, {twoThirds, twoThirds}}
-	case "center":
-		buttons = []image.Point{{third, half}, {twoThirds, half}}
-	case "right":
-		buttons = []image.Point{{third, third}, {third, twoThirds}}
-	}
-
-	for _, p := range buttons {
-		for dy := 0; dy < buttonSize; dy++ {
-			for dx := 0; dx < buttonSize; dx++ {
-				img.Set(p.X+dx, p.Y+dy, buttonColor)
-			}
-		}
-	}
-
-	// Suppress unused variable warnings
-	_ = quarter
-	_ = threeQuarter
-
-	return img
-}
-
-func CreateLocker(open bool) *image.RGBA {
-	lockerColor := ColorPalette.Locker
-	if open {
-		lockerColor = Darken(lockerColor, 0.7)
-	}
-
-	borderWidth := TileSize / 8
-	img := CreateBorderedTile(lockerColor, Darken(ColorPalette.Locker, 0.5), borderWidth)
-
-	// Add a handle (scaled)
-	handleColor := color.RGBA{200, 200, 210, 255}
-	handleY := TileSize / 2 - TileSize/16
-	handleX := TileSize * 2 / 3
-	handleSize := TileSize / 8
-	for y := handleY; y < handleY+handleSize; y++ {
-		for x := handleX; x < handleX+handleSize; x++ {
-			img.Set(x, y, handleColor)
-		}
-	}
-
-	return img
-}
-
-func CreateCrate() *image.RGBA {
-	borderWidth := TileSize / 8
-	img := CreateBorderedTile(ColorPalette.Crate, Darken(ColorPalette.Crate, 0.6), borderWidth)
-
-	// Add cross pattern (scaled)
-	crossColor := Darken(ColorPalette.Crate, 0.4)
-	margin := TileSize / 8
+	// Draw torch handle
+	handleColor := Darken(ColorPalette.Barrel, 0.5)
 	center := TileSize / 2
-	for i := margin; i < TileSize-margin; i++ {
-		img.Set(i, center, crossColor)
-		img.Set(center, i, crossColor)
+	handleTop := TileSize / 3
+	handleBottom := 2 * TileSize / 3
+
+	// Adjust position based on left/right
+	offsetX := 0
+	if position == "left" {
+		offsetX = TileSize / 6
+	} else {
+		offsetX = -TileSize / 6
+	}
+
+	// Handle
+	for y := handleTop; y < handleBottom; y++ {
+		for dx := -1; dx <= 1; dx++ {
+			img.Set(center+offsetX+dx, y, handleColor)
+		}
+	}
+
+	// Flame
+	flameY := handleTop - 2
+	for dy := 0; dy < 6; dy++ {
+		for dx := -3 + dy/2; dx <= 3-dy/2; dx++ {
+			if dy < 3 {
+				img.Set(center+offsetX+dx, flameY+dy, brightFlame)
+			} else {
+				img.Set(center+offsetX+dx, flameY+dy, flameColor)
+			}
+		}
 	}
 
 	return img
 }
 
-func CreateGenerator() *image.RGBA {
-	borderWidth := TileSize / 16
-	img := CreateBorderedTile(ColorPalette.Generator, Darken(ColorPalette.Generator, 0.5), borderWidth)
+// CreateStoneAltar creates a stone altar sprite
+func CreateStoneAltar() *image.RGBA {
+	img := CreateBorderedTile(ColorPalette.WallStone, Darken(ColorPalette.WallStone, 0.4), 3)
 
-	// Add some "energy" indicators (scaled)
-	lightColor := color.RGBA{255, 255, 0, 255}
-	quarter := TileSize / 4
-	threeQuarter := 3 * TileSize / 4
-	lights := []image.Point{{quarter, quarter}, {threeQuarter, quarter}, {quarter, threeQuarter}, {threeQuarter, threeQuarter}}
+	// Add mystical symbols
+	symbolColor := color.RGBA{150, 100, 180, 255}
+	center := TileSize / 2
+	radius := TileSize / 4
 
-	lightSize := TileSize / 16
-	for _, p := range lights {
-		for dy := 0; dy < lightSize; dy++ {
-			for dx := 0; dx < lightSize; dx++ {
-				img.Set(p.X+dx, p.Y+dy, lightColor)
+	// Draw a simple pentagram-like pattern
+	for angle := 0; angle < 360; angle += 72 {
+		x := center + int(float64(radius)*0.7*float64(angle%2))
+		y := center - radius/2 + (angle/72)*3
+		if x >= 0 && x < TileSize && y >= 0 && y < TileSize {
+			img.Set(x, y, symbolColor)
+		}
+	}
+
+	// Center symbol
+	for y := center - 2; y <= center+2; y++ {
+		for x := center - 2; x <= center+2; x++ {
+			if abs(x-center)+abs(y-center) <= 2 {
+				img.Set(x, y, symbolColor)
 			}
 		}
 	}
 
-	// Add center vent pattern (scaled)
-	ventColor := Darken(ColorPalette.Generator, 0.7)
-	threeEighths := 3 * TileSize / 8
-	fiveEighths := 5 * TileSize / 8
-	for y := threeEighths; y < fiveEighths; y++ {
-		for x := threeEighths; x < fiveEighths; x++ {
-			if x%2 == y%2 {
-				img.Set(x, y, ventColor)
+	return img
+}
+
+// CreateWeaponRack creates a weapon rack sprite
+func CreateWeaponRack(empty bool) *image.RGBA {
+	rackColor := ColorPalette.WeaponRack
+	if empty {
+		rackColor = Darken(rackColor, 0.7)
+	}
+
+	borderWidth := TileSize / 8
+	img := CreateBorderedTile(rackColor, Darken(rackColor, 0.5), borderWidth)
+
+	if !empty {
+		// Add weapons on rack
+		weaponColor := color.RGBA{180, 180, 190, 255}
+		quarter := TileSize / 4
+		threeQuarter := 3 * TileSize / 4
+
+		// Sword shapes
+		for y := quarter; y < threeQuarter; y++ {
+			img.Set(quarter+2, y, weaponColor)
+			img.Set(TileSize/2, y, weaponColor)
+			img.Set(threeQuarter-2, y, weaponColor)
+		}
+	}
+
+	return img
+}
+
+// CreateWoodenBarrel creates a wooden barrel sprite
+func CreateWoodenBarrel() *image.RGBA {
+	borderWidth := TileSize / 8
+	img := CreateBorderedTile(ColorPalette.Barrel, Darken(ColorPalette.Barrel, 0.6), borderWidth)
+
+	// Add barrel bands
+	bandColor := color.RGBA{100, 80, 60, 255}
+	bandPositions := []int{TileSize / 4, TileSize / 2, 3 * TileSize / 4}
+
+	for _, y := range bandPositions {
+		for x := borderWidth; x < TileSize-borderWidth; x++ {
+			img.Set(x, y, bandColor)
+			img.Set(x, y+1, bandColor)
+		}
+	}
+
+	return img
+}
+
+// CreateMagicalBrazier creates a glowing brazier sprite
+func CreateMagicalBrazier() *image.RGBA {
+	// Base bowl
+	bowlColor := color.RGBA{80, 70, 60, 255}
+	img := CreateBorderedTile(bowlColor, Darken(bowlColor, 0.5), 2)
+
+	// Add magical flames
+	flameColors := []color.RGBA{
+		{255, 200, 50, 255},  // Yellow
+		{255, 150, 30, 255},  // Orange
+		{255, 100, 20, 255},  // Red-orange
+	}
+
+	center := TileSize / 2
+	flameHeight := TileSize / 2
+
+	for y := TileSize/4; y < TileSize/4+flameHeight; y++ {
+		// Flame narrows toward top
+		progress := float64(y-TileSize/4) / float64(flameHeight)
+		width := int(float64(TileSize/3) * (1.0 - progress*0.7))
+		colorIdx := int(progress * float64(len(flameColors)-1))
+		if colorIdx >= len(flameColors) {
+			colorIdx = len(flameColors) - 1
+		}
+
+		for x := center - width; x <= center+width; x++ {
+			if x >= 0 && x < TileSize {
+				img.Set(x, y, flameColors[colorIdx])
+			}
+		}
+	}
+
+	return img
+}
+
+// CreateDungeonDoor creates a dungeon door sprite
+func CreateDungeonDoor(open bool) *image.RGBA {
+	doorColor := color.RGBA{90, 70, 50, 255} // Dark wood
+	if open {
+		doorColor = Darken(doorColor, 0.5)
+	}
+
+	img := CreateBorderedTile(doorColor, Darken(doorColor, 0.4), 2)
+
+	if !open {
+		// Add door details - iron bands
+		bandColor := color.RGBA{70, 70, 80, 255}
+		for x := 2; x < TileSize-2; x++ {
+			img.Set(x, TileSize/4, bandColor)
+			img.Set(x, TileSize/2, bandColor)
+			img.Set(x, 3*TileSize/4, bandColor)
+		}
+
+		// Door handle
+		handleColor := color.RGBA{150, 140, 100, 255}
+		handleX := 3 * TileSize / 4
+		handleY := TileSize / 2
+		for dy := -2; dy <= 2; dy++ {
+			for dx := -1; dx <= 1; dx++ {
+				img.Set(handleX+dx, handleY+dy, handleColor)
+			}
+		}
+	}
+
+	return img
+}
+
+// CreateTreasureChest creates a treasure chest sprite
+func CreateTreasureChest(open bool) *image.RGBA {
+	chestColor := color.RGBA{120, 80, 40, 255} // Wood brown
+	if open {
+		chestColor = Darken(chestColor, 0.6)
+	}
+
+	img := CreateBorderedTile(chestColor, Darken(chestColor, 0.5), 2)
+
+	// Gold trim
+	goldColor := color.RGBA{255, 200, 50, 255}
+	for x := 2; x < TileSize-2; x++ {
+		img.Set(x, TileSize/3, goldColor)
+		img.Set(x, 2*TileSize/3, goldColor)
+	}
+
+	if open {
+		// Show gold inside
+		for y := TileSize/3 + 2; y < 2*TileSize/3-2; y++ {
+			for x := TileSize/4; x < 3*TileSize/4; x++ {
+				if (x+y)%2 == 0 {
+					img.Set(x, y, goldColor)
+				}
+			}
+		}
+	} else {
+		// Lock
+		lockColor := color.RGBA{180, 160, 80, 255}
+		lockX := TileSize / 2
+		lockY := TileSize / 2
+		for dy := -2; dy <= 2; dy++ {
+			for dx := -2; dx <= 2; dx++ {
+				img.Set(lockX+dx, lockY+dy, lockColor)
 			}
 		}
 	}
@@ -725,8 +903,8 @@ func GenerateAndSave(gameDir string) error {
 	if err := SavePNG(objectAtlas, fmt.Sprintf("%s/object_tiles.png", assetsDir)); err != nil {
 		return fmt.Errorf("failed to save object_tiles.png: %w", err)
 	}
-	fmt.Printf("✓ Generated %s/object_tiles.png (%dx%d pixels, 4x3 tiles @ %dpx)\n",
-		assetsDir, 4*TileSize, 3*TileSize, TileSize)
+	fmt.Printf("✓ Generated %s/object_tiles.png (%dx%d pixels, 4x4 tiles @ %dpx)\n",
+		assetsDir, 4*TileSize, 4*TileSize, TileSize)
 
 	// Generate entities
 	entitiesAtlas := GenerateEntitiesAtlas()
