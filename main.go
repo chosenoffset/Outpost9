@@ -8,7 +8,11 @@ import (
 	"math"
 
 	"chosenoffset.com/outpost9/atlas"
+	"chosenoffset.com/outpost9/furnishing"
 	"chosenoffset.com/outpost9/gamescanner"
+	"chosenoffset.com/outpost9/gamestate"
+	"chosenoffset.com/outpost9/interaction"
+	"chosenoffset.com/outpost9/inventory"
 	"chosenoffset.com/outpost9/maploader"
 	"chosenoffset.com/outpost9/menu"
 	"chosenoffset.com/outpost9/renderer"
@@ -17,6 +21,7 @@ import (
 	"chosenoffset.com/outpost9/shadows"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -163,6 +168,15 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 	// Create wall texture render target
 	wallTexture := ebiten.NewImage(gm.screenWidth, gm.screenHeight)
 
+	// Initialize game state and inventory for interaction system
+	gs := gamestate.New()
+	inv := inventory.New()
+
+	// Create the interaction engine
+	interactionEng := interaction.NewEngine()
+	interactionEng.GameState = gs
+	interactionEng.Inventory = inv
+
 	gm.game = &Game{
 		screenWidth:  gm.screenWidth,
 		screenHeight: gm.screenHeight,
@@ -172,16 +186,33 @@ func (gm *GameManager) loadGame(selection menu.Selection) error {
 			Pos:   shadows.Point{X: gameMap.Data.PlayerSpawn.X, Y: gameMap.Data.PlayerSpawn.Y},
 			Speed: 3.0,
 		},
-		renderer:        gm.renderer,
-		inputMgr:        gm.inputMgr,
-		entitiesAtlas:   entitiesAtlas,
-		objectsAtlas:    objectsAtlas,
-		playerSpriteImg: playerSprite,
-		shadowShader:    shadowShader,
-		wallTexture:     wallTexture,
+		renderer:          gm.renderer,
+		inputMgr:          gm.inputMgr,
+		entitiesAtlas:     entitiesAtlas,
+		objectsAtlas:      objectsAtlas,
+		playerSpriteImg:   playerSprite,
+		shadowShader:      shadowShader,
+		wallTexture:       wallTexture,
+		interactionEngine: interactionEng,
+		gameState:         gs,
+		inventory:         inv,
 	}
 
+	// Wire up interaction engine callbacks
+	gm.game.interactionEngine.OnMessage = gm.game.showMessage
+	gm.game.interactionEngine.ObjectLookup = gm.game.lookupFurnishing
+
+	log.Printf("Interaction system initialized with %d furnishings",
+		len(gameMap.Data.PlacedFurnishings))
+
 	return nil
+}
+
+// Message represents an on-screen message that fades over time
+type Message struct {
+	Text      string
+	TimeLeft  float64 // Seconds remaining
+	MaxTime   float64 // Initial duration
 }
 
 type Game struct {
@@ -199,9 +230,30 @@ type Game struct {
 	playerSpriteImg renderer.Image
 	shadowShader    *ebiten.Shader
 	wallTexture     *ebiten.Image // Render target containing just walls
+
+	// Interaction system
+	interactionEngine *interaction.Engine
+	gameState         *gamestate.GameState
+	inventory         *inventory.Inventory
+
+	// UI state
+	messages         []Message
+	interactHint     string  // Current interaction hint to display
+	interactCooldown float64 // Prevent rapid E key presses
 }
 
 func (g *Game) Update() error {
+	// Delta time for timers (assuming 60 FPS)
+	dt := 1.0 / 60.0
+
+	// Update message timers
+	g.updateMessages(dt)
+
+	// Update interaction cooldown
+	if g.interactCooldown > 0 {
+		g.interactCooldown -= dt
+	}
+
 	// WASD movement with collision detection
 	moveSpeed := g.player.Speed
 
@@ -261,6 +313,110 @@ func (g *Game) Update() error {
 	// Update camera to follow player (center player on screen)
 	g.updateCamera()
 
+	// Handle interactions
+	g.updateInteractions()
+
+	return nil
+}
+
+// updateMessages updates message timers and removes expired messages
+func (g *Game) updateMessages(dt float64) {
+	var active []Message
+	for _, msg := range g.messages {
+		msg.TimeLeft -= dt
+		if msg.TimeLeft > 0 {
+			active = append(active, msg)
+		}
+	}
+	g.messages = active
+}
+
+// showMessage adds a new message to be displayed on screen
+func (g *Game) showMessage(text string) {
+	g.messages = append(g.messages, Message{
+		Text:     text,
+		TimeLeft: 3.0, // 3 second display
+		MaxTime:  3.0,
+	})
+	log.Printf("Message: %s", text)
+}
+
+// updateInteractions handles E key presses and interaction hints
+func (g *Game) updateInteractions() {
+	if g.gameMap == nil || g.interactionEngine == nil {
+		return
+	}
+
+	// Find nearby interactable furnishing
+	nearby := g.getNearbyInteractable()
+
+	// Update interaction hint
+	if nearby != nil && g.interactionEngine != nil {
+		hint := g.interactionEngine.GetInteractionHint(nearby, interaction.TriggerInteract)
+		if hint != "" {
+			g.interactHint = fmt.Sprintf("[E] %s", hint)
+		} else {
+			g.interactHint = "[E] Interact"
+		}
+	} else {
+		g.interactHint = ""
+	}
+
+	// Handle E key press
+	if g.inputMgr.IsKeyPressed(renderer.KeyE) && g.interactCooldown <= 0 {
+		if nearby != nil {
+			if g.interactionEngine.TryInteract(nearby, interaction.TriggerInteract, "") {
+				g.interactCooldown = 0.3 // 300ms cooldown between interactions
+			}
+		}
+	}
+}
+
+// getNearbyInteractable finds the closest interactable furnishing within range
+func (g *Game) getNearbyInteractable() *furnishing.PlacedFurnishing {
+	if g.gameMap == nil {
+		return nil
+	}
+
+	interactRange := 40.0 // Pixels - interaction range
+	var closest *furnishing.PlacedFurnishing
+	closestDist := interactRange + 1
+
+	tileSize := float64(g.gameMap.Data.TileSize)
+
+	for _, placed := range g.gameMap.Data.PlacedFurnishings {
+		if placed == nil || placed.Definition == nil || !placed.Definition.Interactable {
+			continue
+		}
+
+		// Calculate center of furnishing
+		fx := float64(placed.X)*tileSize + tileSize/2
+		fy := float64(placed.Y)*tileSize + tileSize/2
+
+		// Distance from player
+		dx := fx - g.player.Pos.X
+		dy := fy - g.player.Pos.Y
+		dist := math.Sqrt(dx*dx + dy*dy)
+
+		if dist < interactRange && dist < closestDist {
+			closest = placed
+			closestDist = dist
+		}
+	}
+
+	return closest
+}
+
+// lookupFurnishing finds a furnishing by ID
+func (g *Game) lookupFurnishing(id string) interaction.InteractableObject {
+	if g.gameMap == nil {
+		return nil
+	}
+	for _, placed := range g.gameMap.Data.PlacedFurnishings {
+		if placed != nil && placed.ID == id {
+			return placed
+		}
+	}
 	return nil
 }
 
@@ -409,6 +565,65 @@ func (g *Game) Draw(screen renderer.Image) {
 			2,
 			color.RGBA{200, 200, 50, 255})
 	}
+
+	// Step 6: Draw UI elements (interaction hints, messages)
+	g.drawUI(screen)
+}
+
+// drawUI renders interaction hints and messages
+func (g *Game) drawUI(screen renderer.Image) {
+	ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage)
+	if !ok {
+		return
+	}
+	ebitenScreen := ebitenImg.GetEbitenImage()
+
+	// Draw interaction hint at bottom of screen
+	if g.interactHint != "" {
+		g.drawTextWithShadow(ebitenScreen, g.interactHint,
+			float64(g.screenWidth)/2, float64(g.screenHeight)-40,
+			color.RGBA{255, 255, 255, 255}, true)
+	}
+
+	// Draw messages from top
+	y := 20.0
+	for _, msg := range g.messages {
+		alpha := uint8(255)
+		if msg.TimeLeft < 0.5 {
+			alpha = uint8(msg.TimeLeft / 0.5 * 255)
+		}
+		col := color.RGBA{255, 255, 200, alpha}
+		g.drawTextWithShadow(ebitenScreen, msg.Text, float64(g.screenWidth)/2, y, col, true)
+		y += 20
+	}
+
+	// Draw inventory hint in corner (if items exist)
+	if g.inventory != nil && !g.inventory.IsEmpty() {
+		items := g.inventory.GetAllItems()
+		invText := "Inventory: "
+		for i, item := range items {
+			if i > 0 {
+				invText += ", "
+			}
+			if item.Count > 1 {
+				invText += fmt.Sprintf("%s x%d", item.ItemName, item.Count)
+			} else {
+				invText += item.ItemName
+			}
+		}
+		g.drawTextWithShadow(ebitenScreen, invText, 10, 10, color.RGBA{200, 200, 200, 200}, false)
+	}
+}
+
+// drawTextWithShadow draws text with a drop shadow for readability
+func (g *Game) drawTextWithShadow(screen *ebiten.Image, str string, x, y float64, _ color.RGBA, centered bool) {
+	// For centered text, approximate center position
+	if centered {
+		x -= float64(len(str)) * 3.0 // Rough approximation for debug font
+	}
+
+	// Use simple debug print (always works, no font loading required)
+	ebitenutil.DebugPrintAt(screen, str, int(x), int(y))
 }
 
 func (g *Game) drawFloorsOnly(screen renderer.Image) {
@@ -499,8 +714,8 @@ func (g *Game) drawFurnishings(screen renderer.Image) {
 			continue
 		}
 
-		// Get the tile name from the furnishing definition
-		tileName := placed.Definition.TileName
+		// Get the tile name based on current state (supports state-based sprites)
+		tileName := placed.GetCurrentTileName()
 		if tileName == "" {
 			continue
 		}
@@ -509,8 +724,8 @@ func (g *Game) drawFurnishings(screen renderer.Image) {
 		tile, ok := g.objectsAtlas.GetTile(tileName)
 		if !ok {
 			// Tile not found in atlas - skip this furnishing
-			log.Printf("Warning: tile '%s' not found in objects atlas for furnishing '%s'",
-				tileName, placed.Definition.Name)
+			log.Printf("Warning: tile '%s' not found in objects atlas for furnishing '%s' (state: %s)",
+				tileName, placed.Definition.Name, placed.State)
 			continue
 		}
 

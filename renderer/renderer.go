@@ -95,6 +95,7 @@ const (
 	KeyA
 	KeyS
 	KeyD
+	KeyE // Interact key
 	KeyUp
 	KeyDown
 	KeyLeft
