@@ -1,43 +1,43 @@
 {
-  "name": "Example Game Furnishings",
-  "description": "Furnishings and objects with interactive behaviors",
+  "name": "Dungeon Crawl Furnishings",
+  "description": "Furnishings and objects for a classic dungeon crawl roguelike",
   "furnishings": [
     {
-      "name": "supply_crate",
-      "display_name": "Supply Crate",
-      "description": "A sturdy supply crate. It might contain useful supplies.",
+      "name": "wooden_barrel",
+      "display_name": "Wooden Barrel",
+      "description": "An old wooden barrel. It might contain something useful.",
       "tile_name": "crate",
       "interactable": true,
       "walkable": false,
-      "tags": ["container", "storage"],
+      "tags": ["container", "storage", "destructible"],
       "properties": {
         "loot_table": "supplies"
       },
       "default_state": "closed",
       "interactions": [
         {
-          "id": "search_crate",
+          "id": "search_barrel",
           "trigger": "interact",
-          "description": "Search crate",
+          "description": "Search barrel",
           "single_use": true,
           "conditions": [],
           "effects": [
-            {"type": "give_item", "value": "supplies", "args": {"amount": 1}},
-            {"type": "show_message", "value": "You found some supplies!"}
+            {"type": "give_item", "value": "rations", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You found some rations!"}
           ]
         }
       ]
     },
     {
-      "name": "storage_locker",
-      "display_name": "Storage Locker",
-      "description": "A metal storage locker. The lock appears damaged.",
+      "name": "weapon_rack",
+      "display_name": "Weapon Rack",
+      "description": "A wooden rack displaying various weapons. Some look usable.",
       "tile_name": "locker_closed",
       "interactable": true,
       "walkable": false,
-      "tags": ["container", "storage", "lockable"],
+      "tags": ["container", "weapons", "loot"],
       "properties": {
-        "loot_table": "equipment"
+        "loot_table": "weapons"
       },
       "default_state": "closed",
       "states": {
@@ -46,139 +46,139 @@
       },
       "interactions": [
         {
-          "id": "open_locker",
+          "id": "take_weapon",
           "trigger": "interact",
-          "description": "Open locker",
+          "description": "Take weapon",
           "conditions": [{"type": "state_equals", "value": "closed"}],
           "effects": [
             {"type": "set_state", "value": "open"},
-            {"type": "give_item", "value": "equipment", "args": {"amount": 1}},
-            {"type": "show_message", "value": "You found some equipment in the locker!"}
+            {"type": "give_item", "value": "weapon", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You take a rusty but serviceable sword from the rack."}
           ]
         },
         {
-          "id": "locker_empty",
+          "id": "rack_empty",
           "trigger": "interact",
-          "description": "Examine locker",
+          "description": "Examine rack",
           "priority": -1,
           "conditions": [{"type": "state_equals", "value": "open"}],
           "effects": [
-            {"type": "show_message", "value": "The locker is empty."}
+            {"type": "show_message", "value": "The weapon rack is empty."}
           ]
         }
       ]
     },
     {
-      "name": "computer_terminal",
-      "display_name": "Computer Terminal",
-      "description": "A functional computer terminal with access to station systems.",
+      "name": "ancient_tome",
+      "display_name": "Ancient Tome",
+      "description": "A dusty tome resting on a stone pedestal. Ancient runes glow faintly on its cover.",
       "tile_name": "computer_terminal",
       "interactable": true,
       "walkable": false,
-      "tags": ["electronics", "computer", "hackable"],
+      "tags": ["magic", "knowledge", "lore"],
       "properties": {
-        "access_level": "standard"
+        "knowledge_type": "arcane"
       },
       "default_state": "active",
       "interactions": [
         {
-          "id": "access_terminal",
+          "id": "read_tome",
           "trigger": "interact",
-          "description": "Access terminal",
+          "description": "Read the tome",
           "conditions": [
             {"type": "state_equals", "value": "active"},
-            {"type": "flag_not_set", "value": "terminal_accessed"}
+            {"type": "flag_not_set", "value": "tome_read"}
           ],
           "effects": [
-            {"type": "set_flag", "value": "terminal_accessed"},
-            {"type": "show_message", "value": "You access the terminal and download valuable data."},
-            {"type": "give_item", "value": "data_chip", "args": {"amount": 1}}
+            {"type": "set_flag", "value": "tome_read"},
+            {"type": "show_message", "value": "You decipher ancient secrets. Knowledge flows into your mind!"},
+            {"type": "give_item", "value": "scroll_of_knowledge", "args": {"amount": 1}}
           ]
         },
         {
-          "id": "terminal_already_accessed",
+          "id": "tome_already_read",
           "trigger": "interact",
-          "description": "Access terminal",
+          "description": "Read the tome",
           "priority": -1,
-          "conditions": [{"type": "flag_set", "value": "terminal_accessed"}],
+          "conditions": [{"type": "flag_set", "value": "tome_read"}],
           "effects": [
-            {"type": "show_message", "value": "The terminal has already been accessed. No new data available."}
+            {"type": "show_message", "value": "The tome's pages are now blank. Its knowledge has been absorbed."}
           ]
         }
       ]
     },
     {
-      "name": "power_generator",
-      "display_name": "Power Generator",
-      "description": "A humming power generator. Critical for station operations.",
+      "name": "magical_brazier",
+      "display_name": "Magical Brazier",
+      "description": "A stone brazier filled with eternally burning magical flames.",
       "tile_name": "generator",
       "interactable": true,
       "walkable": false,
-      "tags": ["machinery", "power", "critical"],
+      "tags": ["magic", "light", "fire"],
       "properties": {
-        "power_output": "500"
+        "light_radius": "5"
       },
-      "default_state": "online",
+      "default_state": "lit",
       "interactions": [
         {
-          "id": "check_generator",
+          "id": "examine_brazier",
           "trigger": "interact",
-          "description": "Check status",
-          "conditions": [{"type": "state_equals", "value": "online"}],
+          "description": "Examine flames",
+          "conditions": [{"type": "state_equals", "value": "lit"}],
           "effects": [
-            {"type": "show_message", "value": "Power output: OPTIMAL. All systems nominal."}
+            {"type": "show_message", "value": "The magical flames dance hypnotically. They provide warmth but no smoke."}
           ]
         },
         {
-          "id": "repair_generator",
+          "id": "relight_brazier",
           "trigger": "interact",
-          "description": "Repair generator",
-          "conditions": [{"type": "state_equals", "value": "offline"}],
+          "description": "Relight brazier",
+          "conditions": [{"type": "state_equals", "value": "extinguished"}],
           "effects": [
-            {"type": "set_state", "value": "online"},
-            {"type": "set_flag", "value": "power_restored"},
-            {"type": "show_message", "value": "You repair the generator. Power restored!"}
+            {"type": "set_state", "value": "lit"},
+            {"type": "set_flag", "value": "brazier_relit"},
+            {"type": "show_message", "value": "You channel magic into the brazier. The flames roar back to life!"}
           ]
         }
       ]
     },
     {
-      "name": "control_console",
-      "display_name": "Control Console",
-      "description": "A station control console with multiple displays.",
+      "name": "stone_altar",
+      "display_name": "Stone Altar",
+      "description": "An ancient altar carved with mysterious symbols. It radiates an unsettling aura.",
       "tile_name": "console_center",
       "interactable": true,
       "walkable": false,
-      "tags": ["electronics", "control"],
+      "tags": ["magic", "ritual", "sacred"],
       "properties": {
-        "access_level": "standard"
+        "deity": "unknown"
       },
       "interactions": [
         {
-          "id": "use_console",
+          "id": "pray_at_altar",
           "trigger": "interact",
-          "description": "Use console",
+          "description": "Pray at altar",
           "conditions": [],
           "effects": [
-            {"type": "show_message", "value": "Station status: All systems operational."}
+            {"type": "show_message", "value": "You feel a presence watching you from beyond the veil..."}
           ]
         }
       ]
     },
     {
-      "name": "workstation_desk",
-      "display_name": "Workstation",
-      "description": "A standard workstation desk with various tools and equipment.",
+      "name": "stone_table",
+      "display_name": "Stone Table",
+      "description": "A heavy stone table covered in scratches and stains.",
       "tile_name": "desk_west",
       "interactable": false,
       "walkable": false,
-      "tags": ["furniture", "workstation"],
+      "tags": ["furniture", "dungeon"],
       "properties": {}
     },
     {
-      "name": "office_chair",
-      "display_name": "Office Chair",
-      "description": "A standard issue office chair.",
+      "name": "wooden_stool",
+      "display_name": "Wooden Stool",
+      "description": "A simple three-legged wooden stool.",
       "tile_name": "chair_south",
       "interactable": false,
       "walkable": false,
@@ -186,9 +186,9 @@
       "properties": {}
     },
     {
-      "name": "door",
-      "display_name": "Door",
-      "description": "An automatic sliding door.",
+      "name": "dungeon_door",
+      "display_name": "Heavy Door",
+      "description": "A heavy wooden door reinforced with iron bands.",
       "tile_name": "door_closed",
       "interactable": true,
       "walkable": false,
@@ -207,7 +207,7 @@
           "conditions": [{"type": "state_equals", "value": "closed"}],
           "effects": [
             {"type": "set_state", "value": "open"},
-            {"type": "show_message", "value": "The door slides open."}
+            {"type": "show_message", "value": "The door creaks open on rusty hinges."}
           ]
         },
         {
@@ -217,19 +217,19 @@
           "conditions": [{"type": "state_equals", "value": "open"}],
           "effects": [
             {"type": "set_state", "value": "closed"},
-            {"type": "show_message", "value": "The door slides closed."}
+            {"type": "show_message", "value": "You push the heavy door shut."}
           ]
         }
       ]
     },
     {
-      "name": "storage_chest",
-      "display_name": "Storage Chest",
-      "description": "A sealed storage container. Contents unknown.",
+      "name": "treasure_chest",
+      "display_name": "Treasure Chest",
+      "description": "An ornate wooden chest. Who knows what riches lie within?",
       "tile_name": "chest_closed",
       "interactable": true,
       "walkable": false,
-      "tags": ["container", "storage", "valuable"],
+      "tags": ["container", "treasure", "loot"],
       "properties": {
         "loot_table": "treasure"
       },
@@ -247,7 +247,7 @@
           "effects": [
             {"type": "set_state", "value": "open"},
             {"type": "give_item", "value": "gold", "args": {"amount": 50}},
-            {"type": "show_message", "value": "You found 50 gold!"}
+            {"type": "show_message", "value": "You found 50 gold coins!"}
           ]
         },
         {
@@ -263,13 +263,13 @@
       ]
     },
     {
-      "name": "locked_chest",
+      "name": "locked_treasure_chest",
       "display_name": "Locked Chest",
-      "description": "A sturdy locked chest. Requires a key.",
+      "description": "A sturdy chest bound in iron. A heavy lock secures it.",
       "tile_name": "chest_closed",
       "interactable": true,
       "walkable": false,
-      "tags": ["container", "storage", "locked"],
+      "tags": ["container", "treasure", "locked"],
       "properties": {},
       "default_state": "locked",
       "states": {
@@ -284,12 +284,12 @@
           "description": "Unlock chest",
           "conditions": [
             {"type": "state_equals", "value": "locked"},
-            {"type": "has_item", "value": "key"}
+            {"type": "has_item", "value": "dungeon_key"}
           ],
           "effects": [
-            {"type": "remove_item", "value": "key"},
+            {"type": "remove_item", "value": "dungeon_key"},
             {"type": "set_state", "value": "unlocked"},
-            {"type": "show_message", "value": "You unlock the chest with your key."}
+            {"type": "show_message", "value": "The lock clicks open. The key crumbles to dust."}
           ]
         },
         {
@@ -299,10 +299,10 @@
           "priority": -1,
           "conditions": [
             {"type": "state_equals", "value": "locked"},
-            {"type": "has_item", "value": "key", "not": true}
+            {"type": "has_item", "value": "dungeon_key", "not": true}
           ],
           "effects": [
-            {"type": "show_message", "value": "The chest is locked. You need a key."}
+            {"type": "show_message", "value": "The chest is locked tight. You need a key."}
           ]
         },
         {
@@ -313,8 +313,8 @@
           "effects": [
             {"type": "set_state", "value": "open"},
             {"type": "give_item", "value": "gold", "args": {"amount": 100}},
-            {"type": "give_item", "value": "rare_gem", "args": {"amount": 1}},
-            {"type": "show_message", "value": "You found 100 gold and a rare gem!"}
+            {"type": "give_item", "value": "enchanted_gem", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You found 100 gold and an enchanted gem!"}
           ]
         },
         {
@@ -330,9 +330,9 @@
       ]
     },
     {
-      "name": "key_item",
-      "display_name": "Key",
-      "description": "A small key that might open something.",
+      "name": "rusty_key",
+      "display_name": "Rusty Key",
+      "description": "An old iron key covered in rust. It might fit a lock somewhere.",
       "tile_name": "crate",
       "interactable": true,
       "walkable": true,
@@ -346,50 +346,228 @@
           "single_use": true,
           "conditions": [],
           "effects": [
-            {"type": "give_item", "value": "key", "args": {"amount": 1}},
-            {"type": "show_message", "value": "You picked up a key."}
+            {"type": "give_item", "value": "dungeon_key", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You picked up a rusty key."}
           ]
         }
       ]
     },
     {
-      "name": "console_left_panel",
-      "display_name": "Console Panel (Left)",
-      "description": "Left section of a multi-panel console.",
+      "name": "torch_sconce_left",
+      "display_name": "Wall Torch",
+      "description": "A torch mounted on the left wall. It flickers with dim light.",
       "tile_name": "console_left",
       "interactable": true,
       "walkable": false,
-      "tags": ["electronics", "control"],
+      "tags": ["light", "decoration"],
       "properties": {},
       "interactions": [
         {
-          "id": "use_left_console",
+          "id": "examine_torch_left",
           "trigger": "interact",
-          "description": "Check readings",
+          "description": "Examine torch",
           "conditions": [],
           "effects": [
-            {"type": "show_message", "value": "Environmental readings: Normal."}
+            {"type": "show_message", "value": "The torch casts dancing shadows on the dungeon walls."}
           ]
         }
       ]
     },
     {
-      "name": "console_right_panel",
-      "display_name": "Console Panel (Right)",
-      "description": "Right section of a multi-panel console.",
+      "name": "torch_sconce_right",
+      "display_name": "Wall Torch",
+      "description": "A torch mounted on the right wall. It flickers with dim light.",
       "tile_name": "console_right",
       "interactable": true,
       "walkable": false,
-      "tags": ["electronics", "control"],
+      "tags": ["light", "decoration"],
       "properties": {},
       "interactions": [
         {
-          "id": "use_right_console",
+          "id": "examine_torch_right",
           "trigger": "interact",
-          "description": "Check security",
+          "description": "Examine torch",
           "conditions": [],
           "effects": [
-            {"type": "show_message", "value": "Security status: All clear."}
+            {"type": "show_message", "value": "The flickering torch reveals ancient carvings on the walls."}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "skeleton_remains",
+      "display_name": "Skeleton",
+      "description": "The skeletal remains of an unfortunate adventurer.",
+      "tile_name": "chair_north",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["corpse", "loot", "atmospheric"],
+      "properties": {},
+      "default_state": "unsearched",
+      "interactions": [
+        {
+          "id": "search_skeleton",
+          "trigger": "interact",
+          "description": "Search remains",
+          "single_use": true,
+          "conditions": [],
+          "effects": [
+            {"type": "give_item", "value": "gold", "args": {"amount": 15}},
+            {"type": "show_message", "value": "You find some coins in the skeleton's pouch. May they rest in peace."}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "healing_fountain",
+      "display_name": "Healing Fountain",
+      "description": "A mystical fountain filled with glowing water. It radiates restorative magic.",
+      "tile_name": "desk_east",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["magic", "healing", "restoration"],
+      "properties": {
+        "heal_amount": "50",
+        "uses": "3"
+      },
+      "default_state": "full",
+      "interactions": [
+        {
+          "id": "drink_fountain",
+          "trigger": "interact",
+          "description": "Drink from fountain",
+          "conditions": [
+            {"type": "state_equals", "value": "full"},
+            {"type": "counter_at_least", "value": "fountain_uses", "not": true}
+          ],
+          "effects": [
+            {"type": "increment_counter", "value": "fountain_uses"},
+            {"type": "show_message", "value": "The magical waters restore your vitality!"},
+            {"type": "give_item", "value": "health_restored", "args": {"amount": 50}}
+          ]
+        },
+        {
+          "id": "fountain_depleted",
+          "trigger": "interact",
+          "description": "Drink from fountain",
+          "priority": -1,
+          "conditions": [{"type": "state_equals", "value": "empty"}],
+          "effects": [
+            {"type": "show_message", "value": "The fountain has run dry."}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "spike_trap",
+      "display_name": "Floor Tile",
+      "description": "An ordinary looking floor tile... or is it?",
+      "tile_name": "crate",
+      "interactable": true,
+      "walkable": true,
+      "tags": ["trap", "danger", "hidden"],
+      "properties": {
+        "damage": "20"
+      },
+      "default_state": "hidden",
+      "interactions": [
+        {
+          "id": "trigger_trap",
+          "trigger": "enter",
+          "description": "",
+          "conditions": [
+            {"type": "state_equals", "value": "hidden"},
+            {"type": "random_chance", "value": "50"}
+          ],
+          "effects": [
+            {"type": "set_state", "value": "triggered"},
+            {"type": "show_message", "value": "Spikes shoot up from the floor! You take damage!"}
+          ]
+        },
+        {
+          "id": "disarm_trap",
+          "trigger": "interact",
+          "description": "Disarm trap",
+          "conditions": [
+            {"type": "state_equals", "value": "triggered"},
+            {"type": "has_item", "value": "thieves_tools"}
+          ],
+          "effects": [
+            {"type": "set_state", "value": "disarmed"},
+            {"type": "show_message", "value": "You carefully disarm the spike trap."}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "potion_shelf",
+      "display_name": "Potion Shelf",
+      "description": "A dusty shelf lined with various potion bottles.",
+      "tile_name": "locker_closed",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["container", "potions", "alchemy"],
+      "properties": {},
+      "default_state": "full",
+      "states": {
+        "full": {"tile_name": "locker_closed"},
+        "empty": {"tile_name": "locker_open"}
+      },
+      "interactions": [
+        {
+          "id": "take_potion",
+          "trigger": "interact",
+          "description": "Take potion",
+          "conditions": [{"type": "state_equals", "value": "full"}],
+          "effects": [
+            {"type": "set_state", "value": "empty"},
+            {"type": "give_item", "value": "health_potion", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You take a health potion from the shelf."}
+          ]
+        },
+        {
+          "id": "shelf_empty",
+          "trigger": "interact",
+          "description": "Search shelf",
+          "priority": -1,
+          "conditions": [{"type": "state_equals", "value": "empty"}],
+          "effects": [
+            {"type": "show_message", "value": "The potion shelf is empty. Only dust remains."}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "armor_stand",
+      "display_name": "Armor Stand",
+      "description": "A wooden stand displaying a suit of armor.",
+      "tile_name": "generator",
+      "interactable": true,
+      "walkable": false,
+      "tags": ["container", "armor", "equipment"],
+      "properties": {},
+      "default_state": "equipped",
+      "interactions": [
+        {
+          "id": "take_armor",
+          "trigger": "interact",
+          "description": "Take armor",
+          "single_use": true,
+          "conditions": [{"type": "state_equals", "value": "equipped"}],
+          "effects": [
+            {"type": "set_state", "value": "empty"},
+            {"type": "give_item", "value": "armor", "args": {"amount": 1}},
+            {"type": "show_message", "value": "You take the armor from the stand. It's dented but functional."}
+          ]
+        },
+        {
+          "id": "stand_empty",
+          "trigger": "interact",
+          "description": "Examine stand",
+          "priority": -1,
+          "conditions": [{"type": "state_equals", "value": "empty"}],
+          "effects": [
+            {"type": "show_message", "value": "An empty armor stand. Cobwebs cling to its frame."}
           ]
         }
       ]
