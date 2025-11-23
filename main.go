@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"time"
 
+	"chosenoffset.com/outpost9/action"
 	"chosenoffset.com/outpost9/atlas"
 	"chosenoffset.com/outpost9/character"
 	"chosenoffset.com/outpost9/entity"
@@ -20,15 +21,16 @@ import (
 	"chosenoffset.com/outpost9/inventory"
 	"chosenoffset.com/outpost9/maploader"
 	"chosenoffset.com/outpost9/menu"
+	"chosenoffset.com/outpost9/narrative"
 	"chosenoffset.com/outpost9/renderer"
 	ebitenrenderer "chosenoffset.com/outpost9/renderer/ebiten"
 	"chosenoffset.com/outpost9/room"
 	"chosenoffset.com/outpost9/shadows"
 	"chosenoffset.com/outpost9/turn"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -306,6 +308,74 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	gm.game.gameHUD.SetPlayer(playerEntity, playerChar)
 	gm.game.gameHUD.SetTurnNumber(1)
 
+	// Initialize action library
+	actionsPath := fmt.Sprintf("data/%s/actions.json", selection.GameDir)
+	actionLib, err := action.LoadActionLibrary(actionsPath)
+	if err != nil {
+		log.Printf("No actions.json found, using defaults: %v", err)
+		actionLib = action.DefaultLibrary()
+	} else {
+		// Merge with defaults
+		defaults := action.DefaultLibrary()
+		defaults.MergeLibrary(actionLib)
+		actionLib = defaults
+		log.Printf("Loaded action library with %d actions", len(actionLib.Actions))
+	}
+	gm.game.actionLibrary = actionLib
+	turnMgr.SetActionLibrary(actionLib)
+
+	// Initialize narrative panel (right side of screen)
+	gm.game.panelWidth = 350
+	gm.game.mapViewWidth = gm.screenWidth - gm.game.panelWidth
+	panelX := gm.game.mapViewWidth
+	panelY := 0
+	gm.game.narrativePanel = narrative.NewPanel(panelX, panelY, gm.game.panelWidth, gm.screenHeight)
+	gm.game.sceneGenerator = narrative.NewSceneGenerator()
+
+	// Wire up narrative panel callbacks
+	gm.game.narrativePanel.OnActionSelected = func(act *action.Action, dir narrative.Direction) {
+		// Handle special end turn action
+		if act.ID == "end_turn" {
+			gm.game.turnManager.EndPlayerTurn()
+			gm.game.syncPlayerPosition()
+			gm.game.updateNarrativePanel()
+			return
+		}
+
+		// Convert narrative direction to entity direction
+		entityDir := entity.DirNone
+		switch dir {
+		case narrative.DirNorth:
+			entityDir = entity.DirNorth
+		case narrative.DirSouth:
+			entityDir = entity.DirSouth
+		case narrative.DirEast:
+			entityDir = entity.DirEast
+		case narrative.DirWest:
+			entityDir = entity.DirWest
+		}
+
+		// Process the action
+		gm.game.turnManager.ProcessDataAction(act, entityDir, 0, 0)
+
+		// Update player pixel position
+		gm.game.syncPlayerPosition()
+
+		// Update available actions
+		gm.game.updateNarrativePanel()
+	}
+
+	// Wire up turn manager callbacks for narrative
+	turnMgr.OnSceneUpdate = func() {
+		gm.game.updateNarrativePanel()
+	}
+	turnMgr.OnAPChanged = func(current, max int) {
+		gm.game.updateNarrativePanel()
+	}
+
+	// Initial scene update
+	gm.game.updateNarrativePanel()
+
 	log.Printf("Interaction system initialized with %d furnishings",
 		len(gameMap.Data.PlacedFurnishings))
 
@@ -356,8 +426,19 @@ type Game struct {
 	playerEntity  *entity.Entity
 	entityLibrary *entity.EntityLibrary
 
+	// Action system
+	actionLibrary *action.ActionLibrary
+
+	// Narrative panel
+	narrativePanel *narrative.Panel
+	sceneGenerator *narrative.SceneGenerator
+
 	// HUD
 	gameHUD *hud.HUD
+
+	// Layout dimensions (split screen)
+	mapViewWidth int // Width of the map viewport
+	panelWidth   int // Width of the narrative panel
 
 	// UI state
 	messages         []Message
@@ -377,48 +458,53 @@ func (g *Game) Update() error {
 		g.interactCooldown -= dt
 	}
 
-	// Turn-based input handling
-	if g.turnManager != nil && g.turnManager.IsPlayerTurn() {
+	// Handle input when it's player's turn
+	if g.turnManager != nil && g.turnManager.IsPlayerTurn() && g.playerEntity != nil {
+		// Direct movement with WASD only (arrow keys reserved for menu navigation)
 		var dir entity.Direction
-
-		// WASD or arrow keys for movement
-		if inpututil.IsKeyJustPressed(ebiten.KeyW) || inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyW) {
 			dir = entity.DirNorth
-		} else if inpututil.IsKeyJustPressed(ebiten.KeyS) || inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 			dir = entity.DirSouth
-		} else if inpututil.IsKeyJustPressed(ebiten.KeyA) || inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 			dir = entity.DirWest
-		} else if inpututil.IsKeyJustPressed(ebiten.KeyD) || inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyD) {
 			dir = entity.DirEast
 		}
 
-		// Process movement/attack
-		if dir != entity.DirNone && g.playerEntity != nil {
-			action := turn.Action{
-				Type:      turn.ActionMove,
-				Actor:     g.playerEntity,
-				Direction: dir,
+		if dir != entity.DirNone {
+			// Check if in direction selection mode for narrative panel
+			if g.narrativePanel != nil && g.narrativePanel.GetInputMode() == narrative.ModeSelectDirection {
+				// Let the narrative panel handle it
+				g.narrativePanel.Update()
+			} else {
+				// Direct movement
+				moveAction := g.actionLibrary.GetAction("move")
+				if moveAction != nil && g.playerEntity.CanAffordAP(moveAction.APCost) {
+					g.turnManager.ProcessDataAction(moveAction, dir, 0, 0)
+					g.syncPlayerPosition()
+					g.updateNarrativePanel()
+				}
 			}
-			g.turnManager.ProcessPlayerAction(action)
-
-			// Update pixel position from grid position
-			g.syncPlayerPosition()
+		} else {
+			// Handle narrative panel for non-movement actions (arrow keys, number keys, etc.)
+			if g.narrativePanel != nil {
+				g.narrativePanel.Update()
+			}
 		}
 
-		// Wait action (space or period)
-		if inpututil.IsKeyJustPressed(ebiten.KeySpace) || inpututil.IsKeyJustPressed(ebiten.KeyPeriod) {
-			action := turn.Action{
-				Type:  turn.ActionWait,
-				Actor: g.playerEntity,
-			}
-			g.turnManager.ProcessPlayerAction(action)
+		// End turn with Space key
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			g.turnManager.EndPlayerTurn()
+			g.syncPlayerPosition()
+			g.updateNarrativePanel()
 		}
 	}
 
 	// Update camera to follow player
 	g.updateCamera()
 
-	// Handle interactions (E key)
+	// Handle interactions (E key) - legacy support
 	g.updateInteractions()
 
 	return nil
@@ -456,7 +542,128 @@ func (g *Game) showMessage(text string) {
 		TimeLeft: 3.0, // 3 second display
 		MaxTime:  3.0,
 	})
+
+	// Also add to narrative panel log
+	if g.narrativePanel != nil && g.turnManager != nil {
+		g.narrativePanel.AddMessage(text, g.turnManager.GetTurnNumber())
+	}
+
 	log.Printf("Message: %s", text)
+}
+
+// updateNarrativePanel updates the scene description and available actions
+func (g *Game) updateNarrativePanel() {
+	if g.narrativePanel == nil || g.sceneGenerator == nil || g.playerEntity == nil {
+		return
+	}
+
+	// Update AP display
+	g.narrativePanel.SetAP(g.playerEntity.ActionPoints, g.playerEntity.MaxAP)
+
+	// Build scene context
+	ctx := g.buildSceneContext()
+
+	// Generate description
+	description := g.sceneGenerator.GenerateDescription(ctx)
+	g.narrativePanel.SetSceneDescription(description)
+
+	// Build available actions
+	actions := g.buildAvailableActions()
+	g.narrativePanel.SetAvailableActions(actions)
+}
+
+// buildSceneContext creates the context for scene generation
+func (g *Game) buildSceneContext() *narrative.SceneContext {
+	ctx := &narrative.SceneContext{
+		PlayerX:      g.playerEntity.X,
+		PlayerY:      g.playerEntity.Y,
+		PlayerFacing: g.playerEntity.Facing,
+		PlayerHP:     g.playerEntity.CurrentHP,
+		PlayerMaxHP:  g.playerEntity.MaxHP,
+		PlayerAP:     g.playerEntity.ActionPoints,
+		PlayerMaxAP:  g.playerEntity.MaxAP,
+	}
+
+	// Find nearby entities
+	if g.turnManager != nil {
+		for _, e := range g.turnManager.GetEntities() {
+			if e == g.playerEntity || !e.IsAlive() {
+				continue
+			}
+
+			dist := g.playerEntity.DistanceTo(e)
+			if dist > 10 { // Only show entities within 10 tiles
+				continue
+			}
+
+			// Determine direction
+			dx := e.X - g.playerEntity.X
+			dy := e.Y - g.playerEntity.Y
+			dirName := narrative.DirectionName(dx, dy)
+
+			// Determine status
+			status := "unaware"
+			if e.DetectionState != "" {
+				status = e.DetectionState
+			}
+
+			info := &narrative.EntityInfo{
+				Entity:    e,
+				Distance:  dist,
+				Direction: dirName,
+				Visible:   true, // TODO: Line of sight check
+				Facing:    narrative.FacingName(e.Facing),
+				Status:    status,
+			}
+
+			ctx.NearbyEntities = append(ctx.NearbyEntities, info)
+		}
+	}
+
+	return ctx
+}
+
+// buildAvailableActions creates the action choices for the narrative panel
+func (g *Game) buildAvailableActions() []*narrative.ActionChoice {
+	var choices []*narrative.ActionChoice
+
+	if g.actionLibrary == nil || g.playerEntity == nil {
+		return choices
+	}
+
+	// Get all actions from library
+	for _, act := range g.actionLibrary.GetAllActions() {
+		choice := &narrative.ActionChoice{
+			Action:    act,
+			Enabled:   g.playerEntity.CanAffordAP(act.APCost),
+			APDisplay: fmt.Sprintf("%d AP", act.APCost),
+			Hotkey:    act.Hotkey,
+		}
+
+		if !choice.Enabled {
+			choice.Reason = "Not enough AP"
+		}
+
+		choices = append(choices, choice)
+	}
+
+	// Add end turn action
+	endTurnAction := &action.Action{
+		ID:          "end_turn",
+		Name:        "End Turn",
+		Description: "End your turn and let enemies act",
+		Category:    action.CategoryUtility,
+		APCost:      0,
+		Hotkey:      "space",
+	}
+	choices = append(choices, &narrative.ActionChoice{
+		Action:    endTurnAction,
+		Enabled:   true,
+		APDisplay: "0 AP",
+		Hotkey:    "Space",
+	})
+
+	return choices
 }
 
 // updateInteractions handles E key presses and interaction hints
@@ -791,6 +998,24 @@ func (g *Game) Draw(screen renderer.Image) {
 
 	// Step 8: Draw HUD
 	g.drawHUD(screen)
+
+	// Step 9: Draw narrative panel
+	g.drawNarrativePanel(screen)
+}
+
+// drawNarrativePanel renders the narrative/action panel
+func (g *Game) drawNarrativePanel(screen renderer.Image) {
+	if g.narrativePanel == nil {
+		return
+	}
+
+	// Get ebiten image from renderer
+	ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage)
+	if !ok {
+		return
+	}
+
+	g.narrativePanel.Draw(ebitenImg.GetEbitenImage())
 }
 
 // drawHUD renders the heads-up display

@@ -3,8 +3,10 @@
 package turn
 
 import (
+	"fmt"
 	"math/rand"
 
+	"chosenoffset.com/outpost9/action"
 	"chosenoffset.com/outpost9/dice"
 	"chosenoffset.com/outpost9/entity"
 )
@@ -63,13 +65,18 @@ type Manager struct {
 	currentIdx int // Index of current entity in turn order
 	roller     *dice.Roller
 
+	// Action system
+	actionLibrary *action.ActionLibrary
+
 	// Callbacks
-	OnTurnStart   func(turnNumber int)
-	OnTurnEnd     func(turnNumber int)
-	OnEntityTurn  func(e *entity.Entity)
-	OnCombat      func(result *CombatResult)
-	OnEntityDeath func(e *entity.Entity)
-	OnMessage     func(msg string)
+	OnTurnStart     func(turnNumber int)
+	OnTurnEnd       func(turnNumber int)
+	OnEntityTurn    func(e *entity.Entity)
+	OnCombat        func(result *CombatResult)
+	OnEntityDeath   func(e *entity.Entity)
+	OnMessage       func(msg string)
+	OnSceneUpdate   func() // Called when scene should be re-described
+	OnAPChanged     func(current, max int) // Called when player AP changes
 
 	// Map interaction
 	IsWalkable  func(x, y int) bool
@@ -79,11 +86,27 @@ type Manager struct {
 // NewManager creates a new turn manager
 func NewManager(rng *rand.Rand) *Manager {
 	return &Manager{
-		entities:   make([]*entity.Entity, 0),
-		turnNumber: 0,
-		phase:      PhasePlayerInput,
-		roller:     dice.NewRoller(rng),
+		entities:      make([]*entity.Entity, 0),
+		turnNumber:    0,
+		phase:         PhasePlayerInput,
+		roller:        dice.NewRoller(rng),
+		actionLibrary: action.DefaultLibrary(),
 	}
+}
+
+// SetActionLibrary sets the action library (merge with defaults)
+func (m *Manager) SetActionLibrary(lib *action.ActionLibrary) {
+	if m.actionLibrary == nil {
+		m.actionLibrary = action.DefaultLibrary()
+	}
+	if lib != nil {
+		m.actionLibrary.MergeLibrary(lib)
+	}
+}
+
+// GetActionLibrary returns the action library
+func (m *Manager) GetActionLibrary() *action.ActionLibrary {
+	return m.actionLibrary
 }
 
 // SetPlayer sets the player entity
@@ -175,8 +198,10 @@ func (m *Manager) StartNewTurn() {
 	m.phase = PhasePlayerInput
 }
 
-// ProcessPlayerAction handles a player action and advances the turn
-func (m *Manager) ProcessPlayerAction(action Action) bool {
+// ProcessPlayerAction handles a player action (partial AP spending)
+// Returns true if action was successful
+// Does NOT automatically end the turn - player can keep acting until out of AP
+func (m *Manager) ProcessPlayerAction(act Action) bool {
 	if m.phase != PhasePlayerInput {
 		return false
 	}
@@ -188,14 +213,26 @@ func (m *Manager) ProcessPlayerAction(action Action) bool {
 	m.phase = PhasePlayerAction
 
 	// Execute the action
-	success := m.executeAction(action)
+	success := m.executeAction(act)
 
 	if success {
-		m.player.EndTurn()
-		// After player acts, enemies get their turn
-		m.phase = PhaseEnemyTurn
-		m.processEnemyTurns()
-		m.endTurn()
+		// Notify AP change
+		if m.OnAPChanged != nil {
+			m.OnAPChanged(m.player.ActionPoints, m.player.MaxAP)
+		}
+
+		// Notify scene update
+		if m.OnSceneUpdate != nil {
+			m.OnSceneUpdate()
+		}
+
+		// Check if player is out of AP
+		if m.player.ActionPoints <= 0 {
+			m.EndPlayerTurn()
+		} else {
+			// Player can still act, go back to input phase
+			m.phase = PhasePlayerInput
+		}
 	} else {
 		// Action failed, go back to player input
 		m.phase = PhasePlayerInput
@@ -204,20 +241,279 @@ func (m *Manager) ProcessPlayerAction(action Action) bool {
 	return success
 }
 
-// executeAction executes a single action
-func (m *Manager) executeAction(action Action) bool {
-	switch action.Type {
-	case ActionMove:
-		return m.executeMove(action)
-	case ActionAttack:
-		return m.executeAttack(action)
-	case ActionWait:
-		return true // Waiting always succeeds
-	case ActionInteract:
-		return true // Interaction handled elsewhere
-	default:
+// EndPlayerTurn manually ends the player's turn (even with AP remaining)
+func (m *Manager) EndPlayerTurn() {
+	if m.player == nil {
+		return
+	}
+
+	m.player.EndTurn()
+	m.phase = PhaseEnemyTurn
+	m.processEnemyTurns()
+	m.endTurn()
+}
+
+// ProcessDataAction handles an action from the action library
+func (m *Manager) ProcessDataAction(act *action.Action, dir entity.Direction, targetX, targetY int) bool {
+	if m.phase != PhasePlayerInput || m.player == nil {
 		return false
 	}
+
+	// Check if player can afford the AP
+	if !m.player.CanAffordAP(act.APCost) {
+		if m.OnMessage != nil {
+			m.OnMessage(fmt.Sprintf("Not enough AP! Need %d, have %d", act.APCost, m.player.ActionPoints))
+		}
+		return false
+	}
+
+	m.phase = PhasePlayerAction
+
+	// Execute based on action type
+	success := false
+	switch act.Category {
+	case action.CategoryMovement:
+		success = m.executeDataMove(act, dir)
+	case action.CategoryCombat:
+		success = m.executeDataAttack(act, dir, targetX, targetY)
+	case action.CategoryUtility:
+		success = m.executeDataUtility(act)
+	default:
+		// Generic action execution
+		success = m.executeGenericAction(act, dir, targetX, targetY)
+	}
+
+	if success {
+		// Spend the AP
+		m.player.SpendAP(act.APCost)
+
+		// Notify AP change
+		if m.OnAPChanged != nil {
+			m.OnAPChanged(m.player.ActionPoints, m.player.MaxAP)
+		}
+
+		// Notify scene update
+		if m.OnSceneUpdate != nil {
+			m.OnSceneUpdate()
+		}
+
+		// Check if player is out of AP
+		if m.player.ActionPoints <= 0 {
+			m.EndPlayerTurn()
+		} else {
+			m.phase = PhasePlayerInput
+		}
+	} else {
+		m.phase = PhasePlayerInput
+	}
+
+	return success
+}
+
+// executeDataMove handles movement actions from the action library
+func (m *Manager) executeDataMove(act *action.Action, dir entity.Direction) bool {
+	if dir == entity.DirNone {
+		return false
+	}
+
+	dx, dy := dir.Delta()
+	newX := m.player.X + dx
+	newY := m.player.Y + dy
+
+	// Check if destination is walkable
+	if m.IsWalkable != nil && !m.IsWalkable(newX, newY) {
+		if m.OnMessage != nil {
+			m.OnMessage("You can't move there.")
+		}
+		return false
+	}
+
+	// Check if another entity is there
+	if m.GetEntityAt != nil {
+		if blocker := m.GetEntityAt(newX, newY); blocker != nil && blocker.IsAlive() {
+			// If hostile, convert to attack
+			if m.player.IsHostileTo(blocker) {
+				if m.OnMessage != nil {
+					m.OnMessage("An enemy blocks your path!")
+				}
+				return false // Don't auto-attack, let player choose
+			}
+			if m.OnMessage != nil {
+				m.OnMessage("Someone is in the way.")
+			}
+			return false
+		}
+	}
+
+	// Execute the move
+	m.player.X = newX
+	m.player.Y = newY
+	m.player.Facing = dir
+
+	if m.OnMessage != nil {
+		dirName := directionName(dir)
+		m.OnMessage(fmt.Sprintf("You move %s.", dirName))
+	}
+
+	return true
+}
+
+// executeDataAttack handles combat actions from the action library
+func (m *Manager) executeDataAttack(act *action.Action, dir entity.Direction, targetX, targetY int) bool {
+	var target *entity.Entity
+
+	// Find target based on direction or coordinates
+	if dir != entity.DirNone {
+		dx, dy := dir.Delta()
+		targetX = m.player.X + dx
+		targetY = m.player.Y + dy
+	}
+
+	if m.GetEntityAt != nil {
+		target = m.GetEntityAt(targetX, targetY)
+	}
+
+	if target == nil || !target.IsAlive() {
+		if m.OnMessage != nil {
+			m.OnMessage("No target there.")
+		}
+		return false
+	}
+
+	// Check range
+	dist := m.player.DistanceToPoint(targetX, targetY)
+	if dist > act.Targeting.Range && act.Targeting.Range > 0 {
+		if m.OnMessage != nil {
+			m.OnMessage("Target is out of range!")
+		}
+		return false
+	}
+
+	// Execute attack using existing combat system
+	oldAction := Action{
+		Type:   ActionAttack,
+		Actor:  m.player,
+		Target: target,
+	}
+
+	return m.executeAttack(oldAction)
+}
+
+// executeDataUtility handles utility actions (wait, etc.)
+func (m *Manager) executeDataUtility(act *action.Action) bool {
+	// Check for specific utility actions
+	for _, effect := range act.Effects {
+		switch effect.Type {
+		case "pass_time":
+			if m.OnMessage != nil {
+				m.OnMessage("You wait...")
+			}
+			return true
+		}
+	}
+
+	return true
+}
+
+// executeGenericAction handles other action types
+func (m *Manager) executeGenericAction(act *action.Action, dir entity.Direction, targetX, targetY int) bool {
+	// Apply effects
+	for _, effect := range act.Effects {
+		switch effect.Type {
+		case "pass_time":
+			// Do nothing
+		case "move":
+			// Already handled by movement
+		default:
+			// Log unhandled effect
+		}
+	}
+
+	if m.OnMessage != nil {
+		m.OnMessage(fmt.Sprintf("You %s.", act.Name))
+	}
+
+	return true
+}
+
+// GetAvailableActions returns actions the player can currently take
+func (m *Manager) GetAvailableActions() []*action.Action {
+	if m.actionLibrary == nil || m.player == nil {
+		return nil
+	}
+
+	var available []*action.Action
+	for _, act := range m.actionLibrary.GetAllActions() {
+		if m.player.CanAffordAP(act.APCost) {
+			available = append(available, act)
+		}
+	}
+	return available
+}
+
+// Helper function for direction names
+func directionName(dir entity.Direction) string {
+	switch dir {
+	case entity.DirNorth:
+		return "north"
+	case entity.DirSouth:
+		return "south"
+	case entity.DirEast:
+		return "east"
+	case entity.DirWest:
+		return "west"
+	case entity.DirNorthEast:
+		return "northeast"
+	case entity.DirNorthWest:
+		return "northwest"
+	case entity.DirSouthEast:
+		return "southeast"
+	case entity.DirSouthWest:
+		return "southwest"
+	default:
+		return "somewhere"
+	}
+}
+
+// executeAction executes a single action (spends AP)
+func (m *Manager) executeAction(act Action) bool {
+	// Determine AP cost based on action type
+	apCost := 1 // Default cost
+	switch act.Type {
+	case ActionMove:
+		apCost = 1
+	case ActionAttack:
+		apCost = 2 // Attacks cost more AP
+	case ActionWait:
+		apCost = 1
+	case ActionInteract:
+		apCost = 1
+	}
+
+	// Check if actor can afford the AP
+	if act.Actor != nil && !act.Actor.CanAffordAP(apCost) {
+		return false
+	}
+
+	// Execute the action
+	success := false
+	switch act.Type {
+	case ActionMove:
+		success = m.executeMove(act)
+	case ActionAttack:
+		success = m.executeAttack(act)
+	case ActionWait:
+		success = true // Waiting always succeeds
+	case ActionInteract:
+		success = true // Interaction handled elsewhere
+	}
+
+	// Spend AP on success
+	if success && act.Actor != nil {
+		act.Actor.SpendAP(apCost)
+	}
+
+	return success
 }
 
 // executeMove handles movement actions

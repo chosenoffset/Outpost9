@@ -96,8 +96,16 @@ type Entity struct {
 
 	// Turn state
 	HasActed     bool // Has this entity acted this turn?
-	ActionPoints int  // AP for this turn (usually 1 for move OR attack)
-	MaxAP        int  // Max AP per turn
+	ActionPoints int  // AP remaining this turn
+	MaxAP        int  // Max AP per turn (default 4 for tactical system)
+
+	// Skills (for skill checks)
+	Skills map[string]int // skill_id -> skill level
+
+	// Detection state (for stealth system)
+	DetectionState string // "unaware", "suspicious", "alert", "engaged"
+	LastKnownX     int    // Last known position of target (for AI)
+	LastKnownY     int
 
 	// Link to full character (for player or complex NPCs)
 	Character *character.Character
@@ -106,37 +114,48 @@ type Entity struct {
 // NewEntity creates a basic entity
 func NewEntity(id, name string, entityType EntityType) *Entity {
 	return &Entity{
-		ID:           id,
-		Name:         name,
-		Type:         entityType,
-		Faction:      FactionNeutral,
-		Speed:        1,
-		CanMove:      true,
-		MaxHP:        10,
-		CurrentHP:    10,
-		Attack:       0,
-		Defense:      10,
-		Damage:       "1d4",
-		MaxAP:        1,
-		ActionPoints: 1,
+		ID:             id,
+		Name:           name,
+		Type:           entityType,
+		Faction:        FactionNeutral,
+		Facing:         DirSouth, // Default facing
+		Speed:          1,
+		CanMove:        true,
+		MaxHP:          10,
+		CurrentHP:      10,
+		Attack:         0,
+		Defense:        10,
+		Damage:         "1d4",
+		MaxAP:          4, // Tactical system default
+		ActionPoints:   4,
+		Skills:         make(map[string]int),
+		DetectionState: "unaware",
 	}
 }
 
 // NewPlayerEntity creates a player entity from a character
 func NewPlayerEntity(char *character.Character, x, y int) *Entity {
 	e := &Entity{
-		ID:           "player",
-		Name:         char.Name,
-		Type:         TypePlayer,
-		Faction:      FactionPlayer,
-		X:            x,
-		Y:            y,
-		Speed:        1,
-		CanMove:      true,
-		MaxAP:        1,
-		ActionPoints: 1,
-		SpriteName:   "player_idle",
-		Character:    char,
+		ID:             "player",
+		Name:           "Hero", // Default name
+		Type:           TypePlayer,
+		Faction:        FactionPlayer,
+		X:              x,
+		Y:              y,
+		Facing:         DirSouth,
+		Speed:          1,
+		CanMove:        true,
+		MaxAP:          4, // Tactical system default
+		ActionPoints:   4,
+		SpriteName:     "player_idle",
+		Skills:         make(map[string]int),
+		DetectionState: "alert", // Player is always alert
+		Character:      char,
+	}
+
+	// Set name from character if available
+	if char != nil {
+		e.Name = char.Name
 	}
 
 	// Pull stats from character if available
@@ -244,4 +263,134 @@ func (e *Entity) RollDamage(roller *dice.Roller) int {
 		return 1 // Fallback minimum damage
 	}
 	return result.Total
+}
+
+// CanAffordAP checks if the entity has enough AP for an action
+func (e *Entity) CanAffordAP(cost int) bool {
+	return e.ActionPoints >= cost
+}
+
+// SpendAP deducts AP for an action, returns false if not enough
+func (e *Entity) SpendAP(cost int) bool {
+	if e.ActionPoints < cost {
+		return false
+	}
+	e.ActionPoints -= cost
+	return true
+}
+
+// GetSkill returns the skill level for a given skill (0 if not known)
+func (e *Entity) GetSkill(skillID string) int {
+	if e.Skills == nil {
+		return 0
+	}
+	return e.Skills[skillID]
+}
+
+// SetSkill sets a skill level
+func (e *Entity) SetSkill(skillID string, level int) {
+	if e.Skills == nil {
+		e.Skills = make(map[string]int)
+	}
+	e.Skills[skillID] = level
+}
+
+// IsFacing returns true if this entity is facing toward a position
+func (e *Entity) IsFacing(targetX, targetY int) bool {
+	dx := targetX - e.X
+	dy := targetY - e.Y
+
+	// Normalize to get general direction
+	if dx > 0 {
+		dx = 1
+	} else if dx < 0 {
+		dx = -1
+	}
+	if dy > 0 {
+		dy = 1
+	} else if dy < 0 {
+		dy = -1
+	}
+
+	// Check if facing matches the direction to target
+	facingDx, facingDy := e.Facing.Delta()
+
+	// For cardinal directions, check exact match
+	// For diagonal targets, check if facing is within 45 degrees
+	if facingDx == dx && facingDy == dy {
+		return true
+	}
+
+	// Check adjacent directions (for 90 degree vision cone)
+	if facingDx == dx && facingDy == 0 && dy != 0 {
+		return true // Facing east/west, target is NE/SE or NW/SW
+	}
+	if facingDy == dy && facingDx == 0 && dx != 0 {
+		return true // Facing north/south, target is NE/NW or SE/SW
+	}
+
+	return false
+}
+
+// IsBehind returns true if this entity is behind another (not in their vision)
+func (e *Entity) IsBehind(other *Entity) bool {
+	return !other.IsFacing(e.X, e.Y)
+}
+
+// DistanceToPoint calculates Manhattan distance to a point
+func (e *Entity) DistanceToPoint(x, y int) int {
+	dx := e.X - x
+	dy := e.Y - y
+	if dx < 0 {
+		dx = -dx
+	}
+	if dy < 0 {
+		dy = -dy
+	}
+	return dx + dy
+}
+
+// DirectionTo returns the direction from this entity to another
+func (e *Entity) DirectionTo(other *Entity) Direction {
+	return e.DirectionToPoint(other.X, other.Y)
+}
+
+// DirectionToPoint returns the direction from this entity to a point
+func (e *Entity) DirectionToPoint(x, y int) Direction {
+	dx := x - e.X
+	dy := y - e.Y
+
+	// Normalize
+	if dx > 0 {
+		dx = 1
+	} else if dx < 0 {
+		dx = -1
+	}
+	if dy > 0 {
+		dy = 1
+	} else if dy < 0 {
+		dy = -1
+	}
+
+	// Map to direction
+	switch {
+	case dx == 0 && dy == -1:
+		return DirNorth
+	case dx == 0 && dy == 1:
+		return DirSouth
+	case dx == 1 && dy == 0:
+		return DirEast
+	case dx == -1 && dy == 0:
+		return DirWest
+	case dx == 1 && dy == -1:
+		return DirNorthEast
+	case dx == -1 && dy == -1:
+		return DirNorthWest
+	case dx == 1 && dy == 1:
+		return DirSouthEast
+	case dx == -1 && dy == 1:
+		return DirSouthWest
+	}
+
+	return DirNone
 }
