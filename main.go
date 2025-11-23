@@ -23,6 +23,7 @@ import (
 	"chosenoffset.com/outpost9/menu"
 	"chosenoffset.com/outpost9/narrative"
 	"chosenoffset.com/outpost9/renderer"
+	"chosenoffset.com/outpost9/roominfo"
 	ebitenrenderer "chosenoffset.com/outpost9/renderer/ebiten"
 	"chosenoffset.com/outpost9/room"
 	"chosenoffset.com/outpost9/shadows"
@@ -331,6 +332,39 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	panelY := 0
 	gm.game.narrativePanel = narrative.NewPanel(panelX, panelY, gm.game.panelWidth, gm.screenHeight)
 	gm.game.sceneGenerator = narrative.NewSceneGenerator()
+	gm.game.turnNarrator = narrative.NewTurnNarrator()
+
+	// Initialize room tracker if we have a generated level
+	if gameMap.GeneratedLevel != nil {
+		gm.game.roomTracker = roominfo.NewRoomTracker(gameMap.GeneratedLevel)
+
+		// Wire up room event callbacks
+		gm.game.roomTracker.OnRoomEvent = func(event roominfo.RoomEvent) {
+			switch event.Type {
+			case roominfo.RoomEntered:
+				if event.IsFirst {
+					gm.game.narrativePanel.AddSystemMessage(
+						fmt.Sprintf("Entered %s for the first time.", gm.game.roomTracker.GetRoomName()),
+						gm.game.turnManager.GetTurnNumber(),
+					)
+				}
+			case roominfo.SecretDiscovered:
+				gm.game.narrativePanel.AddSystemMessage(
+					fmt.Sprintf("[Discovery] %s", event.Revealed),
+					gm.game.turnManager.GetTurnNumber(),
+				)
+			case roominfo.RoomCleared:
+				gm.game.narrativePanel.AddCombatMessage(
+					"The room is now clear of enemies.",
+					gm.game.turnManager.GetTurnNumber(),
+				)
+			}
+		}
+
+		// Set initial player position in room tracker
+		gm.game.roomTracker.UpdatePlayerPosition(playerEntity.X, playerEntity.Y)
+		log.Printf("Room tracker initialized with %d rooms", len(gameMap.GeneratedLevel.PlacedRooms))
+	}
 
 	// Wire up narrative panel callbacks
 	gm.game.narrativePanel.OnActionSelected = func(act *action.Action, dir narrative.Direction) {
@@ -371,6 +405,21 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	}
 	turnMgr.OnAPChanged = func(current, max int) {
 		gm.game.updateNarrativePanel()
+	}
+
+	// Wire up search callback to use room tracker
+	turnMgr.OnSearch = func(player *entity.Entity) string {
+		if gm.game.roomTracker != nil {
+			result, found := gm.game.roomTracker.SearchCurrentRoom(player)
+			if found {
+				gm.game.narrativePanel.AddSystemMessage(
+					fmt.Sprintf("[Search] %s", result),
+					gm.game.turnManager.GetTurnNumber(),
+				)
+			}
+			return result
+		}
+		return "You search the area but find nothing of interest."
 	}
 
 	// Initial scene update
@@ -432,6 +481,10 @@ type Game struct {
 	// Narrative panel
 	narrativePanel *narrative.Panel
 	sceneGenerator *narrative.SceneGenerator
+	turnNarrator   *narrative.TurnNarrator
+
+	// Room tracking
+	roomTracker *roominfo.RoomTracker
 
 	// HUD
 	gameHUD *hud.HUD
@@ -521,6 +574,11 @@ func (g *Game) syncPlayerPosition() {
 	// Center the player in the tile
 	g.player.Pos.X = float64(g.playerEntity.X)*tileSize + tileSize/2
 	g.player.Pos.Y = float64(g.playerEntity.Y)*tileSize + tileSize/2
+
+	// Update room tracker with new player position
+	if g.roomTracker != nil {
+		g.roomTracker.UpdatePlayerPosition(g.playerEntity.X, g.playerEntity.Y)
+	}
 }
 
 // updateMessages updates message timers and removes expired messages
@@ -584,6 +642,9 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 		PlayerMaxAP:  g.playerEntity.MaxAP,
 	}
 
+	// Count nearby enemies for room description
+	nearbyEnemyCount := 0
+
 	// Find nearby entities
 	if g.turnManager != nil {
 		for _, e := range g.turnManager.GetEntities() {
@@ -594,6 +655,11 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 			dist := g.playerEntity.DistanceTo(e)
 			if dist > 10 { // Only show entities within 10 tiles
 				continue
+			}
+
+			// Count enemies in same room or nearby
+			if e.Faction == entity.FactionEnemy && dist <= 8 {
+				nearbyEnemyCount++
 			}
 
 			// Determine direction
@@ -617,6 +683,19 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 			}
 
 			ctx.NearbyEntities = append(ctx.NearbyEntities, info)
+		}
+	}
+
+	// Use room tracker for room name and description if available
+	if g.roomTracker != nil {
+		ctx.RoomName = g.roomTracker.GetRoomName()
+
+		// Get enhanced room description based on state
+		hasEnemies := nearbyEnemyCount > 0
+		roomDesc := g.roomTracker.GetRoomDescription(hasEnemies)
+		if roomDesc != "" {
+			// Prepend room description to any existing atmosphere
+			ctx.TerrainFeatures = append([]string{roomDesc}, ctx.TerrainFeatures...)
 		}
 	}
 

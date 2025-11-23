@@ -77,6 +77,7 @@ type Manager struct {
 	OnMessage       func(msg string)
 	OnSceneUpdate   func() // Called when scene should be re-described
 	OnAPChanged     func(current, max int) // Called when player AP changes
+	OnSearch        func(player *entity.Entity) string // Called when player searches, returns description
 
 	// Map interaction
 	IsWalkable  func(x, y int) bool
@@ -278,6 +279,8 @@ func (m *Manager) ProcessDataAction(act *action.Action, dir entity.Direction, ta
 		success = m.executeDataAttack(act, dir, targetX, targetY)
 	case action.CategoryUtility:
 		success = m.executeDataUtility(act)
+	case action.CategoryPerception:
+		success = m.executeDataPerception(act)
 	default:
 		// Generic action execution
 		success = m.executeGenericAction(act, dir, targetX, targetY)
@@ -413,6 +416,40 @@ func (m *Manager) executeDataUtility(act *action.Action) bool {
 	}
 
 	return true
+}
+
+// executeDataPerception handles perception actions like search and listen
+func (m *Manager) executeDataPerception(act *action.Action) bool {
+	switch act.ID {
+	case "search":
+		// Call the search callback if registered
+		if m.OnSearch != nil {
+			result := m.OnSearch(m.player)
+			if result != "" && m.OnMessage != nil {
+				m.OnMessage(result)
+			}
+		} else {
+			if m.OnMessage != nil {
+				m.OnMessage("You search the area but find nothing of interest.")
+			}
+		}
+		return true
+
+	case "listen":
+		// Handle listen action - reveal nearby sounds
+		if m.OnMessage != nil {
+			m.OnMessage("You listen carefully...")
+		}
+		// TODO: Implement sound detection based on nearby entities
+		return true
+
+	default:
+		// Generic perception action
+		if m.OnMessage != nil {
+			m.OnMessage(fmt.Sprintf("You %s.", act.Name))
+		}
+		return true
+	}
 }
 
 // executeGenericAction handles other action types

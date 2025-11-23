@@ -16,6 +16,26 @@ type ConnectionPoint struct {
 	Type      string `json:"type"`      // "door", "corridor", "entrance", "exit"
 }
 
+// SkillReveal represents information revealed by a skill check
+type SkillReveal struct {
+	Skill      string `json:"skill"`       // Skill required (e.g., "perception", "investigation")
+	Difficulty int    `json:"difficulty"`  // DC for the check
+	Text       string `json:"text"`        // Text revealed on success
+	OneTime    bool   `json:"one_time"`    // Only reveal once per game
+	Tag        string `json:"tag"`         // Identifier for tracking if revealed
+}
+
+// RoomNarrative contains all narrative text for a room
+type RoomNarrative struct {
+	EntryText    string        `json:"entry_text"`    // Text shown on first entry
+	ReturnText   string        `json:"return_text"`   // Text shown when returning to room
+	SearchText   string        `json:"search_text"`   // Text revealed when actively searching
+	Atmosphere   string        `json:"atmosphere"`    // Ambient description (sounds, smells, mood)
+	SkillReveals []SkillReveal `json:"skill_reveals"` // Skill-based discoveries
+	DangerHint   string        `json:"danger_hint"`   // Hint about dangers (shown if enemies present)
+	SafeText     string        `json:"safe_text"`     // Text when room is cleared of enemies
+}
+
 // RoomDefinition represents a single room template that can be used in level generation
 type RoomDefinition struct {
 	Name        string                               `json:"name"`         // Room identifier
@@ -30,6 +50,7 @@ type RoomDefinition struct {
 	SpawnWeight int                                  `json:"spawn_weight"` // Weight for random selection (higher = more likely)
 	MinCount    int                                  `json:"min_count"`    // Minimum number of times this room should appear
 	MaxCount    int                                  `json:"max_count"`    // Maximum number of times this room can appear (0 = unlimited)
+	Narrative   *RoomNarrative                       `json:"narrative"`    // Narrative content for this room
 }
 
 // RoomLibrary holds a collection of room definitions
