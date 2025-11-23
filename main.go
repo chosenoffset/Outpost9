@@ -27,6 +27,7 @@ import (
 	"chosenoffset.com/outpost9/room"
 	"chosenoffset.com/outpost9/shadows"
 	"chosenoffset.com/outpost9/turn"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
