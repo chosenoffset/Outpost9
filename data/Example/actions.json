@@ -1,0 +1,219 @@
+{
+  "actions": [
+    {
+      "id": "move",
+      "name": "Move",
+      "description": "Walk to an adjacent tile",
+      "category": "movement",
+      "ap_cost": 1,
+      "noise": 2,
+      "targeting": {
+        "type": "direction",
+        "range": 1
+      },
+      "effects": [
+        {"type": "move", "value": "1"}
+      ],
+      "hotkey": "m",
+      "action_verb": "moves",
+      "target_verb": "toward"
+    },
+    {
+      "id": "sneak",
+      "name": "Sneak",
+      "description": "Move quietly to an adjacent tile",
+      "category": "stealth",
+      "ap_cost": 2,
+      "noise": 0,
+      "targeting": {
+        "type": "direction",
+        "range": 1
+      },
+      "requirements": [
+        {"type": "skill", "id": "stealth", "min_value": 1}
+      ],
+      "effects": [
+        {"type": "move", "value": "1"},
+        {"type": "status", "status": "sneaking", "duration": 1}
+      ],
+      "skill_check": {
+        "skill": "stealth",
+        "opposed_by": "perception",
+        "on_fail": "noise_increases"
+      },
+      "hotkey": "s",
+      "action_verb": "sneaks",
+      "target_verb": "toward"
+    },
+    {
+      "id": "attack",
+      "name": "Attack",
+      "description": "Strike an adjacent enemy with your weapon",
+      "category": "combat",
+      "ap_cost": 2,
+      "noise": 5,
+      "targeting": {
+        "type": "direction",
+        "range": 1
+      },
+      "effects": [
+        {"type": "damage", "value": "weapon", "damage_type": "physical"}
+      ],
+      "hotkey": "a",
+      "action_verb": "attacks",
+      "target_verb": "at"
+    },
+    {
+      "id": "wait",
+      "name": "Wait",
+      "description": "Pass time without acting",
+      "category": "utility",
+      "ap_cost": 1,
+      "noise": 0,
+      "targeting": {
+        "type": "none"
+      },
+      "effects": [
+        {"type": "pass_time"}
+      ],
+      "hotkey": ".",
+      "action_verb": "waits"
+    },
+    {
+      "id": "listen",
+      "name": "Listen",
+      "description": "Focus your hearing to detect nearby sounds",
+      "category": "perception",
+      "ap_cost": 1,
+      "noise": 0,
+      "targeting": {
+        "type": "self"
+      },
+      "effects": [
+        {"type": "reveal_sounds", "value": "perception_range"}
+      ],
+      "skill_check": {
+        "skill": "perception",
+        "determines": "range_and_detail"
+      },
+      "hotkey": "l",
+      "action_verb": "listens"
+    },
+    {
+      "id": "search",
+      "name": "Search",
+      "description": "Carefully search the area for hidden things",
+      "category": "perception",
+      "ap_cost": 2,
+      "noise": 1,
+      "targeting": {
+        "type": "adjacent",
+        "range": 1
+      },
+      "effects": [
+        {"type": "reveal_hidden", "value": "1"}
+      ],
+      "skill_check": {
+        "skill": "perception",
+        "opposed_by": "hidden_dc"
+      },
+      "hotkey": "x",
+      "action_verb": "searches"
+    },
+    {
+      "id": "hide",
+      "name": "Hide",
+      "description": "Attempt to conceal yourself in shadows or cover",
+      "category": "stealth",
+      "ap_cost": 2,
+      "noise": 0,
+      "targeting": {
+        "type": "self"
+      },
+      "requirements": [
+        {"type": "context", "value": "in_shadow_or_cover"}
+      ],
+      "effects": [
+        {"type": "status", "status": "hidden", "duration": -1}
+      ],
+      "skill_check": {
+        "skill": "stealth",
+        "opposed_by": "perception"
+      },
+      "hotkey": "h",
+      "action_verb": "hides"
+    },
+    {
+      "id": "power_attack",
+      "name": "Power Attack",
+      "description": "A powerful but less accurate strike",
+      "category": "combat",
+      "ap_cost": 3,
+      "noise": 6,
+      "targeting": {
+        "type": "direction",
+        "range": 1
+      },
+      "effects": [
+        {"type": "damage", "value": "weapon+4", "damage_type": "physical"}
+      ],
+      "attack_modifier": -2,
+      "damage_modifier": 4,
+      "hotkey": "p",
+      "action_verb": "power attacks",
+      "target_verb": "at"
+    },
+    {
+      "id": "shoot",
+      "name": "Shoot",
+      "description": "Fire your ranged weapon at a target",
+      "category": "combat",
+      "ap_cost": 2,
+      "ammo_cost": 1,
+      "noise": 4,
+      "targeting": {
+        "type": "entity",
+        "range": 8,
+        "min_range": 2
+      },
+      "requirements": [
+        {"type": "item", "id": "ranged_weapon"},
+        {"type": "item", "id": "ammo"}
+      ],
+      "effects": [
+        {"type": "damage", "value": "weapon", "damage_type": "piercing"},
+        {"type": "consume_ammo", "value": "1"}
+      ],
+      "hotkey": "f",
+      "action_verb": "shoots",
+      "target_verb": "at"
+    },
+    {
+      "id": "aimed_shot",
+      "name": "Aimed Shot",
+      "description": "Take careful aim for a more accurate shot",
+      "category": "combat",
+      "ap_cost": 3,
+      "ammo_cost": 1,
+      "noise": 4,
+      "targeting": {
+        "type": "entity",
+        "range": 10,
+        "min_range": 2
+      },
+      "requirements": [
+        {"type": "item", "id": "ranged_weapon"},
+        {"type": "item", "id": "ammo"}
+      ],
+      "effects": [
+        {"type": "damage", "value": "weapon+2", "damage_type": "piercing"},
+        {"type": "consume_ammo", "value": "1"}
+      ],
+      "attack_modifier": 2,
+      "damage_modifier": 2,
+      "hotkey": "F",
+      "action_verb": "takes an aimed shot",
+      "target_verb": "at"
+    }
+  ]
+}
