@@ -333,6 +333,7 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	gm.game.narrativePanel = narrative.NewPanel(panelX, panelY, gm.game.panelWidth, gm.screenHeight)
 	gm.game.sceneGenerator = narrative.NewSceneGenerator()
 	gm.game.turnNarrator = narrative.NewTurnNarrator()
+	gm.game.proseGenerator = narrative.NewProseGenerator(time.Now().UnixNano())
 
 	// Initialize room tracker if we have a generated level
 	if gameMap.GeneratedLevel != nil {
@@ -378,16 +379,25 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 
 		// Convert narrative direction to entity direction
 		entityDir := entity.DirNone
+		dirStr := ""
 		switch dir {
 		case narrative.DirNorth:
 			entityDir = entity.DirNorth
+			dirStr = "north"
 		case narrative.DirSouth:
 			entityDir = entity.DirSouth
+			dirStr = "south"
 		case narrative.DirEast:
 			entityDir = entity.DirEast
+			dirStr = "east"
 		case narrative.DirWest:
 			entityDir = entity.DirWest
+			dirStr = "west"
 		}
+
+		// Track player action for prose
+		gm.game.lastPlayerAction = act.ID
+		gm.game.lastPlayerDirection = dirStr
 
 		// Process the action
 		gm.game.turnManager.ProcessDataAction(act, entityDir, 0, 0)
@@ -405,6 +415,11 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	}
 	turnMgr.OnAPChanged = func(current, max int) {
 		gm.game.updateNarrativePanel()
+	}
+
+	// Wire up turn end callback to generate prose after enemy turns
+	turnMgr.OnTurnEnd = func(turnNum int) {
+		gm.game.generateTurnProse()
 	}
 
 	// Wire up search callback to use room tracker
@@ -482,9 +497,14 @@ type Game struct {
 	narrativePanel *narrative.Panel
 	sceneGenerator *narrative.SceneGenerator
 	turnNarrator   *narrative.TurnNarrator
+	proseGenerator *narrative.ProseGenerator
 
 	// Room tracking
 	roomTracker *roominfo.RoomTracker
+
+	// Player action tracking for prose
+	lastPlayerAction    string
+	lastPlayerDirection string
 
 	// HUD
 	gameHUD *hud.HUD
@@ -534,6 +554,10 @@ func (g *Game) Update() error {
 				// Direct movement
 				moveAction := g.actionLibrary.GetAction("move")
 				if moveAction != nil && g.playerEntity.CanAffordAP(moveAction.APCost) {
+					// Track player action for prose
+					g.lastPlayerAction = "move"
+					g.lastPlayerDirection = directionName(dir)
+
 					g.turnManager.ProcessDataAction(moveAction, dir, 0, 0)
 					g.syncPlayerPosition()
 					g.updateNarrativePanel()
@@ -628,6 +652,146 @@ func (g *Game) updateNarrativePanel() {
 	// Build available actions
 	actions := g.buildAvailableActions()
 	g.narrativePanel.SetAvailableActions(actions)
+}
+
+// generateTurnProse creates dynamic prose describing what happened during the turn
+func (g *Game) generateTurnProse() {
+	if g.proseGenerator == nil || g.turnManager == nil || g.playerEntity == nil {
+		return
+	}
+
+	// Build prose context
+	proseCtx := g.buildProseContext()
+
+	// Generate prose
+	prose := g.proseGenerator.GenerateProse(proseCtx)
+
+	// Display the prose as a system message
+	if prose != "" {
+		g.narrativePanel.AddSystemMessage(prose, g.turnManager.GetTurnNumber())
+	}
+
+	// Clear player action tracking
+	g.lastPlayerAction = ""
+	g.lastPlayerDirection = ""
+}
+
+// buildProseContext creates context for dynamic prose generation
+func (g *Game) buildProseContext() *narrative.ProseContext {
+	ctx := &narrative.ProseContext{
+		PlayerAction:    g.lastPlayerAction,
+		PlayerDirection: g.lastPlayerDirection,
+		PlayerHP:        g.playerEntity.CurrentHP,
+		PlayerMaxHP:     g.playerEntity.MaxHP,
+		TurnNumber:      g.turnManager.GetTurnNumber(),
+	}
+	ctx.PlayerPosition.X = g.playerEntity.X
+	ctx.PlayerPosition.Y = g.playerEntity.Y
+
+	// Get visible enemies
+	for _, e := range g.turnManager.GetEntities() {
+		if e == g.playerEntity || !e.IsAlive() || e.Faction != entity.FactionEnemy {
+			continue
+		}
+
+		dist := g.playerEntity.DistanceTo(e)
+		if dist > 10 {
+			continue
+		}
+
+		dx := e.X - g.playerEntity.X
+		dy := e.Y - g.playerEntity.Y
+		dirName := narrative.DirectionName(dx, dy)
+
+		info := &narrative.EntityInfo{
+			Entity:    e,
+			Distance:  dist,
+			Direction: dirName,
+			Visible:   true,
+		}
+		ctx.VisibleEnemies = append(ctx.VisibleEnemies, info)
+		ctx.NearbyEnemyCount++
+
+		if ctx.ClosestEnemyDist == 0 || dist < ctx.ClosestEnemyDist {
+			ctx.ClosestEnemyDist = dist
+		}
+	}
+
+	// Get enemy actions from the turn manager
+	for _, action := range g.turnManager.GetLastEnemyActions() {
+		enemyAction := narrative.EnemyTurnAction{
+			Entity:        action.Entity,
+			ActionType:    action.ActionType,
+			Direction:     directionName(action.Direction),
+			IsApproaching: action.IsApproaching,
+		}
+		ctx.EnemyActions = append(ctx.EnemyActions, enemyAction)
+
+		if action.IsApproaching {
+			ctx.EnemiesApproaching = true
+		}
+	}
+
+	// Check for nearby furnishings and cover
+	for _, placed := range g.gameMap.Data.PlacedFurnishings {
+		dist := abs(g.playerEntity.X-placed.X) + abs(g.playerEntity.Y-placed.Y)
+		if dist > 2 {
+			continue
+		}
+
+		// Determine relationship
+		relation := narrative.DeterminePositionalRelation(
+			g.playerEntity.X, g.playerEntity.Y,
+			placed.X, placed.Y,
+			ctx.VisibleEnemies,
+		)
+
+		if relation != narrative.RelNone {
+			fc := narrative.FurnishingContext{
+				Furnishing: placed,
+				Relation:   relation,
+				Distance:   dist,
+			}
+			ctx.NearbyFurnishings = append(ctx.NearbyFurnishings, fc)
+
+			// If behind cover, record it
+			if relation == narrative.RelBehind && ctx.CoverFurnishing == nil {
+				ctx.CoverFurnishing = &fc
+			}
+		}
+	}
+
+	// Room context
+	if g.roomTracker != nil {
+		ctx.RoomName = g.roomTracker.GetRoomName()
+		ctx.RoomHasEnemies = ctx.NearbyEnemyCount > 0
+	}
+
+	return ctx
+}
+
+// Helper function for prose context
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// directionName converts entity direction to string
+func directionName(dir entity.Direction) string {
+	switch dir {
+	case entity.DirNorth:
+		return "north"
+	case entity.DirSouth:
+		return "south"
+	case entity.DirEast:
+		return "east"
+	case entity.DirWest:
+		return "west"
+	default:
+		return ""
+	}
 }
 
 // buildSceneContext creates the context for scene generation
