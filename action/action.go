@@ -108,8 +108,9 @@ type Action struct {
 
 // ActionLibrary holds all loaded actions
 type ActionLibrary struct {
-	Actions    map[string]*Action   // All actions by ID
-	Categories map[ActionCategory][]*Action // Actions grouped by category
+	Actions     map[string]*Action            // All actions by ID
+	Categories  map[ActionCategory][]*Action  // Actions grouped by category
+	ActionOrder []string                      // Ordered list of action IDs (for stable UI)
 }
 
 // ActionsFile is the JSON file structure
@@ -130,14 +131,16 @@ func LoadActionLibrary(path string) (*ActionLibrary, error) {
 	}
 
 	library := &ActionLibrary{
-		Actions:    make(map[string]*Action),
-		Categories: make(map[ActionCategory][]*Action),
+		Actions:     make(map[string]*Action),
+		Categories:  make(map[ActionCategory][]*Action),
+		ActionOrder: make([]string, 0, len(file.Actions)),
 	}
 
 	for i := range file.Actions {
 		action := &file.Actions[i]
 		library.Actions[action.ID] = action
 		library.Categories[action.Category] = append(library.Categories[action.Category], action)
+		library.ActionOrder = append(library.ActionOrder, action.ID)
 	}
 
 	return library, nil
@@ -153,11 +156,13 @@ func (lib *ActionLibrary) GetActionsByCategory(category ActionCategory) []*Actio
 	return lib.Categories[category]
 }
 
-// GetAllActions returns all actions
+// GetAllActions returns all actions in stable order
 func (lib *ActionLibrary) GetAllActions() []*Action {
-	result := make([]*Action, 0, len(lib.Actions))
-	for _, action := range lib.Actions {
-		result = append(result, action)
+	result := make([]*Action, 0, len(lib.ActionOrder))
+	for _, id := range lib.ActionOrder {
+		if action, ok := lib.Actions[id]; ok {
+			result = append(result, action)
+		}
 	}
 	return result
 }
@@ -166,8 +171,9 @@ func (lib *ActionLibrary) GetAllActions() []*Action {
 // These can be overridden by data files
 func DefaultLibrary() *ActionLibrary {
 	library := &ActionLibrary{
-		Actions:    make(map[string]*Action),
-		Categories: make(map[ActionCategory][]*Action),
+		Actions:     make(map[string]*Action),
+		Categories:  make(map[ActionCategory][]*Action),
+		ActionOrder: make([]string, 0),
 	}
 
 	// Built-in actions that are always available
@@ -203,17 +209,28 @@ func DefaultLibrary() *ActionLibrary {
 		action := &defaults[i]
 		library.Actions[action.ID] = action
 		library.Categories[action.Category] = append(library.Categories[action.Category], action)
+		library.ActionOrder = append(library.ActionOrder, action.ID)
 	}
 
 	return library
 }
 
 // MergeLibrary adds actions from another library, overwriting duplicates
+// New actions are added in the order they appear in the other library
 func (lib *ActionLibrary) MergeLibrary(other *ActionLibrary) {
-	for id, action := range other.Actions {
+	// Add new actions in order from other library
+	for _, id := range other.ActionOrder {
+		action := other.Actions[id]
+		if action == nil {
+			continue
+		}
+
 		// Remove from old category if exists
 		if existing, ok := lib.Actions[id]; ok {
 			lib.removeFromCategory(existing)
+		} else {
+			// New action - add to order
+			lib.ActionOrder = append(lib.ActionOrder, id)
 		}
 
 		lib.Actions[id] = action

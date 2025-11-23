@@ -457,9 +457,49 @@ func (g *Game) Update() error {
 		g.interactCooldown -= dt
 	}
 
-	// Handle narrative panel input if it exists
-	if g.narrativePanel != nil && g.turnManager != nil && g.turnManager.IsPlayerTurn() {
-		g.narrativePanel.Update()
+	// Handle input when it's player's turn
+	if g.turnManager != nil && g.turnManager.IsPlayerTurn() && g.playerEntity != nil {
+		// Direct movement with WASD/arrows (spends 1 AP per move)
+		var dir entity.Direction
+		if inpututil.IsKeyJustPressed(ebiten.KeyW) || inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+			dir = entity.DirNorth
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyS) || inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+			dir = entity.DirSouth
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyA) || inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+			dir = entity.DirWest
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyD) || inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+			dir = entity.DirEast
+		}
+
+		if dir != entity.DirNone {
+			// Check if in direction selection mode for narrative panel
+			if g.narrativePanel != nil && g.narrativePanel.GetInputMode() == narrative.ModeSelectDirection {
+				// Let the narrative panel handle it
+				g.narrativePanel.Update()
+			} else {
+				// Direct movement
+				moveAction := g.actionLibrary.GetAction("move")
+				if moveAction != nil && g.playerEntity.CanAffordAP(moveAction.APCost) {
+					g.turnManager.ProcessDataAction(moveAction, dir, 0, 0)
+					g.syncPlayerPosition()
+					g.updateNarrativePanel()
+				}
+			}
+		} else {
+			// Handle narrative panel for non-movement actions
+			if g.narrativePanel != nil {
+				g.narrativePanel.Update()
+			}
+		}
+
+		// End turn with E key (when not in direction mode)
+		if inpututil.IsKeyJustPressed(ebiten.KeyE) {
+			if g.narrativePanel == nil || g.narrativePanel.GetInputMode() != narrative.ModeSelectDirection {
+				g.turnManager.EndPlayerTurn()
+				g.syncPlayerPosition()
+				g.updateNarrativePanel()
+			}
+		}
 	}
 
 	// Update camera to follow player

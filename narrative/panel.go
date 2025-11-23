@@ -190,16 +190,16 @@ func (p *Panel) Update() bool {
 }
 
 func (p *Panel) updateActionSelection() bool {
-	// Navigate with W/S or Up/Down
-	if inpututil.IsKeyJustPressed(ebiten.KeyW) || inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+	// Navigate with [ and ] keys (don't use WASD as those are for movement)
+	if inpututil.IsKeyJustPressed(ebiten.KeyBracketLeft) {
 		p.moveSelection(-1)
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) || inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyBracketRight) {
 		p.moveSelection(1)
 	}
 
-	// Select with Enter or Space
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	// Select with Enter
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		if p.selectedIndex >= 0 && p.selectedIndex < len(p.availableActions) {
 			choice := p.availableActions[p.selectedIndex]
 			if choice.Enabled {
@@ -214,17 +214,6 @@ func (p *Panel) updateActionSelection() bool {
 		if inpututil.IsKeyJustPressed(key) {
 			choice := p.availableActions[i]
 			if choice.Enabled {
-				return p.activateAction(choice.Action)
-			}
-		}
-	}
-
-	// Hotkey support
-	for _, choice := range p.availableActions {
-		if choice.Hotkey != "" && choice.Enabled {
-			// Check if hotkey is pressed
-			key := hotkeyToKey(choice.Hotkey)
-			if key != ebiten.Key(-1) && inpututil.IsKeyJustPressed(key) {
 				return p.activateAction(choice.Action)
 			}
 		}
