@@ -21,13 +21,17 @@ type Panel struct {
 	Width, Height int
 
 	// Content
-	sceneText       []string        // Lines of scene description
+	sceneText        []string        // Lines of scene description
 	availableActions []*ActionChoice // Actions player can take
-	selectedIndex   int             // Currently highlighted action
-	actionLog       []LogEntry      // Recent action results
+	selectedIndex    int             // Currently highlighted action
+	actionLog        []LogEntry      // Recent action results
+
+	// Player state for display
+	currentAP int
+	maxAP     int
 
 	// State
-	inputMode     InputMode   // What kind of input we're waiting for
+	inputMode     InputMode      // What kind of input we're waiting for
 	pendingAction *action.Action // Action waiting for target selection
 
 	// Callbacks
@@ -129,6 +133,12 @@ func (p *Panel) SetAvailableActions(choices []*ActionChoice) {
 	}
 }
 
+// SetAP updates the displayed action points
+func (p *Panel) SetAP(current, max int) {
+	p.currentAP = current
+	p.maxAP = max
+}
+
 // AddLogEntry adds a new entry to the action log
 func (p *Panel) AddLogEntry(text string, clr color.RGBA, turn int) {
 	p.actionLog = append(p.actionLog, LogEntry{
@@ -190,11 +200,11 @@ func (p *Panel) Update() bool {
 }
 
 func (p *Panel) updateActionSelection() bool {
-	// Navigate with [ and ] keys (don't use WASD as those are for movement)
-	if inpututil.IsKeyJustPressed(ebiten.KeyBracketLeft) {
+	// Navigate with Up/Down arrow keys (WASD is for movement)
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		p.moveSelection(-1)
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyBracketRight) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
 		p.moveSelection(1)
 	}
 
@@ -332,6 +342,14 @@ func (p *Panel) Draw(screen *ebiten.Image) {
 	// Current Y position for drawing
 	y := p.Y + p.padding
 
+	// Draw AP display at the top
+	y = p.drawAPDisplay(screen, y)
+	y += p.lineHeight / 2
+
+	// Draw divider after AP
+	p.drawDivider(screen, y)
+	y += 8
+
 	// Draw scene description
 	y = p.drawSceneText(screen, y)
 	y += p.lineHeight // Extra spacing
@@ -355,6 +373,35 @@ func (p *Panel) Draw(screen *ebiten.Image) {
 	if p.inputMode == ModeSelectDirection {
 		p.drawDirectionPrompt(screen)
 	}
+}
+
+func (p *Panel) drawAPDisplay(screen *ebiten.Image, startY int) int {
+	y := startY
+
+	// Draw AP header
+	apLabel := "Action Points: "
+
+	// Create visual AP bar using filled/empty circles
+	var apDisplay string
+	for i := 0; i < p.maxAP; i++ {
+		if i < p.currentAP {
+			apDisplay += "●" // Filled circle for available AP
+		} else {
+			apDisplay += "○" // Empty circle for spent AP
+		}
+	}
+
+	// Also show numeric value
+	apText := fmt.Sprintf("%s%s  (%d/%d)", apLabel, apDisplay, p.currentAP, p.maxAP)
+	ebitenutil.DebugPrintAt(screen, apText, p.X+p.padding, y)
+	y += p.lineHeight
+
+	// Show controls hint
+	controlsHint := "WASD:Move  ↑↓:Select  Enter:Confirm  Space:End Turn"
+	ebitenutil.DebugPrintAt(screen, controlsHint, p.X+p.padding, y)
+	y += p.lineHeight
+
+	return y
 }
 
 func (p *Panel) drawSceneText(screen *ebiten.Image, startY int) int {
@@ -389,9 +436,9 @@ func (p *Panel) drawActions(screen *ebiten.Image, startY int) int {
 	y := startY
 
 	// Header
-	headerText := "Actions:"
+	headerText := "Actions (↑↓ to select, Enter to confirm):"
 	if p.inputMode == ModeSelectDirection {
-		headerText = "Select Direction (WASD/Arrows, ESC to cancel):"
+		headerText = "Select Direction (WASD, ESC to cancel):"
 	}
 	ebitenutil.DebugPrintAt(screen, headerText, p.X+p.padding, y)
 	y += p.lineHeight + 4
@@ -433,7 +480,7 @@ func (p *Panel) drawDivider(screen *ebiten.Image, y int) {
 func (p *Panel) drawDirectionPrompt(screen *ebiten.Image) {
 	// Draw a prompt at the bottom of the panel
 	promptY := p.Y + p.Height - p.lineHeight*2 - p.padding
-	prompt := "Press direction key (WASD/Arrows) or ESC to cancel"
+	prompt := "Press direction key (WASD) or ESC to cancel"
 	ebitenutil.DebugPrintAt(screen, prompt, p.X+p.padding, promptY)
 }
 

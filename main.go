@@ -460,15 +460,15 @@ func (g *Game) Update() error {
 
 	// Handle input when it's player's turn
 	if g.turnManager != nil && g.turnManager.IsPlayerTurn() && g.playerEntity != nil {
-		// Direct movement with WASD/arrows (spends 1 AP per move)
+		// Direct movement with WASD only (arrow keys reserved for menu navigation)
 		var dir entity.Direction
-		if inpututil.IsKeyJustPressed(ebiten.KeyW) || inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyW) {
 			dir = entity.DirNorth
-		} else if inpututil.IsKeyJustPressed(ebiten.KeyS) || inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 			dir = entity.DirSouth
-		} else if inpututil.IsKeyJustPressed(ebiten.KeyA) || inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 			dir = entity.DirWest
-		} else if inpututil.IsKeyJustPressed(ebiten.KeyD) || inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyD) {
 			dir = entity.DirEast
 		}
 
@@ -487,19 +487,17 @@ func (g *Game) Update() error {
 				}
 			}
 		} else {
-			// Handle narrative panel for non-movement actions
+			// Handle narrative panel for non-movement actions (arrow keys, number keys, etc.)
 			if g.narrativePanel != nil {
 				g.narrativePanel.Update()
 			}
 		}
 
-		// End turn with E key (when not in direction mode)
-		if inpututil.IsKeyJustPressed(ebiten.KeyE) {
-			if g.narrativePanel == nil || g.narrativePanel.GetInputMode() != narrative.ModeSelectDirection {
-				g.turnManager.EndPlayerTurn()
-				g.syncPlayerPosition()
-				g.updateNarrativePanel()
-			}
+		// End turn with Space key
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			g.turnManager.EndPlayerTurn()
+			g.syncPlayerPosition()
+			g.updateNarrativePanel()
 		}
 	}
 
@@ -558,6 +556,9 @@ func (g *Game) updateNarrativePanel() {
 	if g.narrativePanel == nil || g.sceneGenerator == nil || g.playerEntity == nil {
 		return
 	}
+
+	// Update AP display
+	g.narrativePanel.SetAP(g.playerEntity.ActionPoints, g.playerEntity.MaxAP)
 
 	// Build scene context
 	ctx := g.buildSceneContext()
@@ -653,13 +654,13 @@ func (g *Game) buildAvailableActions() []*narrative.ActionChoice {
 		Description: "End your turn and let enemies act",
 		Category:    action.CategoryUtility,
 		APCost:      0,
-		Hotkey:      "e",
+		Hotkey:      "space",
 	}
 	choices = append(choices, &narrative.ActionChoice{
 		Action:    endTurnAction,
 		Enabled:   true,
 		APDisplay: "0 AP",
-		Hotkey:    "e",
+		Hotkey:    "Space",
 	})
 
 	return choices
