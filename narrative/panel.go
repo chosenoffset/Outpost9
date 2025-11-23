@@ -84,6 +84,7 @@ type ActionChoice struct {
 // LogEntry is a single entry in the action log
 type LogEntry struct {
 	Text      string
+	Lines     []string   // Wrapped lines for display
 	Color     color.RGBA
 	Timestamp int // Turn number
 }
@@ -141,8 +142,12 @@ func (p *Panel) SetAP(current, max int) {
 
 // AddLogEntry adds a new entry to the action log
 func (p *Panel) AddLogEntry(text string, clr color.RGBA, turn int) {
+	// Wrap the text to fit in the panel
+	wrappedLines := p.wrapText(text, p.Width-p.padding*2)
+
 	p.actionLog = append(p.actionLog, LogEntry{
 		Text:      text,
+		Lines:     wrappedLines,
 		Color:     clr,
 		Timestamp: turn,
 	})
@@ -172,6 +177,27 @@ func (p *Panel) AddSystemMessage(text string, turn int) {
 // GetInputMode returns the current input mode
 func (p *Panel) GetInputMode() InputMode {
 	return p.inputMode
+}
+
+// Resize updates the panel dimensions when the window is resized
+func (p *Panel) Resize(screenWidth, screenHeight, panelWidth int) {
+	p.Width = panelWidth
+	p.Height = screenHeight
+	p.X = screenWidth - panelWidth
+	p.Y = 0
+
+	// Re-wrap scene text for new width
+	if len(p.sceneText) > 0 {
+		// We need to store the original text to re-wrap it
+		// For now, we'll rewrap based on current text joined
+		originalText := strings.Join(p.sceneText, " ")
+		p.sceneText = p.wrapText(originalText, p.Width-p.padding*2)
+	}
+
+	// Re-wrap action log entries for new width
+	for i := range p.actionLog {
+		p.actionLog[i].Lines = p.wrapText(p.actionLog[i].Text, p.Width-p.padding*2)
+	}
 }
 
 // SetDirectionMode switches to direction selection for an action
@@ -424,9 +450,17 @@ func (p *Panel) drawActionLog(screen *ebiten.Image, startY int, maxEntries int) 
 
 	for i := start; i < len(p.actionLog); i++ {
 		entry := p.actionLog[i]
-		// Debug print doesn't support color, but we can indicate with prefixes
-		ebitenutil.DebugPrintAt(screen, entry.Text, p.X+p.padding, y)
-		y += p.lineHeight
+		// Draw each wrapped line of the entry
+		if len(entry.Lines) > 0 {
+			for _, line := range entry.Lines {
+				ebitenutil.DebugPrintAt(screen, line, p.X+p.padding, y)
+				y += p.lineHeight
+			}
+		} else {
+			// Fallback to original text if no wrapped lines
+			ebitenutil.DebugPrintAt(screen, entry.Text, p.X+p.padding, y)
+			y += p.lineHeight
+		}
 	}
 
 	return y

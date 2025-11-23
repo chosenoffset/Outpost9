@@ -155,6 +155,11 @@ func (gm *GameManager) Layout(outsideWidth, outsideHeight int) (int, int) {
 			gm.game.screenHeight = outsideHeight
 			// Recreate wall texture for new size
 			gm.game.wallTexture = ebiten.NewImage(outsideWidth, outsideHeight)
+			// Update map view width and narrative panel
+			gm.game.mapViewWidth = outsideWidth - gm.game.panelWidth
+			if gm.game.narrativePanel != nil {
+				gm.game.narrativePanel.Resize(outsideWidth, outsideHeight, gm.game.panelWidth)
+			}
 		}
 	}
 	return outsideWidth, outsideHeight
