@@ -30,7 +30,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -437,8 +436,8 @@ type Game struct {
 	gameHUD *hud.HUD
 
 	// Layout dimensions (split screen)
-	mapViewWidth  int // Width of the map viewport
-	panelWidth    int // Width of the narrative panel
+	mapViewWidth int // Width of the map viewport
+	panelWidth   int // Width of the narrative panel
 
 	// UI state
 	messages         []Message
@@ -534,13 +533,13 @@ func (g *Game) updateNarrativePanel() {
 // buildSceneContext creates the context for scene generation
 func (g *Game) buildSceneContext() *narrative.SceneContext {
 	ctx := &narrative.SceneContext{
-		PlayerX:     g.playerEntity.X,
-		PlayerY:     g.playerEntity.Y,
+		PlayerX:      g.playerEntity.X,
+		PlayerY:      g.playerEntity.Y,
 		PlayerFacing: g.playerEntity.Facing,
-		PlayerHP:    g.playerEntity.CurrentHP,
-		PlayerMaxHP: g.playerEntity.MaxHP,
-		PlayerAP:    g.playerEntity.ActionPoints,
-		PlayerMaxAP: g.playerEntity.MaxAP,
+		PlayerHP:     g.playerEntity.CurrentHP,
+		PlayerMaxHP:  g.playerEntity.MaxHP,
+		PlayerAP:     g.playerEntity.ActionPoints,
+		PlayerMaxAP:  g.playerEntity.MaxAP,
 	}
 
 	// Find nearby entities
