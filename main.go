@@ -550,6 +550,9 @@ type Game struct {
 	messages         []Message
 	interactHint     string  // Current interaction hint to display
 	interactCooldown float64 // Prevent rapid E key presses
+
+	// Debug
+	frameCount int // Frame counter for debug logging
 }
 
 func (g *Game) Update() error {
@@ -1424,10 +1427,19 @@ func (g *Game) applyLightingShader(screen *ebiten.Image) {
 	// Get all active lights
 	lights := g.lightingManager.GetAllLights()
 
-	// Debug: log light count occasionally
-	if g.turnManager != nil && g.turnManager.GetTurnNumber() % 10 == 0 {
-		log.Printf("DEBUG: Rendering with %d lights, ambient: %.2f, player light on: %v",
-			len(lights), g.lightingManager.GetAmbientLight(), g.lightingManager.IsPlayerLightOn())
+	// Debug: log detailed info on first few frames
+	g.frameCount++
+	if g.frameCount <= 5 {
+		log.Printf("DEBUG Frame %d: Rendering with %d lights, ambient: %.2f, player light on: %v, camera: (%.1f, %.1f)",
+			g.frameCount, len(lights), g.lightingManager.GetAmbientLight(),
+			g.lightingManager.IsPlayerLightOn(), g.camera.X, g.camera.Y)
+		if len(lights) > 0 {
+			log.Printf("  First light at world (%.1f, %.1f), radius %.1f, intensity %.2f",
+				lights[0].X, lights[0].Y, lights[0].Radius, lights[0].Intensity)
+		}
+		if g.playerEntity != nil {
+			log.Printf("  Player at world (%.1f, %.1f)", g.player.Pos.X, g.player.Pos.Y)
+		}
 	}
 
 	// Prepare shader uniforms
@@ -1449,12 +1461,12 @@ func (g *Game) applyLightingShader(screen *ebiten.Image) {
 	for i := 0; i < numLights; i++ {
 		light := lights[i]
 
-		// Convert world position to screen position
-		screenX := float32(light.X - g.camera.X)
-		screenY := float32(light.Y - g.camera.Y)
+		// Pass lights in WORLD coordinates - shader will handle conversion
+		worldX := float32(light.X)
+		worldY := float32(light.Y)
 
-		lightPositions[i*2] = screenX
-		lightPositions[i*2+1] = screenY
+		lightPositions[i*2] = worldX
+		lightPositions[i*2+1] = worldY
 
 		lightProperties[i*4] = float32(light.Radius)
 		lightProperties[i*4+1] = float32(light.Intensity)
