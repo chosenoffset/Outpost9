@@ -19,6 +19,7 @@ import (
 	"chosenoffset.com/outpost9/hud"
 	"chosenoffset.com/outpost9/interaction"
 	"chosenoffset.com/outpost9/inventory"
+	"chosenoffset.com/outpost9/lighting"
 	"chosenoffset.com/outpost9/maploader"
 	"chosenoffset.com/outpost9/menu"
 	"chosenoffset.com/outpost9/narrative"
@@ -37,6 +38,9 @@ import (
 
 //go:embed shaders/sight_shadows.kage
 var shadowShaderSrc []byte
+
+//go:embed shaders/lighting.kage
+var lightingShaderSrc []byte
 
 type Player struct {
 	Pos   shadows.Point
@@ -225,8 +229,22 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 		return fmt.Errorf("failed to create shadow shader: %w", err)
 	}
 
+	// Initialize lighting shader
+	lightingShader, err := ebiten.NewShader(lightingShaderSrc)
+	if err != nil {
+		return fmt.Errorf("failed to create lighting shader: %w", err)
+	}
+
 	// Create wall texture render target
 	wallTexture := ebiten.NewImage(gm.screenWidth, gm.screenHeight)
+
+	// Create scene texture render target (for lighting shader)
+	sceneTexture := ebiten.NewImage(gm.screenWidth, gm.screenHeight)
+
+	// Initialize lighting manager
+	lightingMgr := lighting.NewManager()
+	// Configure player's light source (flashlight/lantern) - starts disabled
+	lightingMgr.SetPlayerLight(0, 0, 200.0, 0.8, color.NRGBA{255, 240, 200, 255})
 
 	// Initialize game state and inventory for interaction system
 	gs := gamestate.New()
@@ -260,6 +278,9 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 		playerSpriteImg:   playerSprite,
 		shadowShader:      shadowShader,
 		wallTexture:       wallTexture,
+		lightingShader:    lightingShader,
+		lightingManager:   lightingMgr,
+		sceneTexture:      sceneTexture,
 		interactionEngine: interactionEng,
 		gameState:         gs,
 		inventory:         inv,
@@ -448,6 +469,9 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	log.Printf("Interaction system initialized with %d furnishings",
 		len(gameMap.Data.PlacedFurnishings))
 
+	// Extract light sources from furnishings
+	gm.game.loadFurnishingLights()
+
 	// Log character info if we have one
 	if playerChar != nil {
 		log.Printf("Player character: %s", playerChar.Name)
@@ -481,6 +505,9 @@ type Game struct {
 	playerSpriteImg renderer.Image
 	shadowShader    *ebiten.Shader
 	wallTexture     *ebiten.Image // Render target containing just walls
+	lightingShader  *ebiten.Shader
+	lightingManager *lighting.Manager
+	sceneTexture    *ebiten.Image // Render target for scene before lighting
 
 	// Interaction system
 	interactionEngine *interaction.Engine
@@ -581,10 +608,28 @@ func (g *Game) Update() error {
 			g.syncPlayerPosition()
 			g.updateNarrativePanel()
 		}
+
+		// Toggle player light with L key
+		if inpututil.IsKeyJustPressed(ebiten.KeyL) {
+			if g.lightingManager != nil {
+				wasOn := g.lightingManager.IsPlayerLightOn()
+				g.lightingManager.EnablePlayerLight(!wasOn)
+				if !wasOn {
+					g.showMessage("Light source activated")
+				} else {
+					g.showMessage("Light source deactivated")
+				}
+			}
+		}
 	}
 
 	// Update camera to follow player
 	g.updateCamera()
+
+	// Update player light position
+	if g.lightingManager != nil {
+		g.lightingManager.UpdatePlayerLightPosition(g.player.Pos.X, g.player.Pos.Y)
+	}
 
 	// Handle interactions (E key) - legacy support
 	g.updateInteractions()
@@ -1066,6 +1111,36 @@ func (g *Game) lookupFurnishing(id string) interaction.InteractableObject {
 	return nil
 }
 
+// loadFurnishingLights extracts light sources from all placed furnishings
+func (g *Game) loadFurnishingLights() {
+	if g.gameMap == nil || g.lightingManager == nil {
+		return
+	}
+
+	// Clear existing furnishing lights
+	g.lightingManager.ClearFurnishingLights()
+
+	tileSize := g.gameMap.Data.TileSize
+	lightCount := 0
+
+	// Scan all furnishings for light sources
+	for _, placed := range g.gameMap.Data.PlacedFurnishings {
+		if placed == nil || placed.Definition == nil {
+			continue
+		}
+
+		// Add light if this furnishing is a light source
+		g.lightingManager.AddFurnishingLight(placed.ID, placed.X, placed.Y, tileSize, placed.Definition)
+
+		// Count lights for logging
+		if placed.Definition.HasTag("light_source") {
+			lightCount++
+		}
+	}
+
+	log.Printf("Loaded %d light sources from furnishings", lightCount)
+}
+
 // updateCamera centers the camera on the player, clamping to level bounds
 func (g *Game) updateCamera() {
 	if g.gameMap == nil {
@@ -1249,21 +1324,54 @@ func (g *Game) spawnEnemies() {
 }
 
 func (g *Game) Draw(screen renderer.Image) {
-	// Simplified rendering - draw entire level without shadow casting
+	// Render with lighting system
 
-	// Step 1: Draw floors
+	// Get the underlying Ebiten image for shader operations
+	ebitenScreen, ok := screen.(*ebitenrenderer.EbitenImage)
+	if !ok {
+		// Fallback to simple rendering if not Ebiten
+		g.drawSimple(screen)
+		return
+	}
+	screenImg := ebitenScreen.GetEbitenImage()
+
+	// Step 1: Clear and render the scene to an offscreen texture
+	g.sceneTexture.Clear()
+	sceneWrapper := ebitenrenderer.NewEbitenImage(g.sceneTexture)
+
+	g.drawFloorsOnly(sceneWrapper)
+	g.drawFurnishings(sceneWrapper)
+	g.drawAllWalls(sceneWrapper)
+	g.drawEntities(sceneWrapper)
+	g.drawPlayer(sceneWrapper)
+
+	// Step 2: Render walls to wall texture for occlusion testing
+	g.wallTexture.Clear()
+	g.drawWallsToTexture(g.wallTexture)
+
+	// Step 3: Apply lighting shader
+	g.applyLightingShader(screenImg)
+
+	// Step 4: Draw UI elements on top (unaffected by lighting)
+	g.drawUI(screen)
+	g.drawHUD(screen)
+	g.drawNarrativePanel(screen)
+}
+
+// drawSimple renders without lighting (fallback)
+func (g *Game) drawSimple(screen renderer.Image) {
 	g.drawFloorsOnly(screen)
-
-	// Step 2: Draw furnishings/objects on top of floors
 	g.drawFurnishings(screen)
-
-	// Step 3: Draw all walls
 	g.drawAllWalls(screen)
-
-	// Step 4: Draw enemies
 	g.drawEntities(screen)
+	g.drawPlayer(screen)
+	g.drawUI(screen)
+	g.drawHUD(screen)
+	g.drawNarrativePanel(screen)
+}
 
-	// Step 5: Draw player character on top of everything
+// drawPlayer renders the player character
+func (g *Game) drawPlayer(screen renderer.Image) {
 	// Calculate player screen position with camera offset
 	playerScreenX := g.player.Pos.X - g.camera.X
 	playerScreenY := g.player.Pos.Y - g.camera.Y
@@ -1290,15 +1398,81 @@ func (g *Game) Draw(screen renderer.Image) {
 			2,
 			color.RGBA{200, 200, 50, 255})
 	}
+}
 
-	// Step 6: Draw UI elements (interaction hints, messages)
-	g.drawUI(screen)
+// applyLightingShader applies the lighting shader to render the lit scene
+func (g *Game) applyLightingShader(screen *ebiten.Image) {
+	if g.lightingShader == nil || g.lightingManager == nil {
+		// No lighting shader, just copy scene to screen
+		opts := &ebiten.DrawImageOptions{}
+		screen.DrawImage(g.sceneTexture, opts)
+		return
+	}
 
-	// Step 7: Draw HUD
-	g.drawHUD(screen)
+	// Get all active lights
+	lights := g.lightingManager.GetAllLights()
 
-	// Step 8: Draw narrative panel
-	g.drawNarrativePanel(screen)
+	// Prepare shader uniforms
+	opts := &ebiten.DrawRectShaderOptions{}
+	opts.Images[0] = g.sceneTexture // Scene texture
+	opts.Images[1] = g.wallTexture  // Wall texture for occlusion
+
+	// Set up uniform arrays for lights
+	const maxLights = 32
+	var lightPositions [maxLights * 2]float32 // vec2 array (x, y pairs)
+	var lightProperties [maxLights * 4]float32 // vec4 array (radius, intensity, unused, enabled)
+	var lightColors [maxLights * 3]float32     // vec3 array (r, g, b)
+
+	numLights := len(lights)
+	if numLights > maxLights {
+		numLights = maxLights
+	}
+
+	for i := 0; i < numLights; i++ {
+		light := lights[i]
+
+		// Convert world position to screen position
+		screenX := float32(light.X - g.camera.X)
+		screenY := float32(light.Y - g.camera.Y)
+
+		lightPositions[i*2] = screenX
+		lightPositions[i*2+1] = screenY
+
+		lightProperties[i*4] = float32(light.Radius)
+		lightProperties[i*4+1] = float32(light.Intensity)
+		lightProperties[i*4+2] = 0.0 // unused
+		lightProperties[i*4+3] = 1.0 // enabled
+
+		lightColors[i*3] = float32(light.Color.R) / 255.0
+		lightColors[i*3+1] = float32(light.Color.G) / 255.0
+		lightColors[i*3+2] = float32(light.Color.B) / 255.0
+	}
+
+	// Set uniforms
+	opts.Uniforms = make(map[string]interface{})
+	opts.Uniforms["NumLights"] = float32(numLights)
+	opts.Uniforms["AmbientLight"] = float32(g.lightingManager.GetAmbientLight())
+	opts.Uniforms["CameraOffset"] = []float32{float32(g.camera.X), float32(g.camera.Y)}
+
+	// Pass light arrays as uniforms
+	for i := 0; i < maxLights; i++ {
+		opts.Uniforms[fmt.Sprintf("LightPositions[%d]", i)] = []float32{lightPositions[i*2], lightPositions[i*2+1]}
+		opts.Uniforms[fmt.Sprintf("LightProperties[%d]", i)] = []float32{
+			lightProperties[i*4],
+			lightProperties[i*4+1],
+			lightProperties[i*4+2],
+			lightProperties[i*4+3],
+		}
+		opts.Uniforms[fmt.Sprintf("LightColors[%d]", i)] = []float32{
+			lightColors[i*3],
+			lightColors[i*3+1],
+			lightColors[i*3+2],
+		}
+	}
+
+	// Render with shader
+	w, h := screen.Size()
+	screen.DrawRectShader(w, h, g.lightingShader, opts)
 }
 
 // drawNarrativePanel renders the narrative/action panel

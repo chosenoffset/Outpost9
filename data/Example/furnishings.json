@@ -114,9 +114,11 @@
       "tile_name": "generator",
       "interactable": true,
       "walkable": false,
-      "tags": ["magic", "light", "fire"],
+      "tags": ["magic", "light_source", "fire"],
       "properties": {
-        "light_radius": "5"
+        "light_radius": "250",
+        "light_intensity": "0.9",
+        "light_color": "FFA500"
       },
       "default_state": "lit",
       "interactions": [
@@ -359,8 +361,12 @@
       "tile_name": "console_left",
       "interactable": true,
       "walkable": false,
-      "tags": ["light", "decoration"],
-      "properties": {},
+      "tags": ["light_source", "decoration"],
+      "properties": {
+        "light_radius": "150",
+        "light_intensity": "0.7",
+        "light_color": "FFC864"
+      },
       "interactions": [
         {
           "id": "examine_torch_left",
@@ -380,8 +386,12 @@
       "tile_name": "console_right",
       "interactable": true,
       "walkable": false,
-      "tags": ["light", "decoration"],
-      "properties": {},
+      "tags": ["light_source", "decoration"],
+      "properties": {
+        "light_radius": "150",
+        "light_intensity": "0.7",
+        "light_color": "FFC864"
+      },
       "interactions": [
         {
           "id": "examine_torch_right",
