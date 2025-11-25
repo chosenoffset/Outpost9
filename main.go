@@ -1337,7 +1337,7 @@ func (g *Game) Draw(screen renderer.Image) {
 
 	// Step 1: Clear and render the scene to an offscreen texture
 	g.sceneTexture.Clear()
-	sceneWrapper := ebitenrenderer.NewEbitenImage(g.sceneTexture)
+	sceneWrapper := ebitenrenderer.WrapEbitenImage(g.sceneTexture)
 
 	g.drawFloorsOnly(sceneWrapper)
 	g.drawFurnishings(sceneWrapper)
