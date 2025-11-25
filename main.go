@@ -1484,6 +1484,18 @@ func (g *Game) applyLightingShader(screen *ebiten.Image) {
 	opts.Uniforms["AmbientLight"] = float32(g.lightingManager.GetAmbientLight())
 	opts.Uniforms["CameraOffset"] = []float32{float32(g.camera.X), float32(g.camera.Y)}
 
+	// Debug: log uniforms on frame 1
+	if g.frameCount == 1 {
+		log.Printf("  Shader uniforms: NumLights=%d, AmbientLight=%.2f, CameraOffset=[%.1f, %.1f]",
+			numLights, g.lightingManager.GetAmbientLight(), g.camera.X, g.camera.Y)
+		if numLights > 0 {
+			log.Printf("  Light 0: pos=[%.1f, %.1f], radius=%.1f, intensity=%.2f, color=[%.2f, %.2f, %.2f]",
+				lightPositions[0], lightPositions[1],
+				lightProperties[0], lightProperties[1],
+				lightColors[0], lightColors[1], lightColors[2])
+		}
+	}
+
 	// Pass light arrays as uniforms
 	for i := 0; i < maxLights; i++ {
 		opts.Uniforms[fmt.Sprintf("LightPositions[%d]", i)] = []float32{lightPositions[i*2], lightPositions[i*2+1]}
@@ -1887,8 +1899,11 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 
 			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
 
-			screenX := float64(tileCoord.X * tileSize)
-			screenY := float64(tileCoord.Y * tileSize)
+			// Convert world position to screen position by subtracting camera
+			worldX := float64(tileCoord.X * tileSize)
+			worldY := float64(tileCoord.Y * tileSize)
+			screenX := worldX - g.camera.X
+			screenY := worldY - g.camera.Y
 
 			// Extract underlying ebiten.Image to draw wall tiles
 			if ebitenImg, ok := subImg.(*ebitenrenderer.EbitenImage); ok {
