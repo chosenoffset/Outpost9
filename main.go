@@ -1249,44 +1249,21 @@ func (g *Game) spawnEnemies() {
 }
 
 func (g *Game) Draw(screen renderer.Image) {
-	// MULTI-PASS RENDERING FOR PIXEL-PERFECT SHADOWS
+	// Simplified rendering - draw entire level without shadow casting
 
-	// Step 1: Draw ONLY floors to the screen
+	// Step 1: Draw floors
 	g.drawFloorsOnly(screen)
 
 	// Step 2: Draw furnishings/objects on top of floors
 	g.drawFurnishings(screen)
 
-	// Step 3: Render walls to wallTexture for shader input
-	g.wallTexture.Clear()
-	g.drawWallsToTexture(g.wallTexture)
+	// Step 3: Draw all walls
+	g.drawAllWalls(screen)
 
-	// Step 3: Apply shadow shader - darkens occluded areas
-	/**if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
-		ebitenScreen := ebitenImg.GetEbitenImage()
-
-		// DEBUG: Log player position (throttle to ~1/sec to avoid spam)
-		if ebiten.IsKeyPressed(ebiten.KeySpace) {
-			log.Printf("DEBUG PlayerPos: X=%.2f Y=%.2f (screen: %dx%d)",
-				g.player.Pos.X, g.player.Pos.Y, g.screenWidth, g.screenHeight)
-		}
-
-		opts := &ebiten.DrawRectShaderOptions{}
-		opts.Uniforms = map[string]interface{}{
-			"PlayerPos":   []float32{float32(g.player.Pos.X), float32(g.player.Pos.Y)},
-			"MaxDistance": float32(g.screenWidth + g.screenHeight),
-		}
-		opts.Images[0] = g.wallTexture
-		ebitenScreen.DrawRectShader(g.screenWidth, g.screenHeight, g.shadowShader, opts)
-	}*/
-
-	// Step 4: Draw walls that have clear line of sight ON TOP of shadows
-	g.drawVisibleWalls(screen)
-
-	// Step 5: Draw enemies
+	// Step 4: Draw enemies
 	g.drawEntities(screen)
 
-	// Step 6: Draw player character on top of everything
+	// Step 5: Draw player character on top of everything
 	// Calculate player screen position with camera offset
 	playerScreenX := g.player.Pos.X - g.camera.X
 	playerScreenY := g.player.Pos.Y - g.camera.Y
@@ -1314,13 +1291,13 @@ func (g *Game) Draw(screen renderer.Image) {
 			color.RGBA{200, 200, 50, 255})
 	}
 
-	// Step 7: Draw UI elements (interaction hints, messages)
+	// Step 6: Draw UI elements (interaction hints, messages)
 	g.drawUI(screen)
 
-	// Step 8: Draw HUD
+	// Step 7: Draw HUD
 	g.drawHUD(screen)
 
-	// Step 9: Draw narrative panel
+	// Step 8: Draw narrative panel
 	g.drawNarrativePanel(screen)
 }
 
@@ -1717,6 +1694,66 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 				opts.GeoM.Translate(screenX, screenY)
 				texture.DrawImage(ebitenSubImg, opts)
 			}
+		}
+	}
+}
+
+// drawAllWalls draws all wall tiles without shadow casting
+func (g *Game) drawAllWalls(screen renderer.Image) {
+	if g.gameMap == nil || g.gameMap.Atlas == nil {
+		return
+	}
+
+	tileSize := g.gameMap.Data.TileSize
+
+	// Calculate visible tile range for culling
+	startTileX := int(g.camera.X) / tileSize
+	startTileY := int(g.camera.Y) / tileSize
+	endTileX := (int(g.camera.X)+g.screenWidth)/tileSize + 1
+	endTileY := (int(g.camera.Y)+g.screenHeight)/tileSize + 1
+
+	// Clamp to level bounds
+	if startTileX < 0 {
+		startTileX = 0
+	}
+	if startTileY < 0 {
+		startTileY = 0
+	}
+	if endTileX > g.gameMap.Data.Width {
+		endTileX = g.gameMap.Data.Width
+	}
+	if endTileY > g.gameMap.Data.Height {
+		endTileY = g.gameMap.Data.Height
+	}
+
+	// Draw all wall tiles
+	for y := startTileY; y < endTileY; y++ {
+		for x := startTileX; x < endTileX; x++ {
+			tileName, err := g.gameMap.GetTileAt(x, y)
+			if err != nil || tileName == "" {
+				continue // Skip void/empty tiles
+			}
+
+			// Get tile definition
+			tile, ok := g.gameMap.Atlas.GetTile(tileName)
+			if !ok {
+				continue
+			}
+
+			// Only draw wall tiles (blocks_sight = true)
+			if blocksSight, ok := tile.Properties["blocks_sight"].(bool); !ok || !blocksSight {
+				continue // Skip floors - already drawn
+			}
+
+			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+			// Apply camera offset
+			screenX := float64(x*tileSize) - g.camera.X
+			screenY := float64(y*tileSize) - g.camera.Y
+
+			opts := &renderer.DrawImageOptions{}
+			opts.GeoM = renderer.NewGeoM()
+			opts.GeoM.Translate(screenX, screenY)
+			screen.DrawImage(subImg, opts)
 		}
 	}
 }
