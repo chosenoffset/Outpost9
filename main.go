@@ -23,6 +23,7 @@ import (
 	"chosenoffset.com/outpost9/menu"
 	"chosenoffset.com/outpost9/narrative"
 	"chosenoffset.com/outpost9/renderer"
+	"chosenoffset.com/outpost9/roominfo"
 	ebitenrenderer "chosenoffset.com/outpost9/renderer/ebiten"
 	"chosenoffset.com/outpost9/room"
 	"chosenoffset.com/outpost9/shadows"
@@ -154,6 +155,11 @@ func (gm *GameManager) Layout(outsideWidth, outsideHeight int) (int, int) {
 			gm.game.screenHeight = outsideHeight
 			// Recreate wall texture for new size
 			gm.game.wallTexture = ebiten.NewImage(outsideWidth, outsideHeight)
+			// Update map view width and narrative panel
+			gm.game.mapViewWidth = outsideWidth - gm.game.panelWidth
+			if gm.game.narrativePanel != nil {
+				gm.game.narrativePanel.Resize(outsideWidth, outsideHeight, gm.game.panelWidth)
+			}
 		}
 	}
 	return outsideWidth, outsideHeight
@@ -331,6 +337,40 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	panelY := 0
 	gm.game.narrativePanel = narrative.NewPanel(panelX, panelY, gm.game.panelWidth, gm.screenHeight)
 	gm.game.sceneGenerator = narrative.NewSceneGenerator()
+	gm.game.turnNarrator = narrative.NewTurnNarrator()
+	gm.game.proseGenerator = narrative.NewProseGenerator(time.Now().UnixNano())
+
+	// Initialize room tracker if we have a generated level
+	if gameMap.GeneratedLevel != nil {
+		gm.game.roomTracker = roominfo.NewRoomTracker(gameMap.GeneratedLevel)
+
+		// Wire up room event callbacks
+		gm.game.roomTracker.OnRoomEvent = func(event roominfo.RoomEvent) {
+			switch event.Type {
+			case roominfo.RoomEntered:
+				if event.IsFirst {
+					gm.game.narrativePanel.AddSystemMessage(
+						fmt.Sprintf("Entered %s for the first time.", gm.game.roomTracker.GetRoomName()),
+						gm.game.turnManager.GetTurnNumber(),
+					)
+				}
+			case roominfo.SecretDiscovered:
+				gm.game.narrativePanel.AddSystemMessage(
+					fmt.Sprintf("[Discovery] %s", event.Revealed),
+					gm.game.turnManager.GetTurnNumber(),
+				)
+			case roominfo.RoomCleared:
+				gm.game.narrativePanel.AddCombatMessage(
+					"The room is now clear of enemies.",
+					gm.game.turnManager.GetTurnNumber(),
+				)
+			}
+		}
+
+		// Set initial player position in room tracker
+		gm.game.roomTracker.UpdatePlayerPosition(playerEntity.X, playerEntity.Y)
+		log.Printf("Room tracker initialized with %d rooms", len(gameMap.GeneratedLevel.PlacedRooms))
+	}
 
 	// Wire up narrative panel callbacks
 	gm.game.narrativePanel.OnActionSelected = func(act *action.Action, dir narrative.Direction) {
@@ -344,16 +384,25 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 
 		// Convert narrative direction to entity direction
 		entityDir := entity.DirNone
+		dirStr := ""
 		switch dir {
 		case narrative.DirNorth:
 			entityDir = entity.DirNorth
+			dirStr = "north"
 		case narrative.DirSouth:
 			entityDir = entity.DirSouth
+			dirStr = "south"
 		case narrative.DirEast:
 			entityDir = entity.DirEast
+			dirStr = "east"
 		case narrative.DirWest:
 			entityDir = entity.DirWest
+			dirStr = "west"
 		}
+
+		// Track player action for prose
+		gm.game.lastPlayerAction = act.ID
+		gm.game.lastPlayerDirection = dirStr
 
 		// Process the action
 		gm.game.turnManager.ProcessDataAction(act, entityDir, 0, 0)
@@ -371,6 +420,26 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	}
 	turnMgr.OnAPChanged = func(current, max int) {
 		gm.game.updateNarrativePanel()
+	}
+
+	// Wire up turn end callback to generate prose after enemy turns
+	turnMgr.OnTurnEnd = func(turnNum int) {
+		gm.game.generateTurnProse()
+	}
+
+	// Wire up search callback to use room tracker
+	turnMgr.OnSearch = func(player *entity.Entity) string {
+		if gm.game.roomTracker != nil {
+			result, found := gm.game.roomTracker.SearchCurrentRoom(player)
+			if found {
+				gm.game.narrativePanel.AddSystemMessage(
+					fmt.Sprintf("[Search] %s", result),
+					gm.game.turnManager.GetTurnNumber(),
+				)
+			}
+			return result
+		}
+		return "You search the area but find nothing of interest."
 	}
 
 	// Initial scene update
@@ -432,6 +501,15 @@ type Game struct {
 	// Narrative panel
 	narrativePanel *narrative.Panel
 	sceneGenerator *narrative.SceneGenerator
+	turnNarrator   *narrative.TurnNarrator
+	proseGenerator *narrative.ProseGenerator
+
+	// Room tracking
+	roomTracker *roominfo.RoomTracker
+
+	// Player action tracking for prose
+	lastPlayerAction    string
+	lastPlayerDirection string
 
 	// HUD
 	gameHUD *hud.HUD
@@ -481,6 +559,10 @@ func (g *Game) Update() error {
 				// Direct movement
 				moveAction := g.actionLibrary.GetAction("move")
 				if moveAction != nil && g.playerEntity.CanAffordAP(moveAction.APCost) {
+					// Track player action for prose
+					g.lastPlayerAction = "move"
+					g.lastPlayerDirection = directionName(dir)
+
 					g.turnManager.ProcessDataAction(moveAction, dir, 0, 0)
 					g.syncPlayerPosition()
 					g.updateNarrativePanel()
@@ -521,6 +603,11 @@ func (g *Game) syncPlayerPosition() {
 	// Center the player in the tile
 	g.player.Pos.X = float64(g.playerEntity.X)*tileSize + tileSize/2
 	g.player.Pos.Y = float64(g.playerEntity.Y)*tileSize + tileSize/2
+
+	// Update room tracker with new player position
+	if g.roomTracker != nil {
+		g.roomTracker.UpdatePlayerPosition(g.playerEntity.X, g.playerEntity.Y)
+	}
 }
 
 // updateMessages updates message timers and removes expired messages
@@ -572,6 +659,212 @@ func (g *Game) updateNarrativePanel() {
 	g.narrativePanel.SetAvailableActions(actions)
 }
 
+// generateTurnProse creates dynamic prose describing what happened during the turn
+func (g *Game) generateTurnProse() {
+	if g.proseGenerator == nil || g.turnManager == nil || g.playerEntity == nil {
+		return
+	}
+
+	// Build prose context
+	proseCtx := g.buildProseContext()
+
+	// Generate prose
+	prose := g.proseGenerator.GenerateProse(proseCtx)
+
+	// Display the prose as a system message
+	if prose != "" {
+		g.narrativePanel.AddSystemMessage(prose, g.turnManager.GetTurnNumber())
+	}
+
+	// Clear player action tracking
+	g.lastPlayerAction = ""
+	g.lastPlayerDirection = ""
+}
+
+// buildProseContext creates context for dynamic prose generation
+func (g *Game) buildProseContext() *narrative.ProseContext {
+	ctx := &narrative.ProseContext{
+		PlayerAction:    g.lastPlayerAction,
+		PlayerDirection: g.lastPlayerDirection,
+		PlayerHP:        g.playerEntity.CurrentHP,
+		PlayerMaxHP:     g.playerEntity.MaxHP,
+		TurnNumber:      g.turnManager.GetTurnNumber(),
+	}
+	ctx.PlayerPosition.X = g.playerEntity.X
+	ctx.PlayerPosition.Y = g.playerEntity.Y
+
+	// Get visible enemies (only those with line of sight)
+	for _, e := range g.turnManager.GetEntities() {
+		if e == g.playerEntity || !e.IsAlive() || e.Faction != entity.FactionEnemy {
+			continue
+		}
+
+		dist := g.playerEntity.DistanceTo(e)
+		if dist > 10 {
+			continue
+		}
+
+		// Check line of sight
+		hasLOS := g.hasLineOfSight(g.playerEntity.X, g.playerEntity.Y, e.X, e.Y)
+		if !hasLOS {
+			// TODO: Check if enemy is making enough noise to be heard
+			// For now, skip enemies we can't see
+			continue
+		}
+
+		dx := e.X - g.playerEntity.X
+		dy := e.Y - g.playerEntity.Y
+		dirName := narrative.DirectionName(dx, dy)
+
+		info := &narrative.EntityInfo{
+			Entity:    e,
+			Distance:  dist,
+			Direction: dirName,
+			Visible:   true,
+		}
+		ctx.VisibleEnemies = append(ctx.VisibleEnemies, info)
+		ctx.NearbyEnemyCount++
+
+		if ctx.ClosestEnemyDist == 0 || dist < ctx.ClosestEnemyDist {
+			ctx.ClosestEnemyDist = dist
+		}
+	}
+
+	// Get enemy actions from the turn manager (only for visible enemies)
+	for _, action := range g.turnManager.GetLastEnemyActions() {
+		// Check if we can see this enemy's current position
+		hasLOS := g.hasLineOfSight(g.playerEntity.X, g.playerEntity.Y, action.NewX, action.NewY)
+		if !hasLOS {
+			// Check if we could see them at their old position
+			// This lets us describe enemies leaving sight
+			hadLOS := g.hasLineOfSight(g.playerEntity.X, g.playerEntity.Y, action.OldX, action.OldY)
+			if !hadLOS {
+				// Never saw them, skip
+				continue
+			}
+		}
+
+		enemyAction := narrative.EnemyTurnAction{
+			Entity:        action.Entity,
+			ActionType:    action.ActionType,
+			Direction:     directionName(action.Direction),
+			IsApproaching: action.IsApproaching,
+		}
+		ctx.EnemyActions = append(ctx.EnemyActions, enemyAction)
+
+		if action.IsApproaching {
+			ctx.EnemiesApproaching = true
+		}
+	}
+
+	// Check for nearby furnishings and cover
+	for _, placed := range g.gameMap.Data.PlacedFurnishings {
+		dist := abs(g.playerEntity.X-placed.X) + abs(g.playerEntity.Y-placed.Y)
+		if dist > 2 {
+			continue
+		}
+
+		// Determine relationship
+		relation := narrative.DeterminePositionalRelation(
+			g.playerEntity.X, g.playerEntity.Y,
+			placed.X, placed.Y,
+			ctx.VisibleEnemies,
+		)
+
+		if relation != narrative.RelNone {
+			fc := narrative.FurnishingContext{
+				Furnishing: placed,
+				Relation:   relation,
+				Distance:   dist,
+			}
+			ctx.NearbyFurnishings = append(ctx.NearbyFurnishings, fc)
+
+			// If behind cover, record it
+			if relation == narrative.RelBehind && ctx.CoverFurnishing == nil {
+				ctx.CoverFurnishing = &fc
+			}
+		}
+	}
+
+	// Room context
+	if g.roomTracker != nil {
+		ctx.RoomName = g.roomTracker.GetRoomName()
+		ctx.RoomHasEnemies = ctx.NearbyEnemyCount > 0
+	}
+
+	return ctx
+}
+
+// Helper function for prose context
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// hasLineOfSight checks if there's a clear line of sight between two positions
+func (g *Game) hasLineOfSight(x1, y1, x2, y2 int) bool {
+	// Use Bresenham's line algorithm to check each tile in the path
+	dx := abs(x2 - x1)
+	dy := abs(y2 - y1)
+
+	sx := 1
+	if x1 > x2 {
+		sx = -1
+	}
+	sy := 1
+	if y1 > y2 {
+		sy = -1
+	}
+
+	err := dx - dy
+	x, y := x1, y1
+
+	for {
+		// Don't check the start and end positions themselves
+		if !(x == x1 && y == y1) && !(x == x2 && y == y2) {
+			// Check if this tile blocks sight
+			if g.gameMap.BlocksSight(x, y) {
+				return false
+			}
+		}
+
+		// Reached destination
+		if x == x2 && y == y2 {
+			break
+		}
+
+		e2 := 2 * err
+		if e2 > -dy {
+			err -= dy
+			x += sx
+		}
+		if e2 < dx {
+			err += dx
+			y += sy
+		}
+	}
+
+	return true
+}
+
+// directionName converts entity direction to string
+func directionName(dir entity.Direction) string {
+	switch dir {
+	case entity.DirNorth:
+		return "north"
+	case entity.DirSouth:
+		return "south"
+	case entity.DirEast:
+		return "east"
+	case entity.DirWest:
+		return "west"
+	default:
+		return ""
+	}
+}
+
 // buildSceneContext creates the context for scene generation
 func (g *Game) buildSceneContext() *narrative.SceneContext {
 	ctx := &narrative.SceneContext{
@@ -584,7 +877,10 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 		PlayerMaxAP:  g.playerEntity.MaxAP,
 	}
 
-	// Find nearby entities
+	// Count nearby enemies for room description
+	nearbyEnemyCount := 0
+
+	// Find nearby entities (only visible ones)
 	if g.turnManager != nil {
 		for _, e := range g.turnManager.GetEntities() {
 			if e == g.playerEntity || !e.IsAlive() {
@@ -594,6 +890,18 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 			dist := g.playerEntity.DistanceTo(e)
 			if dist > 10 { // Only show entities within 10 tiles
 				continue
+			}
+
+			// Check line of sight
+			hasLOS := g.hasLineOfSight(g.playerEntity.X, g.playerEntity.Y, e.X, e.Y)
+			if !hasLOS {
+				// Can't see this entity
+				continue
+			}
+
+			// Count enemies in same room or nearby
+			if e.Faction == entity.FactionEnemy && dist <= 8 {
+				nearbyEnemyCount++
 			}
 
 			// Determine direction
@@ -611,12 +919,25 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 				Entity:    e,
 				Distance:  dist,
 				Direction: dirName,
-				Visible:   true, // TODO: Line of sight check
+				Visible:   true,
 				Facing:    narrative.FacingName(e.Facing),
 				Status:    status,
 			}
 
 			ctx.NearbyEntities = append(ctx.NearbyEntities, info)
+		}
+	}
+
+	// Use room tracker for room name and description if available
+	if g.roomTracker != nil {
+		ctx.RoomName = g.roomTracker.GetRoomName()
+
+		// Get enhanced room description based on state
+		hasEnemies := nearbyEnemyCount > 0
+		roomDesc := g.roomTracker.GetRoomDescription(hasEnemies)
+		if roomDesc != "" {
+			// Prepend room description to any existing atmosphere
+			ctx.TerrainFeatures = append([]string{roomDesc}, ctx.TerrainFeatures...)
 		}
 	}
 
@@ -928,44 +1249,21 @@ func (g *Game) spawnEnemies() {
 }
 
 func (g *Game) Draw(screen renderer.Image) {
-	// MULTI-PASS RENDERING FOR PIXEL-PERFECT SHADOWS
+	// Simplified rendering - draw entire level without shadow casting
 
-	// Step 1: Draw ONLY floors to the screen
+	// Step 1: Draw floors
 	g.drawFloorsOnly(screen)
 
 	// Step 2: Draw furnishings/objects on top of floors
 	g.drawFurnishings(screen)
 
-	// Step 3: Render walls to wallTexture for shader input
-	g.wallTexture.Clear()
-	g.drawWallsToTexture(g.wallTexture)
+	// Step 3: Draw all walls
+	g.drawAllWalls(screen)
 
-	// Step 3: Apply shadow shader - darkens occluded areas
-	/**if ebitenImg, ok := screen.(*ebitenrenderer.EbitenImage); ok && g.shadowShader != nil {
-		ebitenScreen := ebitenImg.GetEbitenImage()
-
-		// DEBUG: Log player position (throttle to ~1/sec to avoid spam)
-		if ebiten.IsKeyPressed(ebiten.KeySpace) {
-			log.Printf("DEBUG PlayerPos: X=%.2f Y=%.2f (screen: %dx%d)",
-				g.player.Pos.X, g.player.Pos.Y, g.screenWidth, g.screenHeight)
-		}
-
-		opts := &ebiten.DrawRectShaderOptions{}
-		opts.Uniforms = map[string]interface{}{
-			"PlayerPos":   []float32{float32(g.player.Pos.X), float32(g.player.Pos.Y)},
-			"MaxDistance": float32(g.screenWidth + g.screenHeight),
-		}
-		opts.Images[0] = g.wallTexture
-		ebitenScreen.DrawRectShader(g.screenWidth, g.screenHeight, g.shadowShader, opts)
-	}*/
-
-	// Step 4: Draw walls that have clear line of sight ON TOP of shadows
-	g.drawVisibleWalls(screen)
-
-	// Step 5: Draw enemies
+	// Step 4: Draw enemies
 	g.drawEntities(screen)
 
-	// Step 6: Draw player character on top of everything
+	// Step 5: Draw player character on top of everything
 	// Calculate player screen position with camera offset
 	playerScreenX := g.player.Pos.X - g.camera.X
 	playerScreenY := g.player.Pos.Y - g.camera.Y
@@ -993,13 +1291,13 @@ func (g *Game) Draw(screen renderer.Image) {
 			color.RGBA{200, 200, 50, 255})
 	}
 
-	// Step 7: Draw UI elements (interaction hints, messages)
+	// Step 6: Draw UI elements (interaction hints, messages)
 	g.drawUI(screen)
 
-	// Step 8: Draw HUD
+	// Step 7: Draw HUD
 	g.drawHUD(screen)
 
-	// Step 9: Draw narrative panel
+	// Step 8: Draw narrative panel
 	g.drawNarrativePanel(screen)
 }
 
@@ -1396,6 +1694,66 @@ func (g *Game) drawWallsToTexture(texture *ebiten.Image) {
 				opts.GeoM.Translate(screenX, screenY)
 				texture.DrawImage(ebitenSubImg, opts)
 			}
+		}
+	}
+}
+
+// drawAllWalls draws all wall tiles without shadow casting
+func (g *Game) drawAllWalls(screen renderer.Image) {
+	if g.gameMap == nil || g.gameMap.Atlas == nil {
+		return
+	}
+
+	tileSize := g.gameMap.Data.TileSize
+
+	// Calculate visible tile range for culling
+	startTileX := int(g.camera.X) / tileSize
+	startTileY := int(g.camera.Y) / tileSize
+	endTileX := (int(g.camera.X)+g.screenWidth)/tileSize + 1
+	endTileY := (int(g.camera.Y)+g.screenHeight)/tileSize + 1
+
+	// Clamp to level bounds
+	if startTileX < 0 {
+		startTileX = 0
+	}
+	if startTileY < 0 {
+		startTileY = 0
+	}
+	if endTileX > g.gameMap.Data.Width {
+		endTileX = g.gameMap.Data.Width
+	}
+	if endTileY > g.gameMap.Data.Height {
+		endTileY = g.gameMap.Data.Height
+	}
+
+	// Draw all wall tiles
+	for y := startTileY; y < endTileY; y++ {
+		for x := startTileX; x < endTileX; x++ {
+			tileName, err := g.gameMap.GetTileAt(x, y)
+			if err != nil || tileName == "" {
+				continue // Skip void/empty tiles
+			}
+
+			// Get tile definition
+			tile, ok := g.gameMap.Atlas.GetTile(tileName)
+			if !ok {
+				continue
+			}
+
+			// Only draw wall tiles (blocks_sight = true)
+			if blocksSight, ok := tile.Properties["blocks_sight"].(bool); !ok || !blocksSight {
+				continue // Skip floors - already drawn
+			}
+
+			subImg := g.gameMap.Atlas.GetTileSubImage(tile)
+			// Apply camera offset
+			screenX := float64(x*tileSize) - g.camera.X
+			screenY := float64(y*tileSize) - g.camera.Y
+
+			opts := &renderer.DrawImageOptions{}
+			opts.GeoM = renderer.NewGeoM()
+			opts.GeoM.Translate(screenX, screenY)
+			screen.DrawImage(subImg, opts)
 		}
 	}
 }

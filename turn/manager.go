@@ -56,6 +56,18 @@ type CombatResult struct {
 	Message     string
 }
 
+// EnemyAction describes what an enemy did during its turn
+type EnemyAction struct {
+	Entity        *entity.Entity
+	ActionType    string // "moved", "attacked", "waited"
+	Direction     entity.Direction
+	OldX, OldY    int // Position before action
+	NewX, NewY    int // Position after action
+	Target        *entity.Entity
+	Damage        int
+	IsApproaching bool // Moving toward player
+}
+
 // Manager handles turn-based gameplay
 type Manager struct {
 	entities   []*entity.Entity
@@ -77,6 +89,11 @@ type Manager struct {
 	OnMessage       func(msg string)
 	OnSceneUpdate   func() // Called when scene should be re-described
 	OnAPChanged     func(current, max int) // Called when player AP changes
+	OnSearch        func(player *entity.Entity) string // Called when player searches, returns description
+	OnEnemyAction   func(action *EnemyAction) // Called when an enemy takes an action
+
+	// Enemy action tracking for this turn
+	lastEnemyActions []*EnemyAction
 
 	// Map interaction
 	IsWalkable  func(x, y int) bool
@@ -278,6 +295,8 @@ func (m *Manager) ProcessDataAction(act *action.Action, dir entity.Direction, ta
 		success = m.executeDataAttack(act, dir, targetX, targetY)
 	case action.CategoryUtility:
 		success = m.executeDataUtility(act)
+	case action.CategoryPerception:
+		success = m.executeDataPerception(act)
 	default:
 		// Generic action execution
 		success = m.executeGenericAction(act, dir, targetX, targetY)
@@ -413,6 +432,40 @@ func (m *Manager) executeDataUtility(act *action.Action) bool {
 	}
 
 	return true
+}
+
+// executeDataPerception handles perception actions like search and listen
+func (m *Manager) executeDataPerception(act *action.Action) bool {
+	switch act.ID {
+	case "search":
+		// Call the search callback if registered
+		if m.OnSearch != nil {
+			result := m.OnSearch(m.player)
+			if result != "" && m.OnMessage != nil {
+				m.OnMessage(result)
+			}
+		} else {
+			if m.OnMessage != nil {
+				m.OnMessage("You search the area but find nothing of interest.")
+			}
+		}
+		return true
+
+	case "listen":
+		// Handle listen action - reveal nearby sounds
+		if m.OnMessage != nil {
+			m.OnMessage("You listen carefully...")
+		}
+		// TODO: Implement sound detection based on nearby entities
+		return true
+
+	default:
+		// Generic perception action
+		if m.OnMessage != nil {
+			m.OnMessage(fmt.Sprintf("You %s.", act.Name))
+		}
+		return true
+	}
 }
 
 // executeGenericAction handles other action types
@@ -632,6 +685,9 @@ func (m *Manager) executeAttack(action Action) bool {
 
 // processEnemyTurns handles all enemy actions
 func (m *Manager) processEnemyTurns() {
+	// Clear previous turn's actions
+	m.lastEnemyActions = nil
+
 	for _, e := range m.entities {
 		if e.Type == entity.TypeEnemy && e.IsAlive() && e.CanAct() {
 			if m.OnEntityTurn != nil {
@@ -643,11 +699,19 @@ func (m *Manager) processEnemyTurns() {
 	}
 }
 
+// GetLastEnemyActions returns the actions taken by enemies in the last turn
+func (m *Manager) GetLastEnemyActions() []*EnemyAction {
+	return m.lastEnemyActions
+}
+
 // processEnemyAI determines and executes an enemy's action
 func (m *Manager) processEnemyAI(e *entity.Entity) {
 	if m.player == nil || !m.player.IsAlive() {
 		return
 	}
+
+	// Store old position for tracking
+	oldX, oldY := e.X, e.Y
 
 	// Simple AI: move toward player and attack if adjacent
 	if e.IsAdjacent(m.player) {
@@ -658,6 +722,21 @@ func (m *Manager) processEnemyAI(e *entity.Entity) {
 			Target: m.player,
 		}
 		m.executeAttack(action)
+
+		// Record the attack action
+		enemyAction := &EnemyAction{
+			Entity:     e,
+			ActionType: "attacked",
+			OldX:       oldX,
+			OldY:       oldY,
+			NewX:       e.X,
+			NewY:       e.Y,
+			Target:     m.player,
+		}
+		m.lastEnemyActions = append(m.lastEnemyActions, enemyAction)
+		if m.OnEnemyAction != nil {
+			m.OnEnemyAction(enemyAction)
+		}
 	} else if e.CanMove {
 		// Move toward player
 		dir := m.getDirectionToward(e, m.player)
@@ -668,8 +747,37 @@ func (m *Manager) processEnemyAI(e *entity.Entity) {
 				Direction: dir,
 			}
 			m.executeMove(action)
+
+			// Check if enemy moved closer to player
+			oldDist := abs(oldX-m.player.X) + abs(oldY-m.player.Y)
+			newDist := abs(e.X-m.player.X) + abs(e.Y-m.player.Y)
+			isApproaching := newDist < oldDist
+
+			// Record the movement action
+			enemyAction := &EnemyAction{
+				Entity:        e,
+				ActionType:    "moved",
+				Direction:     dir,
+				OldX:          oldX,
+				OldY:          oldY,
+				NewX:          e.X,
+				NewY:          e.Y,
+				IsApproaching: isApproaching,
+			}
+			m.lastEnemyActions = append(m.lastEnemyActions, enemyAction)
+			if m.OnEnemyAction != nil {
+				m.OnEnemyAction(enemyAction)
+			}
 		}
 	}
+}
+
+// abs returns the absolute value of an integer
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 // getDirectionToward calculates the direction from one entity toward another

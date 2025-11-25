@@ -15,6 +15,23 @@
       "spawn_weight": 10,
       "min_count": 1,
       "max_count": 1,
+      "narrative": {
+        "entry_text": "You stand in the dungeon's entrance chamber. Stone walls loom around you, and the air is thick with the smell of dust and age. Supplies left by previous adventurers lie scattered about - a reminder that others have come this way before.",
+        "return_text": "You've returned to the entrance chamber. The familiar sight of abandoned supplies greets you.",
+        "search_text": "Among the debris, you find some useful supplies that previous adventurers left behind.",
+        "atmosphere": "A faint draft carries the musty scent of the depths below.",
+        "skill_reveals": [
+          {
+            "skill": "perception",
+            "difficulty": 10,
+            "text": "You notice scratch marks on the floor leading deeper into the dungeon - something was dragged this way recently.",
+            "one_time": true,
+            "tag": "entrance_scratches"
+          }
+        ],
+        "danger_hint": "You sense movement in the shadows ahead.",
+        "safe_text": "The entrance feels secure for now."
+      },
       "connections": [
         {
           "x": 6,
@@ -53,6 +70,23 @@
       "spawn_weight": 25,
       "min_count": 0,
       "max_count": 0,
+      "narrative": {
+        "entry_text": "You enter a small chamber. An ancient tome rests upon a stone pedestal in the center, its pages yellowed with age. The room holds an air of forgotten knowledge.",
+        "return_text": "You return to the small chamber with its ancient tome.",
+        "search_text": "Examining the room more closely, you find old notes tucked into a crack in the wall.",
+        "atmosphere": "Dust motes dance in the dim light.",
+        "skill_reveals": [
+          {
+            "skill": "investigation",
+            "difficulty": 12,
+            "text": "The tome appears to be a journal. The last entry speaks of a hidden passage somewhere in these depths.",
+            "one_time": true,
+            "tag": "tome_secret"
+          }
+        ],
+        "danger_hint": "Something lurks in the shadows of this chamber.",
+        "safe_text": "The chamber is quiet now."
+      },
       "connections": [
         {
           "x": 0,
@@ -92,6 +126,30 @@
       "spawn_weight": 20,
       "min_count": 0,
       "max_count": 0,
+      "narrative": {
+        "entry_text": "You step into a ritual chamber. Magical braziers cast flickering shadows across the walls, and a stone altar dominates the far end of the room. Ancient symbols are carved into the floor.",
+        "return_text": "The ritual chamber greets you with its dancing brazier flames.",
+        "search_text": "Behind the altar, you discover ritual components that could prove useful.",
+        "atmosphere": "The braziers crackle softly, their magical flames casting an otherworldly glow.",
+        "skill_reveals": [
+          {
+            "skill": "arcana",
+            "difficulty": 14,
+            "text": "The symbols on the floor form a protective ward. Someone was trying to contain something here.",
+            "one_time": true,
+            "tag": "ritual_ward"
+          },
+          {
+            "skill": "perception",
+            "difficulty": 11,
+            "text": "You notice dried bloodstains near the altar that someone tried to clean up.",
+            "one_time": true,
+            "tag": "ritual_blood"
+          }
+        ],
+        "danger_hint": "The shadows seem to move with a life of their own.",
+        "safe_text": "The protective wards seem to hold the darkness at bay."
+      },
       "connections": [
         {
           "x": 0,
@@ -165,6 +223,30 @@
       "spawn_weight": 10,
       "min_count": 0,
       "max_count": 2,
+      "narrative": {
+        "entry_text": "You enter a grand hall, its vaulted ceiling disappearing into darkness above. Twin braziers illuminate a stone altar at the far end, and treasure chests glint in the flickering light. This chamber was clearly meant for something important.",
+        "return_text": "The grand hall stretches before you once more.",
+        "search_text": "Examining the walls reveals hidden alcoves containing forgotten relics.",
+        "atmosphere": "Your footsteps echo ominously in the vast space.",
+        "skill_reveals": [
+          {
+            "skill": "perception",
+            "difficulty": 13,
+            "text": "You notice the remains of old battle damage on the walls. A great fight took place here long ago.",
+            "one_time": true,
+            "tag": "hall_battle"
+          },
+          {
+            "skill": "history",
+            "difficulty": 15,
+            "text": "This appears to be a throne room. The markings suggest it once belonged to a forgotten king of the deep.",
+            "one_time": true,
+            "tag": "hall_history"
+          }
+        ],
+        "danger_hint": "Something powerful lurks in this grand chamber.",
+        "safe_text": "The hall is silent now, but echoes of ancient glory remain."
+      },
       "connections": [
         {
           "x": 0,
@@ -242,6 +324,13 @@
       "spawn_weight": 15,
       "min_count": 0,
       "max_count": 0,
+      "narrative": {
+        "entry_text": "You enter a narrow corridor. The walls press close, and shadows pool between the sparse torchlight.",
+        "return_text": "The familiar corridor stretches before you.",
+        "atmosphere": "The air here feels stale and confined.",
+        "danger_hint": "You hear movement echoing from somewhere ahead.",
+        "safe_text": "The corridor is clear."
+      },
       "connections": [
         {
           "x": 0,
@@ -273,6 +362,23 @@
       "spawn_weight": 20,
       "min_count": 0,
       "max_count": 3,
+      "narrative": {
+        "entry_text": "You discover a storage vault! Barrels and weapon racks line the walls, promising useful supplies for your journey ahead.",
+        "return_text": "You return to the storage vault.",
+        "search_text": "Rummaging through the containers, you find additional supplies hidden at the bottom.",
+        "atmosphere": "The scent of oil and leather fills the cramped space.",
+        "skill_reveals": [
+          {
+            "skill": "perception",
+            "difficulty": 10,
+            "text": "One of the barrels has a false bottom, concealing a small cache of coins.",
+            "one_time": true,
+            "tag": "vault_cache"
+          }
+        ],
+        "danger_hint": "Something is guarding this treasure.",
+        "safe_text": "The vault is secure."
+      },
       "connections": [
         {
           "x": 0,
@@ -322,6 +428,30 @@
       "spawn_weight": 15,
       "min_count": 0,
       "max_count": 2,
+      "narrative": {
+        "entry_text": "A chill runs down your spine as you enter this ancient crypt. Skeletal remains lie in alcoves along the walls, and the air is thick with the musty smell of death. A locked chest sits at the far end.",
+        "return_text": "You return to the crypt. The skeletal remains seem to watch you.",
+        "search_text": "Among the bones, you find trinkets that the dead no longer need.",
+        "atmosphere": "The cold of the grave seeps into your bones.",
+        "skill_reveals": [
+          {
+            "skill": "religion",
+            "difficulty": 12,
+            "text": "These remains bear the marks of an ancient burial rite. Disturbing them may have consequences.",
+            "one_time": true,
+            "tag": "crypt_rite"
+          },
+          {
+            "skill": "perception",
+            "difficulty": 14,
+            "text": "One of the skeletons clutches something in its bony hand - a small key.",
+            "one_time": true,
+            "tag": "crypt_key"
+          }
+        ],
+        "danger_hint": "The dead do not rest peacefully here.",
+        "safe_text": "The restless spirits have been laid to rest."
+      },
       "connections": [
         {
           "x": 0,
@@ -382,6 +512,30 @@
       "spawn_weight": 12,
       "min_count": 0,
       "max_count": 2,
+      "narrative": {
+        "entry_text": "You discover an abandoned alchemy laboratory. Glass vials and strange apparatus cover the workbenches, and colorful potions line the shelves. A healing fountain bubbles quietly in one corner.",
+        "return_text": "The alchemy lab greets you with its familiar chemical scent.",
+        "search_text": "Hidden behind some equipment, you find a stash of completed potions.",
+        "atmosphere": "The sharp smell of alchemical reagents fills the air.",
+        "skill_reveals": [
+          {
+            "skill": "arcana",
+            "difficulty": 11,
+            "text": "The alchemist's notes describe a formula for a powerful healing elixir. The ingredients are scattered around the room.",
+            "one_time": true,
+            "tag": "lab_formula"
+          },
+          {
+            "skill": "investigation",
+            "difficulty": 13,
+            "text": "You find a hidden compartment containing the alchemist's most valuable creation - a potion of unusual color.",
+            "one_time": true,
+            "tag": "lab_secret"
+          }
+        ],
+        "danger_hint": "Something has made a nest among the equipment.",
+        "safe_text": "The laboratory is safe to explore."
+      },
       "connections": [
         {
           "x": 0,
@@ -431,6 +585,30 @@
       "spawn_weight": 15,
       "min_count": 0,
       "max_count": 2,
+      "narrative": {
+        "entry_text": "You enter an old armory. Weapon racks line the walls, their contents dusty but serviceable. Armor stands display ancient protective gear, and a treasure chest sits in the corner.",
+        "return_text": "The armory awaits with its arsenal of forgotten weapons.",
+        "search_text": "Searching through the equipment, you find some gear that's still in good condition.",
+        "atmosphere": "The smell of old leather and metal polish lingers in the air.",
+        "skill_reveals": [
+          {
+            "skill": "perception",
+            "difficulty": 11,
+            "text": "You notice one of the weapons has unusual craftsmanship - it may be magical.",
+            "one_time": true,
+            "tag": "armory_magic"
+          },
+          {
+            "skill": "history",
+            "difficulty": 13,
+            "text": "These weapons bear the mark of an elite guard unit that disappeared centuries ago.",
+            "one_time": true,
+            "tag": "armory_history"
+          }
+        ],
+        "danger_hint": "The armory has attracted unwanted attention.",
+        "safe_text": "The armory is secure for now."
+      },
       "connections": [
         {
           "x": 0,
@@ -497,6 +675,30 @@
       "spawn_weight": 10,
       "min_count": 0,
       "max_count": 1,
+      "narrative": {
+        "entry_text": "You step into a sacred shrine. Magical braziers cast a warm, comforting light, and a healing fountain bubbles peacefully. A stone altar at the center radiates an aura of divine protection.",
+        "return_text": "The shrine welcomes you back with its peaceful atmosphere.",
+        "search_text": "Behind the altar, you discover offerings left by previous pilgrims.",
+        "atmosphere": "A sense of peace and safety washes over you.",
+        "skill_reveals": [
+          {
+            "skill": "religion",
+            "difficulty": 10,
+            "text": "This shrine is dedicated to a deity of protection. Praying here might grant you a blessing.",
+            "one_time": true,
+            "tag": "shrine_deity"
+          },
+          {
+            "skill": "perception",
+            "difficulty": 12,
+            "text": "You notice a hidden compartment in the altar containing a sacred relic.",
+            "one_time": true,
+            "tag": "shrine_relic"
+          }
+        ],
+        "danger_hint": "Even sacred places are not safe from the dungeon's corruption.",
+        "safe_text": "The shrine's divine protection holds strong."
+      },
       "connections": [
         {
           "x": 3,

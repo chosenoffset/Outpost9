@@ -33,8 +33,9 @@ type MapData struct {
 
 // Map represents a loaded map with its atlas
 type Map struct {
-	Data  *MapData
-	Atlas *atlas.Atlas
+	Data           *MapData
+	Atlas          *atlas.Atlas
+	GeneratedLevel *room.GeneratedLevel // The generated level (if procedurally generated)
 }
 
 // LoadMap loads a map from a JSON file and its associated atlas
@@ -218,8 +219,9 @@ func LoadMapFromRoomLibrary(libraryPath string, config room.GeneratorConfig, loa
 	}
 
 	gameMap := &Map{
-		Data:  mapData,
-		Atlas: atlasObj,
+		Data:           mapData,
+		Atlas:          atlasObj,
+		GeneratedLevel: generated,
 	}
 
 	return gameMap, nil
@@ -267,8 +269,9 @@ func GenerateMapFromLibraryWithFurnishings(library *room.RoomLibrary, furnishing
 	}
 
 	gameMap := &Map{
-		Data:  mapData,
-		Atlas: atlasObj,
+		Data:           mapData,
+		Atlas:          atlasObj,
+		GeneratedLevel: generated,
 	}
 
 	return gameMap, nil
