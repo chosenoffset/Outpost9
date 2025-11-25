@@ -88,16 +88,19 @@ func (m *Manager) AddFurnishingLight(furnishingID string, x, y int, tileSize int
 	intensityStr, hasIntensity := def.GetProperty("light_intensity")
 
 	if !hasRadius || !hasIntensity {
+		fmt.Printf("WARNING: Furnishing %s has light_source tag but missing radius or intensity\n", def.Name)
 		return
 	}
 
 	radius, err := strconv.ParseFloat(radiusStr, 64)
 	if err != nil {
+		fmt.Printf("WARNING: Failed to parse light_radius for %s: %v\n", def.Name, err)
 		return
 	}
 
 	intensity, err := strconv.ParseFloat(intensityStr, 64)
 	if err != nil {
+		fmt.Printf("WARNING: Failed to parse light_intensity for %s: %v\n", def.Name, err)
 		return
 	}
 
@@ -125,6 +128,8 @@ func (m *Manager) AddFurnishingLight(furnishingID string, x, y int, tileSize int
 	}
 
 	m.furnishingLights[furnishingID] = light
+	fmt.Printf("DEBUG: Added light %s at world pos (%.1f, %.1f) with radius=%.1f intensity=%.2f\n",
+		furnishingID, worldX, worldY, radius, intensity)
 }
 
 // RemoveFurnishingLight removes a light source from a furnishing (e.g., if destroyed)

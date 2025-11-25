@@ -1336,6 +1336,16 @@ func (g *Game) Draw(screen renderer.Image) {
 	}
 	screenImg := ebitenScreen.GetEbitenImage()
 
+	// Check if textures need to be resized (e.g., window was maximized)
+	w, h := screenImg.Size()
+	if g.sceneTexture.Bounds().Dx() != w || g.sceneTexture.Bounds().Dy() != h {
+		log.Printf("Resizing offscreen textures to %dx%d", w, h)
+		g.sceneTexture.Dispose()
+		g.wallTexture.Dispose()
+		g.sceneTexture = ebiten.NewImage(w, h)
+		g.wallTexture = ebiten.NewImage(w, h)
+	}
+
 	// Step 1: Clear and render the scene to an offscreen texture
 	g.sceneTexture.Clear()
 	sceneWrapper := ebitenrenderer.WrapEbitenImage(g.sceneTexture)
@@ -1405,6 +1415,7 @@ func (g *Game) drawPlayer(screen renderer.Image) {
 func (g *Game) applyLightingShader(screen *ebiten.Image) {
 	if g.lightingShader == nil || g.lightingManager == nil {
 		// No lighting shader, just copy scene to screen
+		log.Printf("WARNING: Lighting shader or manager is nil, falling back to no lighting")
 		opts := &ebiten.DrawImageOptions{}
 		screen.DrawImage(g.sceneTexture, opts)
 		return
@@ -1412,6 +1423,12 @@ func (g *Game) applyLightingShader(screen *ebiten.Image) {
 
 	// Get all active lights
 	lights := g.lightingManager.GetAllLights()
+
+	// Debug: log light count occasionally
+	if g.turnManager != nil && g.turnManager.GetTurnNumber() % 10 == 0 {
+		log.Printf("DEBUG: Rendering with %d lights, ambient: %.2f, player light on: %v",
+			len(lights), g.lightingManager.GetAmbientLight(), g.lightingManager.IsPlayerLightOn())
+	}
 
 	// Prepare shader uniforms
 	opts := &ebiten.DrawRectShaderOptions{}
