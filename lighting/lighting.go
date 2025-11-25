@@ -30,7 +30,7 @@ type Manager struct {
 func NewManager() *Manager {
 	return &Manager{
 		lights:           make([]LightSource, 0),
-		ambientLight:     0.05, // Very low ambient light (near darkness)
+		ambientLight:     0.15, // Low ambient light for better testing visibility
 		playerLightOn:    false,
 		furnishingLights: make(map[string]*LightSource),
 	}

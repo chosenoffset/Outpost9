@@ -50,6 +50,16 @@
           "furnishing_name": "wooden_barrel",
           "x": 2,
           "y": 3
+        },
+        {
+          "furnishing_name": "torch_sconce_left",
+          "x": 1,
+          "y": 2
+        },
+        {
+          "furnishing_name": "torch_sconce_right",
+          "x": 5,
+          "y": 2
         }
       ],
       "tiles": [
@@ -106,6 +116,16 @@
           "furnishing_name": "ancient_tome",
           "x": 3,
           "y": 1
+        },
+        {
+          "furnishing_name": "torch_sconce_left",
+          "x": 1,
+          "y": 2
+        },
+        {
+          "furnishing_name": "torch_sconce_right",
+          "x": 5,
+          "y": 2
         }
       ],
       "tiles": [
@@ -345,7 +365,18 @@
           "type": "door"
         }
       ],
-      "furnishings": [],
+      "furnishings": [
+        {
+          "furnishing_name": "torch_sconce_left",
+          "x": 2,
+          "y": 1
+        },
+        {
+          "furnishing_name": "torch_sconce_right",
+          "x": 6,
+          "y": 1
+        }
+      ],
       "tiles": [
         ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
         ["floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
@@ -407,6 +438,11 @@
           "furnishing_name": "weapon_rack",
           "x": 4,
           "y": 4
+        },
+        {
+          "furnishing_name": "torch_sconce_left",
+          "x": 2,
+          "y": 2
         }
       ],
       "tiles": [
@@ -564,6 +600,11 @@
           "furnishing_name": "healing_fountain",
           "x": 5,
           "y": 4
+        },
+        {
+          "furnishing_name": "torch_sconce_right",
+          "x": 2,
+          "y": 2
         }
       ],
       "tiles": [
@@ -653,6 +694,16 @@
           "furnishing_name": "treasure_chest",
           "x": 6,
           "y": 5
+        },
+        {
+          "furnishing_name": "torch_sconce_left",
+          "x": 2,
+          "y": 2
+        },
+        {
+          "furnishing_name": "torch_sconce_right",
+          "x": 5,
+          "y": 2
         }
       ],
       "tiles": [

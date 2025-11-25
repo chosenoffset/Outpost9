@@ -244,7 +244,8 @@ func (gm *GameManager) loadGame(selection menu.Selection, playerChar *character.
 	// Initialize lighting manager
 	lightingMgr := lighting.NewManager()
 	// Configure player's light source (flashlight/lantern) - starts disabled
-	lightingMgr.SetPlayerLight(0, 0, 200.0, 0.8, color.NRGBA{255, 240, 200, 255})
+	// Increased radius and intensity for better visibility
+	lightingMgr.SetPlayerLight(0, 0, 400.0, 1.0, color.NRGBA{255, 240, 200, 255})
 
 	// Initialize game state and inventory for interaction system
 	gs := gamestate.New()
