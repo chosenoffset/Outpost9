@@ -693,7 +693,7 @@ func (g *Game) buildProseContext() *narrative.ProseContext {
 	ctx.PlayerPosition.X = g.playerEntity.X
 	ctx.PlayerPosition.Y = g.playerEntity.Y
 
-	// Get visible enemies
+	// Get visible enemies (only those with line of sight)
 	for _, e := range g.turnManager.GetEntities() {
 		if e == g.playerEntity || !e.IsAlive() || e.Faction != entity.FactionEnemy {
 			continue
@@ -701,6 +701,14 @@ func (g *Game) buildProseContext() *narrative.ProseContext {
 
 		dist := g.playerEntity.DistanceTo(e)
 		if dist > 10 {
+			continue
+		}
+
+		// Check line of sight
+		hasLOS := g.hasLineOfSight(g.playerEntity.X, g.playerEntity.Y, e.X, e.Y)
+		if !hasLOS {
+			// TODO: Check if enemy is making enough noise to be heard
+			// For now, skip enemies we can't see
 			continue
 		}
 
@@ -722,8 +730,20 @@ func (g *Game) buildProseContext() *narrative.ProseContext {
 		}
 	}
 
-	// Get enemy actions from the turn manager
+	// Get enemy actions from the turn manager (only for visible enemies)
 	for _, action := range g.turnManager.GetLastEnemyActions() {
+		// Check if we can see this enemy's current position
+		hasLOS := g.hasLineOfSight(g.playerEntity.X, g.playerEntity.Y, action.NewX, action.NewY)
+		if !hasLOS {
+			// Check if we could see them at their old position
+			// This lets us describe enemies leaving sight
+			hadLOS := g.hasLineOfSight(g.playerEntity.X, g.playerEntity.Y, action.OldX, action.OldY)
+			if !hadLOS {
+				// Never saw them, skip
+				continue
+			}
+		}
+
 		enemyAction := narrative.EnemyTurnAction{
 			Entity:        action.Entity,
 			ActionType:    action.ActionType,
@@ -783,6 +803,52 @@ func abs(x int) int {
 	return x
 }
 
+// hasLineOfSight checks if there's a clear line of sight between two positions
+func (g *Game) hasLineOfSight(x1, y1, x2, y2 int) bool {
+	// Use Bresenham's line algorithm to check each tile in the path
+	dx := abs(x2 - x1)
+	dy := abs(y2 - y1)
+
+	sx := 1
+	if x1 > x2 {
+		sx = -1
+	}
+	sy := 1
+	if y1 > y2 {
+		sy = -1
+	}
+
+	err := dx - dy
+	x, y := x1, y1
+
+	for {
+		// Don't check the start and end positions themselves
+		if !(x == x1 && y == y1) && !(x == x2 && y == y2) {
+			// Check if this tile blocks sight
+			if g.gameMap.BlocksSight(x, y) {
+				return false
+			}
+		}
+
+		// Reached destination
+		if x == x2 && y == y2 {
+			break
+		}
+
+		e2 := 2 * err
+		if e2 > -dy {
+			err -= dy
+			x += sx
+		}
+		if e2 < dx {
+			err += dx
+			y += sy
+		}
+	}
+
+	return true
+}
+
 // directionName converts entity direction to string
 func directionName(dir entity.Direction) string {
 	switch dir {
@@ -814,7 +880,7 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 	// Count nearby enemies for room description
 	nearbyEnemyCount := 0
 
-	// Find nearby entities
+	// Find nearby entities (only visible ones)
 	if g.turnManager != nil {
 		for _, e := range g.turnManager.GetEntities() {
 			if e == g.playerEntity || !e.IsAlive() {
@@ -823,6 +889,13 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 
 			dist := g.playerEntity.DistanceTo(e)
 			if dist > 10 { // Only show entities within 10 tiles
+				continue
+			}
+
+			// Check line of sight
+			hasLOS := g.hasLineOfSight(g.playerEntity.X, g.playerEntity.Y, e.X, e.Y)
+			if !hasLOS {
+				// Can't see this entity
 				continue
 			}
 
@@ -846,7 +919,7 @@ func (g *Game) buildSceneContext() *narrative.SceneContext {
 				Entity:    e,
 				Distance:  dist,
 				Direction: dirName,
-				Visible:   true, // TODO: Line of sight check
+				Visible:   true,
 				Facing:    narrative.FacingName(e.Facing),
 				Status:    status,
 			}
