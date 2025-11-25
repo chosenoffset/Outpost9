@@ -42,12 +42,12 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	accumulatedColor := vec3(0.0, 0.0, 0.0)
 
 	// Process each light source
-	numLightsInt := int(NumLights)
-	if numLightsInt > MaxLights {
-		numLightsInt = MaxLights
-	}
+	for i := 0; i < MaxLights; i++ {
+		// Skip if beyond the number of active lights
+		if float(i) >= NumLights {
+			break
+		}
 
-	for i := 0; i < numLightsInt; i++ {
 		// Check if this light is enabled
 		if LightProperties[i].w < 0.5 {
 			continue
@@ -80,16 +80,18 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 		// Raycast from light to pixel to check for walls
 		blocked := false
-		steps := int(distance / 2.0) // Sample every 2 pixels
-		if steps < 1 {
-			steps = 1
-		}
-		if steps > 500 {
-			steps = 500 // Limit to prevent performance issues
-		}
+		maxSteps := 500 // Maximum raycasting steps
+		stepSize := 2.0 // Sample every 2 pixels
 
-		for j := 1; j < steps; j++ {
-			t := float(j) / float(steps) * distance
+		for j := 1; j < maxSteps; j++ {
+			// Calculate sample distance
+			t := float(j) * stepSize
+
+			// Stop if we've reached the pixel
+			if t >= distance {
+				break
+			}
+
 			sampleWorldPos := lightPos + direction * t
 
 			// Convert back to screen space for texture sampling
