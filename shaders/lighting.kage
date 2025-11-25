@@ -80,10 +80,10 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 		// Raycast from light to pixel to check for walls
 		blocked := false
-		maxSteps := 500 // Maximum raycasting steps
 		stepSize := 2.0 // Sample every 2 pixels
 
-		for j := 1; j < maxSteps; j++ {
+		// Loop with constant bound (required by Kage)
+		for j := 1; j < 500; j++ {
 			// Calculate sample distance
 			t := float(j) * stepSize
 
