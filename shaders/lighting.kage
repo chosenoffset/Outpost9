@@ -1,0 +1,145 @@
+//kage:unit pixels
+
+package main
+
+// Maximum number of light sources we can handle
+const MaxLights = 32
+
+// Light positions in world coordinates (relative to camera)
+var LightPositions [MaxLights]vec2
+
+// Light properties: x=radius, y=intensity, z=unused, w=enabled(1.0)/disabled(0.0)
+var LightProperties [MaxLights]vec4
+
+// Light colors (RGB)
+var LightColors [MaxLights]vec3
+
+// Number of active lights
+var NumLights float
+
+// Ambient darkness level (0.0 = pitch black, 1.0 = fully lit)
+var AmbientLight float
+
+// Camera offset for world-to-screen coordinate conversion
+var CameraOffset vec2
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	// Get the scene color at this pixel
+	sceneColor := imageSrc0At(position.xy)
+
+	// Current pixel position in screen space
+	pixelPos := position.xy
+
+	// Convert to world space by adding camera offset
+	worldPos := pixelPos + CameraOffset
+
+	// Start with ambient light level
+	totalLight := AmbientLight
+	lightColor := vec3(1.0, 1.0, 1.0) // Start with white ambient
+
+	// Number of lights affecting this pixel (for color blending)
+	numAffectingLights := 0.0
+	accumulatedColor := vec3(0.0, 0.0, 0.0)
+
+	// Process each light source
+	for i := 0; i < MaxLights; i++ {
+		// Skip if beyond the number of active lights
+		if float(i) >= NumLights {
+			break
+		}
+
+		// Check if this light is enabled
+		if LightProperties[i].w < 0.5 {
+			continue
+		}
+
+		lightPos := LightPositions[i]
+		radius := LightProperties[i].x
+		intensity := LightProperties[i].y
+		lightCol := LightColors[i]
+
+		// Distance from pixel to light
+		direction := worldPos - lightPos
+		distance := length(direction)
+
+		// Skip if beyond light radius
+		if distance > radius {
+			continue
+		}
+
+		// Normalize direction for raycasting
+		if distance > 0.1 {
+			direction = direction / distance
+		} else {
+			// Very close to light source - fully lit
+			totalLight += intensity
+			accumulatedColor += lightCol * intensity
+			numAffectingLights += 1.0
+			continue
+		}
+
+		// Raycast from light to pixel to check for walls
+		blocked := false
+		stepSize := 2.0 // Sample every 2 pixels
+
+		// Loop with constant bound (required by Kage)
+		for j := 1; j < 500; j++ {
+			// Calculate sample distance
+			t := float(j) * stepSize
+
+			// Stop if we've reached the pixel
+			if t >= distance {
+				break
+			}
+
+			sampleWorldPos := lightPos + direction * t
+
+			// Convert back to screen space for texture sampling
+			sampleScreenPos := sampleWorldPos - CameraOffset
+
+			// Sample wall texture (imageSrc1)
+			wall := imageSrc1At(sampleScreenPos)
+
+			// If we hit a wall (alpha > threshold), this pixel is in shadow from this light
+			if wall.a > 0.1 {
+				blocked = true
+				break
+			}
+		}
+
+		if !blocked {
+			// Calculate light contribution with inverse square falloff (more natural)
+			// Use smoothstep for softer falloff at edges
+			falloff := 1.0 - smoothstep(0.0, radius, distance)
+			contribution := intensity * falloff
+
+			totalLight += contribution
+			accumulatedColor += lightCol * contribution
+			numAffectingLights += 1.0
+		}
+	}
+
+	// Average the light colors if multiple lights affect this pixel
+	if numAffectingLights > 0.0 {
+		lightColor = accumulatedColor / numAffectingLights
+		// Normalize to prevent overexposure
+		if totalLight > 1.0 {
+			lightColor = lightColor / totalLight
+			totalLight = 1.0
+		}
+	}
+
+	// Clamp total light to reasonable range
+	totalLight = clamp(totalLight, 0.0, 1.0)
+
+	// Apply lighting to scene
+	// Multiply scene color by light intensity and color
+	finalColor := vec4(
+		sceneColor.r * totalLight * lightColor.r,
+		sceneColor.g * totalLight * lightColor.g,
+		sceneColor.b * totalLight * lightColor.b,
+		sceneColor.a,
+	)
+
+	return finalColor
+}
