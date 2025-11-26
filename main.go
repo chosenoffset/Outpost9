@@ -157,13 +157,13 @@ func (gm *GameManager) Layout(outsideWidth, outsideHeight int) (int, int) {
 		if gm.game != nil {
 			gm.game.screenWidth = outsideWidth
 			gm.game.screenHeight = outsideHeight
-			// Recreate wall texture for new size
-			gm.game.wallTexture = ebiten.NewImage(outsideWidth, outsideHeight)
 			// Update map view width and narrative panel
 			gm.game.mapViewWidth = outsideWidth - gm.game.panelWidth
 			if gm.game.narrativePanel != nil {
 				gm.game.narrativePanel.Resize(outsideWidth, outsideHeight, gm.game.panelWidth)
 			}
+			// Recalculate camera position with new viewport size
+			gm.game.updateCamera()
 		}
 	}
 	return outsideWidth, outsideHeight
@@ -1151,35 +1151,57 @@ func (g *Game) updateCamera() {
 		return
 	}
 
-	// Center camera on player
-	g.camera.X = g.player.Pos.X - float64(g.screenWidth)/2
-	g.camera.Y = g.player.Pos.Y - float64(g.screenHeight)/2
+	// Center camera on player (use mapViewWidth for horizontal since panel takes up space)
+	viewportWidth := float64(g.mapViewWidth)
+	viewportHeight := float64(g.screenHeight)
+
+	oldCamX := g.camera.X
+	oldCamY := g.camera.Y
+
+	g.camera.X = g.player.Pos.X - viewportWidth/2
+	g.camera.Y = g.player.Pos.Y - viewportHeight/2
+
+	// Debug log when camera moves significantly (like on resize)
+	if math.Abs(g.camera.X-oldCamX) > 10 || math.Abs(g.camera.Y-oldCamY) > 10 {
+		log.Printf("Camera update: viewport=%dx%d, player=(%.0f,%.0f), camera=(%.0f,%.0f)",
+			int(viewportWidth), int(viewportHeight), g.player.Pos.X, g.player.Pos.Y, g.camera.X, g.camera.Y)
+	}
 
 	// Clamp camera to level bounds
 	tileSize := float64(g.gameMap.Data.TileSize)
 	levelPixelWidth := float64(g.gameMap.Data.Width) * tileSize
 	levelPixelHeight := float64(g.gameMap.Data.Height) * tileSize
 
-	// Don't let camera go past level edges
-	if g.camera.X < 0 {
+	// Handle case where level is smaller than viewport
+	// Keep camera at 0,0 and let the level render offset from the origin
+	if levelPixelWidth < viewportWidth {
 		g.camera.X = 0
-	}
-	if g.camera.Y < 0 {
-		g.camera.Y = 0
-	}
-	if g.camera.X > levelPixelWidth-float64(g.screenWidth) {
-		g.camera.X = levelPixelWidth - float64(g.screenWidth)
-	}
-	if g.camera.Y > levelPixelHeight-float64(g.screenHeight) {
-		g.camera.Y = levelPixelHeight - float64(g.screenHeight)
+	} else {
+		// Normal clamping for levels larger than viewport
+		if g.camera.X < 0 {
+			g.camera.X = 0
+		}
+		if g.camera.X > levelPixelWidth-viewportWidth {
+			g.camera.X = levelPixelWidth - viewportWidth
+		}
 	}
 
-	// Handle case where level is smaller than screen
-	if levelPixelWidth < float64(g.screenWidth) {
-		g.camera.X = (levelPixelWidth - float64(g.screenWidth)) / 2
+	if levelPixelHeight < viewportHeight {
+		g.camera.Y = 0
+	} else {
+		// Normal clamping for levels larger than viewport
+		if g.camera.Y < 0 {
+			g.camera.Y = 0
+		}
+		if g.camera.Y > levelPixelHeight-viewportHeight {
+			g.camera.Y = levelPixelHeight - viewportHeight
+		}
 	}
-	if levelPixelHeight < float64(g.screenHeight) {
-		g.camera.Y = (levelPixelHeight - float64(g.screenHeight)) / 2
+
+	// Always log final camera position when there was a significant change
+	if math.Abs(g.camera.X-oldCamX) > 10 || math.Abs(g.camera.Y-oldCamY) > 10 {
+		log.Printf("  -> FINAL camera after clamping: (%.0f,%.0f), level=%.0fx%.0f, viewport=%.0fx%.0f",
+			g.camera.X, g.camera.Y, levelPixelWidth, levelPixelHeight, viewportWidth, viewportHeight)
 	}
 }
 
@@ -1339,13 +1361,20 @@ func (g *Game) Draw(screen renderer.Image) {
 	}
 	screenImg := ebitenScreen.GetEbitenImage()
 
-	// Check if textures need to be resized (e.g., window was maximized)
+	// Check if textures need to be resized
 	w, h := screenImg.Size()
-	if g.sceneTexture.Bounds().Dx() != w || g.sceneTexture.Bounds().Dy() != h {
-		log.Printf("Resizing offscreen textures to %dx%d", w, h)
-		g.sceneTexture.Dispose()
-		g.wallTexture.Dispose()
+	if g.sceneTexture == nil || g.sceneTexture.Bounds().Dx() != w || g.sceneTexture.Bounds().Dy() != h {
+		log.Printf("Resizing scene texture to %dx%d", w, h)
+		if g.sceneTexture != nil {
+			g.sceneTexture.Dispose()
+		}
 		g.sceneTexture = ebiten.NewImage(w, h)
+	}
+	if g.wallTexture == nil || g.wallTexture.Bounds().Dx() != w || g.wallTexture.Bounds().Dy() != h {
+		log.Printf("Resizing wall texture to %dx%d", w, h)
+		if g.wallTexture != nil {
+			g.wallTexture.Dispose()
+		}
 		g.wallTexture = ebiten.NewImage(w, h)
 	}
 
@@ -1484,6 +1513,11 @@ func (g *Game) applyLightingShader(screen *ebiten.Image) {
 	opts.Uniforms["AmbientLight"] = float32(g.lightingManager.GetAmbientLight())
 	opts.Uniforms["CameraOffset"] = []float32{float32(g.camera.X), float32(g.camera.Y)}
 
+	// Pass light arrays as flat arrays (Kage expects this format)
+	opts.Uniforms["LightPositions"] = lightPositions[:]
+	opts.Uniforms["LightProperties"] = lightProperties[:]
+	opts.Uniforms["LightColors"] = lightColors[:]
+
 	// Debug: log uniforms on frame 1
 	if g.frameCount == 1 {
 		log.Printf("  Shader uniforms: NumLights=%d, AmbientLight=%.2f, CameraOffset=[%.1f, %.1f]",
@@ -1493,22 +1527,6 @@ func (g *Game) applyLightingShader(screen *ebiten.Image) {
 				lightPositions[0], lightPositions[1],
 				lightProperties[0], lightProperties[1],
 				lightColors[0], lightColors[1], lightColors[2])
-		}
-	}
-
-	// Pass light arrays as uniforms
-	for i := 0; i < maxLights; i++ {
-		opts.Uniforms[fmt.Sprintf("LightPositions[%d]", i)] = []float32{lightPositions[i*2], lightPositions[i*2+1]}
-		opts.Uniforms[fmt.Sprintf("LightProperties[%d]", i)] = []float32{
-			lightProperties[i*4],
-			lightProperties[i*4+1],
-			lightProperties[i*4+2],
-			lightProperties[i*4+3],
-		}
-		opts.Uniforms[fmt.Sprintf("LightColors[%d]", i)] = []float32{
-			lightColors[i*3],
-			lightColors[i*3+1],
-			lightColors[i*3+2],
 		}
 	}
 

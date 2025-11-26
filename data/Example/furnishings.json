@@ -360,7 +360,7 @@
       "description": "A torch mounted on the left wall. It flickers with dim light.",
       "tile_name": "console_left",
       "interactable": true,
-      "walkable": false,
+      "walkable": true,
       "tags": ["light_source", "decoration"],
       "properties": {
         "light_radius": "150",
@@ -385,7 +385,7 @@
       "description": "A torch mounted on the right wall. It flickers with dim light.",
       "tile_name": "console_right",
       "interactable": true,
-      "walkable": false,
+      "walkable": true,
       "tags": ["light_source", "decoration"],
       "properties": {
         "light_radius": "150",
