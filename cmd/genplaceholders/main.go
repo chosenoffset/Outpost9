@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"chosenoffset.com/outpost9/placeholders"
+	"chosenoffset.com/outpost9/internal/placeholders"
 )
 
 func main() {
